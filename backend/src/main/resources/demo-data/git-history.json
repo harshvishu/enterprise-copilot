@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2025-11-02",
+    "area": "notifications",
+    "decision": "Adopted ConsentService as the single source of truth for channel consent.",
+    "author": "platform-team"
+  },
+  {
+    "date": "2026-02-18",
+    "area": "notifications",
+    "decision": "Standardised on NotificationClient interface; direct provider SDK calls are prohibited.",
+    "author": "architecture-guild"
+  },
+  {
+    "date": "2026-05-09",
+    "area": "logging",
+    "decision": "Mandated masked account references after a near-miss PII-in-logs incident.",
+    "author": "security-team"
+  }
+]

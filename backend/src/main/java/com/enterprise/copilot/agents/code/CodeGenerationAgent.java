@@ -1,0 +1,98 @@
+package com.enterprise.copilot.agents.code;
+
+import com.enterprise.copilot.domain.CodeChangeSet;
+import com.enterprise.copilot.domain.PipelineContext;
+import com.enterprise.copilot.domain.audit.AuditService;
+import com.enterprise.copilot.infrastructure.ai.AgentAiClient;
+import com.enterprise.copilot.infrastructure.ai.AgentKind;
+import com.enterprise.copilot.infrastructure.ai.PromptLibrary;
+import com.enterprise.copilot.orchestration.PipelineEvent;
+import com.enterprise.copilot.orchestration.PipelineEventPublisher;
+import com.enterprise.copilot.orchestration.PipelineEventType;
+import com.enterprise.copilot.tools.ArchitectureTool;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * Nova – the Senior Java Engineer. Turns an approved {@link com.enterprise.copilot.domain.RequirementAnalysis}
+ * into a {@link CodeChangeSet}. The output is always a proposal rendered as a diff – never applied to disk.
+ */
+@Component
+@RequiredArgsConstructor
+public class CodeGenerationAgent {
+
+    public static final String NAME = "Nova";
+
+    private final AgentAiClient ai;
+    private final PromptLibrary prompts;
+    private final ArchitectureTool architecture;
+    private final PipelineEventPublisher events;
+    private final AuditService audit;
+
+    public CodeChangeSet generate(PipelineContext ctx) {
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_STARTED,
+                        NAME,
+                        "Generating an implementation proposal..."
+                ));
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_THINKING,
+                        NAME,
+                        "Applying approved architecture patterns and writing tests."
+                ));
+
+        String analysisSummary =
+                ctx.requirementAnalysis() == null
+                        ? ""
+                        : ctx.requirementAnalysis().summary();
+
+        String prompt =
+                prompts.render(
+                        "codegen",
+                        Map.of(
+                                "analysis", analysisSummary,
+                                "architecture",
+                                architecture.lookup("notification service")
+                        ));
+
+        CodeChangeSet changeSet =
+                ai.generate(
+                        AgentKind.CODE,
+                        ctx.scenario(),
+                        prompt,
+                        CodeChangeSet.class);
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_COMPLETED,
+                        NAME,
+                        "Proposed "
+                                + changeSet.files().size()
+                                + " file change(s) with tests. Awaiting review.",
+                        Map.of(
+                                "filesChanged",
+                                changeSet.files().size()
+                        )
+                ));
+
+        audit.record(
+                ctx.pipelineId(),
+                NAME,
+                "GENERATE_CODE",
+                "PROPOSAL",
+                "OK",
+                changeSet.explanation()
+        );
+
+        return changeSet;
+    }
+}

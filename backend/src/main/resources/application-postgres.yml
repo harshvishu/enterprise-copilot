@@ -1,0 +1,16 @@
+# Local PostgreSQL profile (used by docker-compose). Activate with: -Dspring.profiles.active=postgres
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:copilot}
+    username: ${DB_USER:copilot}
+    password: ${DB_PASSWORD:copilot}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  h2:
+    console:
+      enabled: false

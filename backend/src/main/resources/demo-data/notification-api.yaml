@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Ubuntu Bank Notification API (fictional)
+  version: 1.4.0
+paths:
+  /notifications:
+    post:
+      operationId: sendNotification
+      summary: Send a customer notification through a consented channel.
+  /consent/{customerId}:
+    get:
+      operationId: getConsent
+      summary: Retrieve a customer's channel consent status.
+components:
+  schemas:
+    NotificationRequest:
+      type: object
+      properties:
+        customerId: { type: string }
+        channel: { type: string, enum: [SMS, EMAIL, PUSH] }
+        message: { type: string }
+# NOTE: There is deliberately NO fraud verification endpoint. Any code that calls
+# FraudClient.verifyTransaction(...) is referencing an API that does not exist.

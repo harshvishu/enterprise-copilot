@@ -1,0 +1,114 @@
+package com.enterprise.copilot.github;
+
+import com.enterprise.copilot.domain.*;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Builds a realistic GitHub-style view entirely from the pipeline context. Simulates the issue, the
+ * pull request diff, Sentinel's review comments, CI checks and deployment status.
+ */
+@Component
+@Profile("!real-github")
+public class MockGitHubGateway implements GitHubGateway {
+
+    @Override
+    public GitHubView view(PipelineContext ctx) {
+
+        var ticket = ctx.ticket();
+
+        GitHubView.Issue issue = new GitHubView.Issue(
+                ticket.key(),
+                ticket.title(),
+                ctx.state() == PipelineState.DEPLOYED ? "closed" : "open",
+                ticket.description());
+
+        CodeChangeSet code = ctx.codeChangeSet();
+
+        GitHubView.PullRequest pr = code == null ? null : new GitHubView.PullRequest(
+                "PR-" + ticket.key(),
+                ticket.key() + " " + ticket.title(),
+                prState(ctx),
+                code.unifiedDiff());
+
+        List<GitHubView.ReviewComment> comments = new ArrayList<>();
+
+        ReviewDecision review = ctx.reviewDecision();
+
+        if (review != null) {
+
+            for (ReviewFinding f : review.findings()) {
+
+                comments.add(new GitHubView.ReviewComment(
+                        "Sentinel",
+                        review.outcome().name(),
+                        "[" + f.severity() + "] "
+                                + f.description()
+                                + " – "
+                                + f.recommendation(),
+                        f.file() + ":" + f.location()));
+            }
+
+            if (review.findings().isEmpty()) {
+
+                comments.add(new GitHubView.ReviewComment(
+                        "Sentinel",
+                        review.outcome().name(),
+                        review.summary(),
+                        ""));
+            }
+        }
+
+        List<GitHubView.Check> checks = List.of(
+                new GitHubView.Check("Build", "success"),
+                new GitHubView.Check(
+                        "Tests",
+                        code != null && !code.testsPass()
+                                ? "failure"
+                                : "success"),
+                new GitHubView.Check(
+                        "Security",
+                        review != null && review.hasCriticalFindings()
+                                ? "failure"
+                                : "success")
+        );
+
+        return new GitHubView(
+                issue,
+                pr,
+                comments,
+                checks,
+                deploymentStatus(ctx));
+    }
+
+    private String prState(PipelineContext ctx) {
+
+        return switch (ctx.state()) {
+
+            case DEPLOYED -> "merged";
+
+            case BLOCKED,
+                 REVIEW_FAILED,
+                 FAILED -> "changes_requested";
+
+            default -> "open";
+        };
+    }
+
+    private String deploymentStatus(PipelineContext ctx) {
+
+        return switch (ctx.state()) {
+
+            case DEPLOYED -> "Deployed";
+
+            case WAITING_FOR_APPROVAL -> "Blocked – human approval required";
+
+            case BLOCKED -> "Blocked";
+
+            default -> "Pending";
+        };
+    }
+}
