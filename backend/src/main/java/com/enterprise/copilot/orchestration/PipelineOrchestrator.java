@@ -15,13 +15,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Coordinates the whole delivery pipeline with a typed {@link PipelineContext}.
  * Every state change is persisted and streamed.
- * The pipeline pauses at {@code WAITING_FOR_APPROVAL};
- * only a human resumes it.
+ * The pipeline pauses at {@code WAITING_FOR_APPROVAL}; only a human resumes it.
  */
 @Service
 public class PipelineOrchestrator {
@@ -50,8 +50,7 @@ public class PipelineOrchestrator {
             AuditService audit,
             DemoState demoState,
             ObjectProvider<PipelineOrchestrator> self,
-            @Value("${copilot.demo.step-delay-ms:600}")
-            long stepDelayMs) {
+            @Value("${copilot.demo.step-delay-ms:600}") long stepDelayMs) {
 
         this.requirementsAgent = requirementsAgent;
         this.codeAgent = codeAgent;
@@ -100,7 +99,7 @@ public class PipelineOrchestrator {
                 "OK",
                 "Pipeline created for " + ticket.key());
 
-        self.getObject().run(ctx.pipelineId());
+        self.getObject().run(ctx.pipelineId()); // via proxy so @Async takes effect
 
         return ctx;
     }
@@ -136,7 +135,8 @@ public class PipelineOrchestrator {
                                 pipelineId,
                                 PipelineEventType.GATE_BLOCKED,
                                 RequirementsAgent.NAME,
-                                "Paused: awaiting human clarification before implementation."));
+                                "Paused: awaiting human clarification before implementation."
+                        ));
 
                 audit.record(
                         pipelineId,
@@ -144,100 +144,194 @@ public class PipelineOrchestrator {
                         "PIPELINE_PAUSED",
                         "AWAITING_CLARIFICATION",
                         "BLOCKED",
-                        "Requirement is ambiguous.");
+                        "Requirement is ambiguous."
+                );
 
-                return;
+                return; // pipeline halts until requirements are clarified
             }
 
-            // 2. Code
-
-            transition(
-                    ctx,
-                    PipelineState.GENERATING_CODE);
-
-            CodeChangeSet changeSet =
-                    codeAgent.generate(ctx);
-
-            ctx.setCodeChangeSet(changeSet);
-
-            transition(
-                    ctx,
-                    PipelineState.CODE_READY);
-
-            // 3. Review
-
-            transition(
-                    ctx,
-                    PipelineState.REVIEWING);
-
-            ReviewDecision review =
-                    reviewAgent.review(ctx);
-
-            ctx.setReviewDecision(review);
-
-            transition(
-                    ctx,
-                    review.passed()
-                            ? PipelineState.REVIEW_PASSED
-                            : PipelineState.REVIEW_FAILED);
-
-            // 4. Deploy gate
-
-            DeploymentDecision decision =
-                    deployAgent.evaluate(ctx);
-
-            ctx.setDeploymentDecision(decision);
-
-            if (decision.allowed()) {
-
-                deploy(ctx);
-
-            } else if (decision.requiresApproval()
-                    && review.passed()
-                    && !review.hasCriticalFindings()
-                    && changeSet.testsPass()) {
-
-                ctx.setApprovalState(
-                        ApprovalState.PENDING);
-
-                transition(
-                        ctx,
-                        PipelineState.WAITING_FOR_APPROVAL);
-
-            } else {
-
-                transition(
-                        ctx,
-                        PipelineState.BLOCKED);
-
-                events.publish(
-                        PipelineEvent.of(
-                                pipelineId,
-                                PipelineEventType.PIPELINE_FAILED,
-                                "System",
-                                "Pipeline blocked. "
-                                        + decision.summary()));
-            }
+            runImplementationStages(ctx);
 
         } catch (RuntimeException ex) {
 
-            log.error(
-                    "Pipeline {} failed",
+            failPipeline(
                     pipelineId,
+                    ctx,
                     ex);
+        }
+    }
+
+    /**
+     * A human answers Rhea's clarification questions; the pipeline resumes from the code stage.
+     * AI can never call this path.
+     */
+    public PipelineContext clarify(
+            UUID pipelineId,
+            List<String> answers) {
+
+        PipelineContext ctx =
+                store.load(pipelineId)
+                        .orElseThrow();
+
+        if (ctx.state() != PipelineState.REQUIREMENTS_READY
+                || ctx.requirementAnalysis() == null
+                || !ctx.requirementAnalysis().needsClarification()) {
+
+            throw new IllegalStateException(
+                    "Pipeline is not awaiting clarification (state="
+                            + ctx.state()
+                            + ")");
+        }
+
+        String joined =
+                answers == null
+                        ? ""
+                        : String.join("; ", answers);
+
+        events.publish(
+                PipelineEvent.of(
+                        pipelineId,
+                        PipelineEventType.AGENT_COMPLETED,
+                        "Human",
+                        "Clarifications provided. Resuming implementation."
+                ));
+
+        audit.record(
+                pipelineId,
+                "Human",
+                "CLARIFY_REQUIREMENTS",
+                "CLARIFIED",
+                "HUMAN_ACCOUNTABILITY",
+                joined
+        );
+
+        self.getObject()
+                .continueAfterRequirements(pipelineId);
+
+        return ctx;
+    }
+
+    /**
+     * Resume the pipeline after requirements are clarified: run code, review and the deploy gate.
+     */
+    @Async
+    public void continueAfterRequirements(UUID pipelineId) {
+
+        PipelineContext ctx =
+                store.load(pipelineId)
+                        .orElseThrow();
+
+        try {
+
+            runImplementationStages(ctx);
+
+        } catch (RuntimeException ex) {
+
+            failPipeline(
+                    pipelineId,
+                    ctx,
+                    ex);
+        }
+    }
+
+    private void runImplementationStages(PipelineContext ctx) {
+
+        UUID pipelineId = ctx.pipelineId();
+
+        // 2. Code
+
+        transition(
+                ctx,
+                PipelineState.GENERATING_CODE);
+
+        CodeChangeSet changeSet =
+                codeAgent.generate(ctx);
+
+        ctx.setCodeChangeSet(changeSet);
+
+        transition(
+                ctx,
+                PipelineState.CODE_READY);
+
+        // 3. Review
+
+        transition(
+                ctx,
+                PipelineState.REVIEWING);
+
+        ReviewDecision review =
+                reviewAgent.review(ctx);
+
+        ctx.setReviewDecision(review);
+
+        transition(
+                ctx,
+                review.passed()
+                        ? PipelineState.REVIEW_PASSED
+                        : PipelineState.REVIEW_FAILED);
+
+        // 4. Deploy gate
+
+        DeploymentDecision decision =
+                deployAgent.evaluate(ctx);
+
+        ctx.setDeploymentDecision(decision);
+
+        if (decision.allowed()) {
+
+            deploy(ctx);
+
+        } else if (decision.requiresApproval()
+                && review.passed()
+                && !review.hasCriticalFindings()
+                && changeSet.testsPass()) {
+
+            ctx.setApprovalState(
+                    ApprovalState.PENDING);
 
             transition(
                     ctx,
-                    PipelineState.FAILED);
+                    PipelineState.WAITING_FOR_APPROVAL);
+
+        } else {
+
+            transition(
+                    ctx,
+                    PipelineState.BLOCKED);
 
             events.publish(
                     PipelineEvent.of(
                             pipelineId,
                             PipelineEventType.PIPELINE_FAILED,
                             "System",
-                            "Pipeline failed: "
-                                    + ex.getMessage()));
+                            "Pipeline blocked. "
+                                    + decision.summary()
+                    ));
         }
+    }
+
+    private void failPipeline(
+            UUID pipelineId,
+            PipelineContext ctx,
+            RuntimeException ex) {
+
+        log.error(
+                "Pipeline {} failed",
+                pipelineId,
+                ex);
+
+        transition(
+                ctx,
+                PipelineState.FAILED);
+
+        events.publish(
+                PipelineEvent.of(
+                        pipelineId,
+                        PipelineEventType.PIPELINE_FAILED,
+                        "System",
+                        "Pipeline failed: "
+                                + ex.getMessage()
+                ));
     }
 
     /**
@@ -251,8 +345,7 @@ public class PipelineOrchestrator {
                 store.load(pipelineId)
                         .orElseThrow();
 
-        if (ctx.state()
-                != PipelineState.WAITING_FOR_APPROVAL) {
+        if (ctx.state() != PipelineState.WAITING_FOR_APPROVAL) {
 
             throw new IllegalStateException(
                     "Pipeline is not awaiting approval (state="
@@ -272,7 +365,8 @@ public class PipelineOrchestrator {
                         "Human",
                         "Deployment approved by "
                                 + approver
-                                + "."));
+                                + "."
+                ));
 
         audit.record(
                 pipelineId,
@@ -280,7 +374,8 @@ public class PipelineOrchestrator {
                 "APPROVE_DEPLOYMENT",
                 "APPROVED",
                 "HUMAN_ACCOUNTABILITY",
-                "Approved by " + approver);
+                "Approved by " + approver
+        );
 
         DeploymentDecision decision =
                 deployAgent.evaluate(ctx);
@@ -288,8 +383,11 @@ public class PipelineOrchestrator {
         ctx.setDeploymentDecision(decision);
 
         if (decision.allowed()) {
+
             deploy(ctx);
+
         } else {
+
             transition(
                     ctx,
                     PipelineState.BLOCKED);
@@ -323,7 +421,8 @@ public class PipelineOrchestrator {
                         "Human",
                         "Deployment rejected by "
                                 + approver
-                                + "."));
+                                + "."
+                ));
 
         audit.record(
                 pipelineId,
@@ -331,7 +430,8 @@ public class PipelineOrchestrator {
                 "REJECT_DEPLOYMENT",
                 "REJECTED",
                 "HUMAN_ACCOUNTABILITY",
-                "Rejected by " + approver);
+                "Rejected by " + approver
+        );
 
         return ctx;
     }
@@ -347,7 +447,8 @@ public class PipelineOrchestrator {
                         ctx.pipelineId(),
                         PipelineEventType.DEPLOYMENT_STARTED,
                         DeployAgent.NAME,
-                        "Deploying to production..."));
+                        "Deploying to production..."
+                ));
 
         pace();
 
@@ -360,14 +461,16 @@ public class PipelineOrchestrator {
                         ctx.pipelineId(),
                         PipelineEventType.DEPLOYMENT_COMPLETED,
                         DeployAgent.NAME,
-                        "Deployment completed."));
+                        "Deployment completed."
+                ));
 
         events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
                         PipelineEventType.PIPELINE_COMPLETED,
                         "System",
-                        "Pipeline completed successfully."));
+                        "Pipeline completed successfully."
+                ));
 
         audit.record(
                 ctx.pipelineId(),
@@ -375,7 +478,8 @@ public class PipelineOrchestrator {
                 "DEPLOY",
                 "DEPLOYED",
                 "OK",
-                "Deployment completed.");
+                "Deployment completed."
+        );
     }
 
     private void transition(

@@ -1,6 +1,6 @@
 # Ollama LIVE profile - local, key-free. Requires Ollama running with the model pulled.
 #   ollama pull llama3.1 && ollama serve
-# Run: ./mvnw spring-boot:run -Dspring-boot.run.profiles=ollama
+# Run: .\mvnw spring-boot:run "-Dspring-boot.run.profiles=ollama"
 
 spring:
   config:

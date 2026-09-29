@@ -21,6 +21,11 @@ spring:
   h2:
     console:
       enabled: true
+  ai:
+    model:
+      chat: none
+    openai:
+      api-key: ${OPENAI_API_KEY:demo-key-not-used}
 
 server:
   port: 8080

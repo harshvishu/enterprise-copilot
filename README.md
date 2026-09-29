@@ -193,6 +193,8 @@ See `docs/architecture.md` for the full diagrams
 - `docs/security.md` – AI threat model & defenses
 - `docs/failure-scenarios.md` – the seven scenarios
 - `docs/demo-script.md` – the 90-second live demo
+- `docs/speaker-notes.md` – engaging speaker notes per agent
+- `docs/cue-card.md` – one-page presenter cue card
 - `docs/workshop-guide.md` – branch-by-branch guide
 - `adr/` – architecture decision records
 

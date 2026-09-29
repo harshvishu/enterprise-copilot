@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * typed agent contract via {@code .entity(responseType)} - no manual JSON parsing.
  */
 @Component
-@Profile("azure | ollama")
+@Profile("ollama | openai")
 public class SpringAiAgentAiClient implements AgentAiClient {
 
     private static final String SYSTEM_POLICY = """

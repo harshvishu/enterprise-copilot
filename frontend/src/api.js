@@ -43,6 +43,15 @@ export const api = {
             { method: 'POST' }
         ).then(json),
 
+    clarify: (id, answers) =>
+        fetch(
+            `${BASE}/pipelines/${id}/clarify`,
+            { method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ answers })
+            }
+        ).then(json),
+
     audit: (id) =>
         fetch(
             `${BASE}/audit/pipelines/${id}`

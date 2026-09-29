@@ -85,6 +85,16 @@ public class PipelineController {
                 orchestrator.approve(id, approver));
     }
 
+    @PostMapping("/{id}/clarify")
+    public PipelineResponse clarify(
+            @PathVariable UUID id,
+            @RequestBody(required = false) ClarifyRequest request) {
+
+        List<String> answers = request == null || request.answers() == null ? List.of() : request.answers();
+        return PipelineResponse.from(
+                orchestrator.clarify(id, answers));
+    }
+
     @PostMapping("/{id}/reject")
     public PipelineResponse reject(
             @PathVariable UUID id,
@@ -93,5 +103,8 @@ public class PipelineController {
 
         return PipelineResponse.from(
                 orchestrator.reject(id, approver));
+    }
+
+    public record ClarifyRequest(List<String> answers) {
     }
 }

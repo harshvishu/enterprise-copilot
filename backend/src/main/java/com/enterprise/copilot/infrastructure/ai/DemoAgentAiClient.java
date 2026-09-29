@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * {@link DemoResponses} based on the active scenario, mirroring the shape of real agent outputs.
  */
 @Component
-@Profile("!azure & !ollama")
+@Profile("!ollama & !openai")
 public class DemoAgentAiClient implements AgentAiClient {
 
     private final DemoResponses responses;
