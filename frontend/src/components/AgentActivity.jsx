@@ -1,73 +1,146 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Activity,
+    FileSearch,
+    Code2,
+    ShieldCheck,
+    LockKeyhole,
+    UserRound,
+    CircleDot,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    Sheet,
+    SheetTrigger,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetDescription,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
-const AGENT_STYLE = {
-    Rhea: 'text-sky-300',
-    Nova: 'text-violet-300',
-    Sentinel: 'text-emerald-300',
-    Atlas: 'text-orange-300',
-    Human: 'text-amber-300',
-    System: 'text-slate-400'
+const ICONS = {
+    Rhea: FileSearch,
+    Nova: Code2,
+    Sentinel: ShieldCheck,
+    Atlas: LockKeyhole,
+    Human: UserRound,
+    System: CircleDot,
+};
+const LABELS = {
+    PIPELINE_STARTED: 'Pipeline started',
+    AGENT_STARTED: 'Started',
+    AGENT_THINKING: 'Assessing',
+    TOOL_INVOKED: 'Reference consulted',
+    AGENT_COMPLETED: 'Assessment complete',
+    FINDING_CREATED: 'Finding identified',
+    GATE_BLOCKED: 'Gate blocked',
+    APPROVAL_REQUIRED: 'Approval needed',
+    APPROVAL_GRANTED: 'Human approved',
+    APPROVAL_REJECTED: 'Human rejected',
+    DEPLOYMENT_STARTED: 'Deployment started',
+    DEPLOYMENT_COMPLETED: 'Deployment complete',
+    PIPELINE_COMPLETED: 'Pipeline complete',
+    PIPELINE_FAILED: 'Execution stopped',
 };
 
-const TYPE_BADGE = {
-    FINDING_CREATED: 'bg-danger/20 text-danger',
-    GATE_BLOCKED: 'bg-danger/20 text-danger',
-    APPROVAL_REQUIRED: 'bg-warn/20 text-warn',
-    APPROVAL_GRANTED: 'bg-ok/20 text-ok',
-    DEPLOYMENT_COMPLETED: 'bg-ok/20 text-ok',
-    PIPELINE_COMPLETED: 'bg-ok/20 text-ok',
-    PIPELINE_FAILED: 'bg-danger/20 text-danger'
-};
-
-export default function AgentActivity({ events }) {
+export default function AgentActivity({ events = [] }) {
+    const [open, setOpen] = useState(false);
     const endRef = useRef(null);
     useEffect(() => {
-        endRef.current?.scrollIntoView({
-            behavior: 'smooth'
-        });
-    }, [events]);
-
+        if (open) endRef.current?.scrollIntoView({ block: 'nearest' });
+    }, [events.length, open]);
+    const groups = events.reduce((result, event) => {
+        const last = result[result.length - 1];
+        if (last?.agent === event.agent) last.events.push(event);
+        else result.push({ agent: event.agent, events: [event] });
+        return result;
+    }, []);
     return (
-        <div className="flex flex-col h-full">
-            <div className="px-4 py-3 border-b border-edge text-sm font-semibold text-slate-200">
-                Live Agent Activity
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {events.length === 0 && (
-                    <div className="text-slate-500 text-sm">
-                        Run the pipeline to see AI teammates collaborate.
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 text-xs">
+                    <Activity />
+                    Activity
+                    <span className="min-w-4 text-center tabular-nums text-muted-foreground">
+                        {events.length}
+                    </span>
+                </Button>
+            </SheetTrigger>
+            <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
+                <SheetHeader className="border-b p-6 text-left">
+                    <SheetTitle className="text-base">Pipeline activity</SheetTitle>
+                    <SheetDescription>{events.length} events recorded</SheetDescription>
+                </SheetHeader>
+                <ScrollArea className="min-h-0 flex-1">
+                    <div className="space-y-7 p-6">
+                        {!groups.length && (
+                            <p className="text-sm text-muted-foreground">
+                                No activity recorded yet.
+                            </p>
+                        )}
+                        {groups.map((group, groupIndex) => {
+                            const Icon = ICONS[group.agent] || CircleDot;
+                            return (
+                                <section key={groupIndex}>
+                                    <h3 className="mb-4 flex items-center gap-2 text-sm font-medium">
+                                        <Icon className="h-4 w-4 text-muted-foreground" />
+                                        {group.agent}
+                                    </h3>
+                                    <ol className="ml-2 space-y-4 border-l pl-5">
+                                        {group.events.map((event, index) => (
+                                            <li key={index} className="relative">
+                                                <span
+                                                    className={cn(
+                                                        'absolute -left-[25px] top-1 h-2 w-2 rounded-full border border-background',
+                                                        [
+                                                            'GATE_BLOCKED',
+                                                            'PIPELINE_FAILED',
+                                                        ].includes(event.type) ||
+                                                            event.data?.severity === 'CRITICAL'
+                                                            ? 'bg-destructive'
+                                                            : event.type === 'APPROVAL_REQUIRED'
+                                                              ? 'bg-warning'
+                                                              : 'bg-muted-foreground/50',
+                                                    )}
+                                                />
+                                                <div className="mb-1 flex items-center justify-between gap-2">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span className="text-xs font-medium">
+                                                                {LABELS[event.type] ||
+                                                                    'Activity recorded'}
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent className="font-mono text-[10px]">
+                                                            {event.type}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <time className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                                                        {new Date(
+                                                            event.timestamp,
+                                                        ).toLocaleTimeString([], {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            second: '2-digit',
+                                                        })}
+                                                    </time>
+                                                </div>
+                                                <p className="break-anywhere text-xs leading-5 text-muted-foreground">
+                                                    {event.message}
+                                                </p>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </section>
+                            );
+                        })}
+                        <div ref={endRef} />
                     </div>
-                )}
-                {events.map((e, i) => (
-                    <div
-                        key={i}
-                        className="rounded-lg bg-panel2 border border-edge p-3"
-                    >
-                        <div className="flex items-center justify-between">
-                            <span
-                                className={`text-sm font-semibold ${
-                                    AGENT_STYLE[e.agent] || 'text-slate-300'
-                                }`}
-                            >
-                                {e.agent}
-                            </span>
-                            <span
-                                className={`text-[10px] px-2 py-0.5 rounded ${
-                                    TYPE_BADGE[e.type] ||
-                                    'bg-edge text-slate-300'
-                                }`}
-                            >
-                                {e.type}
-                            </span>
-                        </div>
-                        <div className="mt-1 text-sm text-slate-300 leading-snug">
-                            {e.message}
-                        </div>
-                    </div>
-
-                ))}
-                <div ref={endRef} />
-            </div>
-        </div>
+                </ScrollArea>
+            </SheetContent>
+        </Sheet>
     );
 }

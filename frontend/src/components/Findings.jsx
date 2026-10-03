@@ -1,74 +1,136 @@
 import React from 'react';
+import { ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { readable, severityCounts } from '@/lib/pipeline';
+import { cn } from '@/lib/utils';
 
-const SEV = {
-    CRITICAL: 'bg-danger/20 text-danger border-danger/40',
-    HIGH: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
-    MEDIUM: 'bg-warn/20 text-warn border-warn/40',
-    LOW: 'bg-slate-500/20 text-slate-300 border-slate-500/40'
+const COLORS = {
+    CRITICAL: 'border-l-destructive',
+    HIGH: 'border-l-warning/70',
+    MEDIUM: 'border-l-muted-foreground/60',
+    LOW: 'border-l-border',
 };
 
-export default function Findings({ review }) {
-    if (!review) {
-        return (
-            <div className="text-slate-500 text-sm">
-                No review yet.
-            </div>
-        );
-    }
-
-    const outcomeColor =
-        review.outcome === 'APPROVE'
-            ? 'text-ok'
-            : review.outcome === 'REJECT'
-                ? 'text-danger'
-                : 'text-warn';
-
+export default function Findings({ review, running = false, mode }) {
+    const counts = severityCounts(review);
+    const passed = review?.outcome === 'APPROVE';
     return (
-        <div>
-            <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm text-slate-400">
-                    Sentinel decision:
-                </span>
-                <span
-                    className={`text-sm font-semibold ${outcomeColor}`}
-                >
-                    {review.outcome}
+        <section id="review" className="scroll-mt-6 min-w-0 py-6">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold">
+                    Review{' '}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">Sentinel</span>
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                    {mode === 'DEMO' ? 'Deterministic preview' : 'Model assessment'}
                 </span>
             </div>
-
-            <p className="text-sm text-slate-300 mb-3">
-                {review.summary}
-            </p>
-            <div className="space-y-2">
-                {review.findings.map((f, i) => (
+            {!review ? (
+                running ? (
+                    <div className="space-y-3">
+                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sentinel is reviewing the proposal...
+                        </p>
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-4 w-3/5" />
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Awaiting the code proposal.</p>
+                )
+            ) : (
+                <>
                     <div
-                        key={i}
-                        className={`rounded-lg border p-3 ${
-                            SEV[f.severity] || SEV.LOW
-                        }`}
+                        className={cn(
+                            'mb-3 flex items-center gap-2 text-sm font-medium',
+                            passed
+                                ? 'text-success'
+                                : review.outcome === 'REJECT'
+                                  ? 'text-destructive'
+                                  : 'text-warning',
+                        )}
                     >
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold">
-                                {f.severity} • {f.category}
-                            </span>
-                            <span className="text-[11px] opacity-80">
-                                {f.file}:{f.location}
-                            </span>
-                        </div>
-                        <div className="mt-1 text-sm">
-                            {f.description}
-                        </div>
-                        <div className="mt-1 text-xs opacity-80">
-                            ↳ {f.recommendation}
-                        </div>
+                        {passed ? (
+                            <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                            <ShieldAlert className="h-4 w-4" />
+                        )}
+                        {passed
+                            ? 'Review passed'
+                            : review.outcome === 'REJECT'
+                              ? 'Review rejected'
+                              : 'Changes requested'}
                     </div>
-                ))}
-                {review.findings.length === 0 && (
-                    <div className="text-sm text-ok">
-                        No findings — clean review.
+                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                        {review.summary}
+                    </p>
+                    <div className="my-5 flex flex-wrap gap-4 text-xs">
+                        {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+                            .filter((level) => counts[level])
+                            .map((level) => (
+                                <span
+                                    key={level}
+                                    className={
+                                        level === 'CRITICAL'
+                                            ? 'text-destructive'
+                                            : 'text-muted-foreground'
+                                    }
+                                >
+                                    <strong className="font-semibold">{counts[level]}</strong>{' '}
+                                    {readable(level)}
+                                </span>
+                            ))}
                     </div>
-                )}
-            </div>
-        </div>
+                    <div className="space-y-3">
+                        {(review.findings || []).map((finding, index) => (
+                            <article
+                                key={`${finding.file}-${index}`}
+                                className={cn(
+                                    'rounded-md border border-l-[3px] bg-card/40 p-4',
+                                    COLORS[finding.severity] || COLORS.LOW,
+                                )}
+                            >
+                                <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            'rounded-sm text-[10px] font-medium',
+                                            finding.severity === 'CRITICAL'
+                                                ? 'border-destructive/25 text-destructive'
+                                                : finding.severity === 'HIGH'
+                                                  ? 'text-warning'
+                                                  : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        {readable(finding.severity)}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                        {readable(finding.category)}
+                                    </span>
+                                </div>
+                                <h3 className="text-sm font-medium leading-6">
+                                    {finding.description}
+                                </h3>
+                                <p className="mt-2 break-anywhere font-mono text-[11px] leading-5 text-muted-foreground">
+                                    {finding.file}
+                                    <span className="mx-2 text-border">/</span>
+                                    {finding.location}
+                                </p>
+                                <div className="mt-3 border-t pt-3">
+                                    <span className="text-xs font-medium">Recommendation</span>
+                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                        {finding.recommendation}
+                                    </p>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                    {!review.findings?.length && (
+                        <p className="mt-4 text-sm text-muted-foreground">No review findings.</p>
+                    )}
+                </>
+            )}
+        </section>
     );
 }

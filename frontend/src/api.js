@@ -3,71 +3,46 @@ const BASE = '/api';
 async function json(res) {
     if (!res.ok) {
         const body = await res.text();
-        throw new Error(`${res.status}: ${body}`);
+        let message = body;
+        try {
+            message = JSON.parse(body).message || res.statusText;
+        } catch {}
+        const error = new Error(message || `Request failed (${res.status})`);
+        error.status = res.status;
+        throw error;
     }
-    return res.status === 204
-        ? null
-        : res.json();
+    return res.status === 204 ? null : res.json();
 }
 
 export const api = {
-    status: () =>
-        fetch(`${BASE}/demo/status`).then(json),
+    status: () => fetch(`${BASE}/demo/status`).then(json),
     setScenario: (scenario) =>
-        fetch(
-            `${BASE}/demo/scenario?scenario=${scenario}`,
-            { method: 'POST' }
-        ).then(json),
+        fetch(`${BASE}/demo/scenario?scenario=${scenario}`, { method: 'POST' }).then(json),
 
-    runDemo: () =>
-        fetch(
-            `${BASE}/demo/run`,
-            { method: 'POST' }
-        ).then(json),
+    runDemo: () => fetch(`${BASE}/demo/run`, { method: 'POST' }).then(json),
 
-    listPipelines: () =>
-        fetch(`${BASE}/pipelines`).then(json),
+    listPipelines: () => fetch(`${BASE}/pipelines`).then(json),
 
-    getPipeline: (id) =>
-        fetch(`${BASE}/pipelines/${id}`).then(json),
+    getPipeline: (id) => fetch(`${BASE}/pipelines/${id}`).then(json),
 
-    approve: (id) =>
-        fetch(
-            `${BASE}/pipelines/${id}/approve`,
-            { method: 'POST' }
-        ).then(json),
+    approve: (id) => fetch(`${BASE}/pipelines/${id}/approve`, { method: 'POST' }).then(json),
 
-    reject: (id) =>
-        fetch(
-            `${BASE}/pipelines/${id}/reject`,
-            { method: 'POST' }
-        ).then(json),
+    reject: (id) => fetch(`${BASE}/pipelines/${id}/reject`, { method: 'POST' }).then(json),
 
     clarify: (id, answers) =>
-        fetch(
-            `${BASE}/pipelines/${id}/clarify`,
-            { method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ answers })
-            }
-        ).then(json),
+        fetch(`${BASE}/pipelines/${id}/clarify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers }),
+        }).then(json),
 
-    audit: (id) =>
-        fetch(
-            `${BASE}/audit/pipelines/${id}`
-        ).then(json),
+    audit: (id) => fetch(`${BASE}/audit/pipelines/${id}`).then(json),
 
-    github: (id) =>
-        fetch(
-            `${BASE}/github/pipelines/${id}`
-        ).then(json)
+    github: (id) => fetch(`${BASE}/github/pipelines/${id}`).then(json),
 };
 
 export function streamEvents(id, onEvent) {
-    const source =
-        new EventSource(
-            `${BASE}/pipelines/${id}/events`
-        );
+    const source = new EventSource(`${BASE}/pipelines/${id}/events`);
 
     const types = [
         'PIPELINE_STARTED',
@@ -83,15 +58,10 @@ export function streamEvents(id, onEvent) {
         'DEPLOYMENT_STARTED',
         'DEPLOYMENT_COMPLETED',
         'PIPELINE_COMPLETED',
-        'PIPELINE_FAILED'
+        'PIPELINE_FAILED',
     ];
 
-    types.forEach((t) =>
-        source.addEventListener(
-            t,
-            (e) => onEvent(JSON.parse(e.data))
-        )
-    );
+    types.forEach((t) => source.addEventListener(t, (e) => onEvent(JSON.parse(e.data))));
 
     source.onerror = () => source.close();
     return source;

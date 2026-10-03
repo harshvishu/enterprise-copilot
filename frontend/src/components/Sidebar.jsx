@@ -1,75 +1,75 @@
 import React from 'react';
+import {
+    Layers2,
+    LayoutDashboard,
+    CircleDot,
+    Bot,
+    GitPullRequest,
+    Rocket,
+    History,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const ITEMS = [
-    {
-        key: 'dashboard',
-        label: 'Dashboard',
-        icon: '▦'
-    },
-    {
-        key: 'issues',
-        label: 'Issues',
-        icon: '◉'
-    },
-    {
-        key: 'agents',
-        label: 'AI Agents',
-        icon: '⬡'
-    },
-    {
-        key: 'pulls',
-        label: 'Pull Requests',
-        icon: '⇄'
-    },
-    {
-        key: 'deployments',
-        label: 'Deployments',
-        icon: '🚀'
-    },
-    {
-        key: 'audit',
-        label: 'Audit Trail',
-        icon: '📜'
-    }
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { key: 'issues', label: 'Issues', icon: CircleDot },
+    { key: 'agents', label: 'Agents', icon: Bot },
+    { key: 'pulls', label: 'Pull Requests', icon: GitPullRequest },
+    { key: 'deployments', label: 'Deployments', icon: Rocket },
+    { key: 'audit', label: 'Audit Trail', icon: History },
 ];
 
-export default function Sidebar({
-                                    active,
-                                    onSelect
-                                }) {
-
+export default function Sidebar({ active, onSelect }) {
     return (
-        <aside className="w-56 shrink-0 bg-panel border-r border-edge flex flex-col">
-            <div className="px-5 py-5 border-b border-edge">
-                <div className="text-lg font-semibold tracking-tight">
-                    Enterprise Copilot
+        <aside className="flex h-full min-h-[400px] w-full flex-col bg-card/40">
+            <div className="flex items-center gap-2.5 px-5 py-7">
+                <Layers2 className="h-5 w-5 shrink-0 text-foreground/80" />
+                <span className="text-sm font-semibold">Enterprise Copilot</span>
+            </div>
+            <div className="mx-4 mb-7 flex items-center gap-2.5 border-b pb-5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md border bg-muted text-[10px] font-medium">
+                    UB
                 </div>
-                <div className="text-xs text-slate-400 mt-1">
-                    Every sprint has AI teammates
+                <div>
+                    <div className="text-xs font-medium">Ubuntu Bank</div>
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        Engineering workspace
+                    </div>
                 </div>
             </div>
-            <nav className="flex-1 py-3">
-                {ITEMS.map((item) => (
-                    <button
-                        key={item.key}
-                        onClick={() => onSelect(item.key)}
-                        className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-colors ${
-                            active === item.key
-                                ? 'bg-panel2 text-white border-l-2 border-accent'
-                                : 'text-slate-400 hover:text-slate-200 border-l-2 border-transparent'
-                        }`}
-                    >
-
-                        <span className="w-4 text-center">
-                            {item.icon}
-                        </span>
-                        {item.label}
-                    </button>
-                ))}
+            <nav aria-label="Main navigation" className="space-y-1 px-3">
+                {ITEMS.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <Button
+                            key={item.key}
+                            variant="ghost"
+                            aria-current={active === item.key ? 'page' : undefined}
+                            onClick={() => onSelect(item.key)}
+                            className={cn(
+                                'h-9 w-full justify-start gap-3 px-3 text-xs font-normal',
+                                active === item.key
+                                    ? 'bg-accent/65 text-foreground'
+                                    : 'text-muted-foreground',
+                            )}
+                        >
+                            <Icon
+                                className={cn(
+                                    'h-4 w-4',
+                                    active === item.key
+                                        ? 'text-foreground/80'
+                                        : 'text-muted-foreground/70',
+                                )}
+                            />
+                            {item.label}
+                        </Button>
+                    );
+                })}
             </nav>
-
-            <div className="px-5 py-4 border-t border-edge text-[11px] text-slate-500">
-                AI accelerates delivery.<br />
+            <div className="mt-auto px-5 py-6 text-[10px] leading-5 text-muted-foreground/65">
+                AI accelerates delivery.
+                <br />
                 Humans own accountability.
             </div>
         </aside>

@@ -1,128 +1,117 @@
 import React from 'react';
+import {
+    CircleDot,
+    FileSearch,
+    Code2,
+    ShieldCheck,
+    Rocket,
+    Check,
+    X,
+    Clock3,
+    Loader2,
+} from 'lucide-react';
+import { stageStatuses } from '@/lib/pipeline';
+import { cn } from '@/lib/utils';
 
 const STAGES = [
-    'ISSUE',
-    'REQUIREMENTS',
-    'CODE',
-    'REVIEW',
-    'DEPLOY'
+    { name: 'Issue', agent: 'Work item', icon: CircleDot },
+    { name: 'Requirements', agent: 'Rhea', icon: FileSearch },
+    { name: 'Code', agent: 'Nova', icon: Code2 },
+    { name: 'Review', agent: 'Sentinel', icon: ShieldCheck },
+    { name: 'Deploy', agent: 'Atlas', icon: Rocket },
 ];
-
-const AGENTS = {
-    REQUIREMENTS: '🔍 Rhea',
-    CODE: '💻 Nova',
-    REVIEW: '🛡️ Sentinel',
-    DEPLOY: '🚀 Atlas'
+const STATUS = {
+    pending: 'Not started',
+    running: 'Running',
+    completed: 'Completed',
+    waiting: 'Waiting',
+    rejected: 'Rejected',
+    blocked: 'Blocked',
+    failed: 'Failed',
 };
 
-// Map a pipeline state to per-stage status:
-// pending | running | done | warn | blocked
-
-function statuses(state) {
-    const s = {};
-    STAGES.forEach((st) => (s[st] = 'pending'));
-    s.ISSUE = 'done';
-    const set = (stage, val) => (s[stage] = val);
-    switch (state) {
-        case 'ANALYZING_REQUIREMENTS':
-            set('REQUIREMENTS', 'running');
-            break;
-        case 'REQUIREMENTS_READY':
-            set('REQUIREMENTS', 'done');
-            break;
-        case 'GENERATING_CODE':
-            set('REQUIREMENTS', 'done');
-            set('CODE', 'running');
-            break;
-        case 'CODE_READY':
-            set('REQUIREMENTS', 'done');
-            set('CODE', 'done');
-            break;
-        case 'REVIEWING':
-            set('REQUIREMENTS', 'done');
-            set('CODE', 'done');
-            set('REVIEW', 'running');
-            break;
-        case 'REVIEW_PASSED':
-            ['REQUIREMENTS', 'CODE', 'REVIEW']
-                .forEach((x) => set(x, 'done'));
-            break;
-        case 'REVIEW_FAILED':
-            set('REQUIREMENTS', 'done');
-            set('CODE', 'done');
-            set('REVIEW', 'blocked');
-            break;
-        case 'WAITING_FOR_APPROVAL':
-            ['REQUIREMENTS', 'CODE', 'REVIEW']
-                .forEach((x) => set(x, 'done'));
-            set('DEPLOY', 'warn');
-            break;
-        case 'DEPLOYING':
-            ['REQUIREMENTS', 'CODE', 'REVIEW']
-                .forEach((x) => set(x, 'done'));
-            set('DEPLOY', 'running');
-            break;
-        case 'DEPLOYED':
-            STAGES.forEach((x) => set(x, 'done'));
-            break;
-        case 'BLOCKED':
-            set('DEPLOY', 'blocked');
-            break;
-        case 'FAILED':
-            set('DEPLOY', 'blocked');
-            break;
-        default:
-            break;
-    }
-    return s;
-}
-
-const ICON = {
-    pending: '○',
-    running: '🔄',
-    done: '✅',
-    warn: '⚠️',
-    blocked: '❌'
-};
-
-const COLOR = {
-    pending: 'text-slate-500 border-edge',
-    running: 'text-accent border-accent animate-pulse-soft',
-    done: 'text-ok border-ok/50',
-    warn: 'text-warn border-warn/60',
-    blocked: 'text-danger border-danger/60'
-};
-
-export default function PipelineStages({ state }) {
-    const s = statuses(state || 'CREATED');
+export default function PipelineStages({ pipeline, state }) {
+    const statuses = stageStatuses(pipeline || (state ? { state } : null));
     return (
-        <div className="flex items-stretch gap-2">
-            {STAGES.map((stage, i) => (
-                <React.Fragment key={stage}>
-                    <div
-                        className={`flex-1 rounded-lg border bg-panel2 px-3 py-4 text-center ${
-                            COLOR[s[stage]]
-                        }`}
-                    >
-                        <div className="text-2xl leading-none">
-                            {ICON[s[stage]]}
-                        </div>
-                        <div className="mt-2 text-xs font-semibold tracking-wide text-slate-200">
-                            {stage}
-                        </div>
-                        {AGENTS[stage] && (
-                            <div className="mt-1 text-[11px] text-slate-400">
-                                {AGENTS[stage]}
+        <section aria-label="Delivery pipeline" className="border-y py-6 sm:py-8">
+            <ol className="grid grid-cols-5 gap-1 sm:gap-3">
+                {STAGES.map((stage, index) => {
+                    const status = statuses[index];
+                    const Icon =
+                        status === 'completed'
+                            ? Check
+                            : ['rejected', 'blocked', 'failed'].includes(status)
+                              ? X
+                              : status === 'running'
+                                ? Loader2
+                                : status === 'waiting'
+                                  ? Clock3
+                                  : stage.icon;
+                    return (
+                        <li
+                            key={stage.name}
+                            aria-current={
+                                status === 'running' || status === 'waiting' ? 'step' : undefined
+                            }
+                            className="relative min-w-0"
+                        >
+                            {index < STAGES.length - 1 && (
+                                <div
+                                    aria-hidden="true"
+                                    className={cn(
+                                        'absolute left-9 right-0 top-4 h-px sm:left-10',
+                                        status === 'completed' ? 'bg-success/30' : 'bg-border',
+                                    )}
+                                />
+                            )}
+                            <div
+                                className={cn(
+                                    'relative flex h-8 w-8 items-center justify-center rounded-full border bg-background',
+                                    status === 'completed'
+                                        ? 'border-success/30 text-success'
+                                        : status === 'running'
+                                          ? 'border-primary text-primary'
+                                          : status === 'waiting'
+                                            ? 'border-warning/50 text-warning'
+                                            : ['rejected', 'blocked', 'failed'].includes(status)
+                                              ? 'border-destructive/50 text-destructive'
+                                              : 'text-muted-foreground',
+                                )}
+                            >
+                                <Icon
+                                    className={cn(
+                                        'h-4 w-4',
+                                        status === 'running' && 'animate-spin',
+                                    )}
+                                    aria-hidden="true"
+                                />
                             </div>
-                        )}
-                    </div>
-                    {i < STAGES.length - 1 && (
-                        <div className="self-center text-slate-600">
-                            →
-                        </div>
-                    )}
-                </React.Fragment>
-            ))}
-        </div>
+                            <div className="mt-3 break-anywhere text-[10px] font-medium sm:text-sm">
+                                {stage.name}
+                            </div>
+                            <div className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
+                                {stage.agent}
+                            </div>
+                            <div
+                                className={cn(
+                                    'mt-1 text-[10px] sm:text-xs',
+                                    status === 'running'
+                                        ? 'text-primary'
+                                        : status === 'waiting'
+                                          ? 'text-warning'
+                                          : ['rejected', 'blocked', 'failed'].includes(status)
+                                            ? 'text-destructive'
+                                            : 'text-muted-foreground',
+                                )}
+                            >
+                                {index === 3 && pipeline?.reviewDecision?.outcome === 'REQUEST_CHANGES'
+                                    ? 'Changes requested'
+                                    : STATUS[status]}
+                            </div>
+                        </li>
+                    );
+                })}
+            </ol>
+        </section>
     );
 }

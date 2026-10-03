@@ -1,0 +1,96 @@
+import React from 'react';
+import { Code2, ChevronDown, FileCode2, FlaskConical, Loader2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
+import DiffViewer from './DiffViewer';
+
+export default function CodeProposal({ pipeline }) {
+    const proposal = pipeline?.codeChangeSet;
+    const running = pipeline?.state === 'GENERATING_CODE';
+    return (
+        <section className="min-w-0 border-b">
+            <Collapsible key={`${pipeline?.id}-${running}`} defaultOpen={running}>
+                <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <Code2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <h2 className="text-sm font-medium">
+                            Code proposal{' '}
+                            <span className="ml-3 text-xs font-normal text-muted-foreground">
+                                Nova
+                            </span>
+                        </h2>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                            {running
+                                ? 'Generating'
+                                : proposal
+                                  ? `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
+                                  : 'Not started'}
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                    </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="min-w-0 pb-6">
+                    {!proposal ? (
+                        running ? (
+                            <div className="space-y-3">
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Nova is generating a proposal...
+                                </p>
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-4 w-1/2" />
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                Awaiting clarified requirements.
+                            </p>
+                        )
+                    ) : (
+                        <>
+                            <p className="text-sm leading-6 text-muted-foreground">
+                                {proposal.explanation}
+                            </p>
+                            <div className="my-5 grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <h3 className="mb-3 flex items-center gap-2 text-xs font-medium">
+                                        <FileCode2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Files changed
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {proposal.files?.map((file) => (
+                                            <li
+                                                key={file.path}
+                                                className="break-anywhere font-mono text-[11px] leading-5 text-muted-foreground"
+                                            >
+                                                {file.path}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 className="mb-3 flex items-center gap-2 text-xs font-medium">
+                                        <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+                                        Tests proposed
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {proposal.tests?.map((test, index) => (
+                                            <li
+                                                key={index}
+                                                className="break-anywhere text-xs leading-5 text-muted-foreground"
+                                            >
+                                                {test}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                            <DiffViewer diff={proposal.unifiedDiff} />
+                        </>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
+        </section>
+    );
+}
