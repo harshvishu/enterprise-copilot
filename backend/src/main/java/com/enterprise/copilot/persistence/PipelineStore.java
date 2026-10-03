@@ -97,7 +97,8 @@ public class PipelineStore {
                                 e.getDescription(),
                                 e.getSource()),
                         e.getScenario(),
-                        e.getAiMode());
+                        e.getAiMode(),
+                        e.getCreatedAt());
 
         ctx.setState(e.getState());
 
@@ -123,6 +124,8 @@ public class PipelineStore {
                 fromJson(
                         e.getDeploymentJson(),
                         DeploymentDecision.class));
+
+        ctx.restoreUpdatedAt(e.getUpdatedAt());
 
         return ctx;
     }

@@ -2,12 +2,15 @@ package com.enterprise.copilot;
 
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.ApprovalState;
+import com.enterprise.copilot.domain.AiMode;
 import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.domain.PipelineState;
 import com.enterprise.copilot.domain.Ticket;
 import com.enterprise.copilot.infrastructure.ai.DemoState;
 import com.enterprise.copilot.orchestration.PipelineOrchestrator;
 import com.enterprise.copilot.persistence.PipelineStore;
+import com.enterprise.copilot.persistence.entity.PipelineEntity;
+import com.enterprise.copilot.persistence.repository.PipelineRepository;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +40,9 @@ class EnterpriseCopilotIntegrationTest {
 
     @Autowired
     PipelineStore store;
+
+        @Autowired
+        PipelineRepository pipelineRepository;
 
     @Autowired
     DemoState demoState;
@@ -73,6 +80,21 @@ class EnterpriseCopilotIntegrationTest {
                 .orElseThrow()
                 .state();
     }
+
+        @Test
+        void persistedTimestampsAreRestoredWhenLoaded() {
+                Instant createdAt = Instant.parse("2024-01-02T03:04:05Z");
+                PipelineContext ctx = new PipelineContext(
+                                UUID.randomUUID(), ticket(), DemoScenario.NORMAL, AiMode.DEMO, createdAt);
+
+                store.save(ctx);
+
+                PipelineEntity persisted = pipelineRepository.findById(ctx.pipelineId()).orElseThrow();
+                PipelineContext loaded = store.load(ctx.pipelineId()).orElseThrow();
+
+                assertThat(loaded.createdAt()).isEqualTo(persisted.getCreatedAt());
+                assertThat(loaded.updatedAt()).isEqualTo(persisted.getUpdatedAt());
+        }
 
     @Test
     void securityFailureIsBlockedByReview() {

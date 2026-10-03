@@ -35,11 +35,21 @@ public class PipelineContext {
             DemoScenario scenario,
             AiMode aiMode) {
 
+        this(pipelineId, ticket, scenario, aiMode, Instant.now());
+    }
+
+    public PipelineContext(
+            UUID pipelineId,
+            Ticket ticket,
+            DemoScenario scenario,
+            AiMode aiMode,
+            Instant createdAt) {
+
         this.pipelineId = pipelineId;
         this.ticket = ticket;
         this.scenario = scenario;
         this.aiMode = aiMode;
-        this.createdAt = Instant.now();
+        this.createdAt = createdAt;
         this.updatedAt = this.createdAt;
     }
 
@@ -124,6 +134,10 @@ public class PipelineContext {
             ApprovalState approvalState) {
         this.approvalState = approvalState;
         touch();
+    }
+
+    public void restoreUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     private void touch() {
