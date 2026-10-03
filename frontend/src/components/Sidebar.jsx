@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import ThemeToggle from './theme-toggle';
 
 const ITEMS = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -67,10 +68,13 @@ export default function Sidebar({ active, onSelect }) {
                     );
                 })}
             </nav>
-            <div className="mt-auto px-5 py-6 text-[10px] leading-5 text-muted-foreground/65">
-                AI accelerates delivery.
-                <br />
-                Humans own accountability.
+            <div className="mt-auto px-5 py-6">
+                <ThemeToggle />
+                <div className="mt-3 text-[10px] leading-5 text-muted-foreground/65">
+                    AI accelerates delivery.
+                    <br />
+                    Humans own accountability.
+                </div>
             </div>
         </aside>
     );

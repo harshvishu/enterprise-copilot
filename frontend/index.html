@@ -2,6 +2,20 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8" />
+    <script>
+        // Applied before first paint to avoid a theme flash; mirrors ThemeProvider.
+        (function () {
+            var theme = 'dark';
+            try { theme = localStorage.getItem('enterprise-copilot-theme') || 'dark'; } catch (e) {}
+            if (theme === 'system') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.classList.remove('light', 'dark');
+            document.documentElement.classList.add(theme);
+        })();
+    </script>
+    <style>
+        html.light { background: #fff; color-scheme: light; }
+        html.dark { background: hsl(240 5% 7%); color-scheme: dark; }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enterprise Copilot</title>
 </head>
