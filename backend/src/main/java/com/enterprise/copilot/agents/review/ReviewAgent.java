@@ -12,6 +12,10 @@ import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import com.enterprise.copilot.orchestration.PipelineEventType;
 import com.enterprise.copilot.orchestration.PresentationPacer;
 import com.enterprise.copilot.tools.ApiSpecificationTool;
+import com.enterprise.copilot.tools.ArchitectureTool;
+import com.enterprise.copilot.tools.ComplianceTool;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +36,9 @@ public class ReviewAgent {
     private final AgentAiClient ai;
     private final PromptLibrary prompts;
     private final ApiSpecificationTool apiSpec;
+        private final ComplianceTool compliance;
+        private final ArchitectureTool architecture;
+        private final ObjectMapper objectMapper;
     private final PipelineEventPublisher events;
     private final AuditService audit;
     private final PresentationPacer pacer;
@@ -55,15 +62,8 @@ public class ReviewAgent {
                         Map.of("step", "DIFF")
                 ));
 
-        String diff =
-                ctx.codeChangeSet() == null
-                        ? ""
-                        : ctx.codeChangeSet().unifiedDiff();
-
-        String analysis =
-                ctx.requirementAnalysis() == null
-                        ? ""
-                        : ctx.requirementAnalysis().summary();
+        String proposal = evidence(ctx.codeChangeSet());
+        String analysis = evidence(ctx.requirementAnalysis());
 
         pacer.afterActivity();
 
@@ -76,8 +76,20 @@ public class ReviewAgent {
                         Map.of("tool", apiSpec.name(), "step", "API_SPEC")
                 ));
 
-        String contract = apiSpec.lookup("notification");
+        String contract = apiSpec.lookup(ctx.ticket().description());
 
+        pacer.afterActivity();
+
+        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
+                NAME, "Reading compliance guidance",
+                Map.of("tool", compliance.name(), "step", "COMPLIANCE")));
+        String complianceGuidance = compliance.lookup(ctx.ticket().description());
+        pacer.afterActivity();
+
+        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
+                NAME, "Reading architecture guidance",
+                Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
+        String architectureGuidance = architecture.lookup(ctx.ticket().description());
         pacer.afterActivity();
 
         events.publish(
@@ -94,9 +106,12 @@ public class ReviewAgent {
         String prompt = prompts.render(
                 "review",
                 Map.of(
+                        "ticket", evidence(ctx.ticket()),
                         "analysis", analysis,
-                        "diff", diff,
-                        "apiSpec", contract
+                        "proposal", proposal,
+                        "apiSpec", contract,
+                        "compliance", complianceGuidance,
+                        "architecture", architectureGuidance
                 ));
 
         ReviewDecision decision =
@@ -168,4 +183,12 @@ public class ReviewAgent {
 
         return decision;
     }
+
+        private String evidence(Object value) {
+                try {
+                        return objectMapper.writeValueAsString(value);
+                } catch (JsonProcessingException ex) {
+                        throw new IllegalStateException("Unable to prepare review evidence", ex);
+                }
+        }
 }

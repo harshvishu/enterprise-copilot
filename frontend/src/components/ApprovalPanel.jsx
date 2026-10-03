@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, X, Clock3, LockKeyhole, Loader2, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { severityCounts, GATE_LABELS, gateResults, revalidation } from '@/lib/pipeline';
+import { severityCounts, GATE_LABELS, gateResults, revalidation, hasProposedTests, hasPassingTestSignal } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 
 export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, action, events }) {
@@ -55,8 +55,10 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
         },
         {
             id: 'TESTS_PASS',
-            label: GATE_LABELS.TESTS_PASS,
-            passed: Boolean(pipeline?.codeChangeSet?.testsPass),
+            label: pipeline?.codeChangeSet && !hasProposedTests(pipeline.codeChangeSet)
+                ? 'Test signal not evaluated: no valid proposed tests'
+                : GATE_LABELS.TESTS_PASS,
+            passed: hasPassingTestSignal(pipeline?.codeChangeSet),
             known: Boolean(pipeline?.codeChangeSet),
         },
     ];
@@ -153,6 +155,9 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
             )}
             <Separator className="my-5" />
             <h4 className="mb-3 text-xs font-medium">Release gates</h4>
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">
+                The test signal is simulated/model-provided. Generated tests are not executed.
+            </p>
             <ul className="space-y-3">
                 {gates.map((gate) => (
                     <li key={gate.id} className="flex items-start gap-2.5 text-xs leading-5">

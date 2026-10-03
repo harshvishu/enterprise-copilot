@@ -67,6 +67,12 @@ export default function PipelineAlert({ pipeline, events, error }) {
                                     <AlertDescription className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
                                         {attention.description}
                                     </AlertDescription>
+                                    {attention.nextStep && (
+                                        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                                            <span className="font-medium text-foreground">Next step: </span>
+                                            {attention.nextStep}
+                                        </p>
+                                    )}
                                     {attention.counts && (
                                         <div className="mt-3 flex flex-wrap gap-4 text-xs">
                                             {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']

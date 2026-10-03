@@ -10,6 +10,7 @@ import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import com.enterprise.copilot.orchestration.PipelineEventType;
 import com.enterprise.copilot.orchestration.PresentationPacer;
+import com.enterprise.copilot.tools.ApiSpecificationTool;
 import com.enterprise.copilot.tools.ArchitectureTool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,7 @@ public class CodeGenerationAgent {
     private final AgentAiClient ai;
     private final PromptLibrary prompts;
     private final ArchitectureTool architecture;
+        private final ApiSpecificationTool apiSpec;
     private final PipelineEventPublisher events;
     private final AuditService audit;
     private final PresentationPacer pacer;
@@ -72,6 +74,12 @@ public class CodeGenerationAgent {
 
         pacer.afterActivity();
 
+        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
+                NAME, "Reading published API contract",
+                Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
+        String contract = apiSpec.lookup(ctx.ticket().description());
+        pacer.afterActivity();
+
         events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
@@ -88,7 +96,10 @@ public class CodeGenerationAgent {
                         "codegen",
                         Map.of(
                                 "analysis", analysisSummary,
-                                "architecture", architectureGuidance
+                                "acceptanceCriteria", ctx.requirementAnalysis() == null
+                                        ? "" : String.join("\n", ctx.requirementAnalysis().acceptanceCriteria()),
+                                "architecture", architectureGuidance,
+                                "apiSpec", contract
                         ));
 
         CodeChangeSet changeSet =

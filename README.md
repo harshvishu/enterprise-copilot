@@ -118,9 +118,9 @@ Only DEMO guarantees these outcomes; LIVE uses actual model responses to the ord
 | NORMAL | WAITING_FOR_APPROVAL; approval produces simulated DEPLOYED |
 | SECURITY_FAILURE | Scripted critical finding and REJECT; ends BLOCKED, not approvable |
 | AMBIGUOUS_REQUIREMENT | REQUIREMENTS_READY pause; valid human answers resume implementation |
-| TEST_FAILURE | Simulated failing tests; ends BLOCKED |
+| TEST_FAILURE | Scripted failing test signal for the equality defect; ends BLOCKED |
 | MISSING_APPROVAL | Same clean fixtures as NORMAL; remains WAITING_FOR_APPROVAL without action |
-| HALLUCINATED_API | Scripted API-contract finding; ends BLOCKED |
+| HALLUCINATED_API | Missing-screening clarification pause; after answers, scripted unsupported-API finding ends BLOCKED |
 | PROMPT_INJECTION | Scripted refusal of injected instructions; still requires human approval |
 
 ## Architecture And API
@@ -129,6 +129,12 @@ One Spring Boot process, one React dashboard, typed `PipelineContext` and result
 Agents consult local reference files directly; there is no model-selected tool loop.
 JPA stores the latest snapshot, audit stores significant actions, and SSE streams activity.
 React fetches current snapshots after events and polls as a fallback.
+Nova keeps the summary-first handoff (including human answers), also receives the existing acceptance criteria,
+and reads architecture/API evidence. LIVE rehearsal demonstrated material retry criteria omitted from Rhea's
+summary; forwarding that existing list prevents the observed loss without changing records or PipelineContext.
+Sentinel independently receives the original ticket, resolved analysis, full proposal including tests/assumptions,
+and the existing compliance, architecture and API references. Findings must be grounded and calibrated.
+No additional business-policy/Confluence knowledge is included; that remains the separate participant exercise.
 
 | Endpoint | Purpose |
 |---|---|
@@ -145,8 +151,11 @@ React fetches current snapshots after events and polls as a fallback.
 | POST /api/agents/{requirements,code,review,deploy} | Cumulative agent previews |
 
 Atlas blocks missing requirements/code, unresolved clarification, non-approved review,
-critical findings and failing test signals. Human approval cannot override those gates.
+critical findings, missing/blank proposed tests and failing test signals. Human approval cannot override those gates.
 `testsPass` is a simulated/model-proposed signal, not independently executed CI evidence.
+The mock GitHub projection labels generated builds as not evaluated and test signals as simulated/model-provided.
+DEMO adapter contracts and in-process duplicate suppression are illustrative, not verified enterprise integrations
+or durable delivery guarantees. For scripted clarification rehearsal answers, see [failure scenarios](docs/failure-scenarios.md).
 Approval endpoints are open local workshop controls, not authenticated production authorization.
 
 ## Verification And Reading
@@ -159,7 +168,9 @@ sh ./mvnw -B -DskipTests test-compile
 # In frontend/: npm run build
 ```
 
-CI runs `mvn verify` in DEMO. All five test classes are under `backend/src/test/java`;
+For a full stabilization check, run `SPRING_PROFILES_ACTIVE=demo sh ./mvnw -B verify` in `backend/`
+and `npm test` plus `npm run build` in `frontend/`. These test the application, not generated artifacts.
+CI runs `mvn verify` in DEMO. All seven backend test classes are under `backend/src/test/java`;
 Spring context tests explicitly select DEMO. Testcontainers is a dependency, not an implemented test suite.
 Builds do not establish provider availability: rehearse OpenAI/Ollama and all DEMO scenarios manually.
 

@@ -11,8 +11,8 @@ import java.util.List;
  * @param explanation human-readable rationale
  * @param tests       proposed test names / descriptions
  * @param assumptions assumptions the reviewer must validate
- * @param testsPass   deterministic signal used by demo scenarios
- *                    (TEST_FAILURE flips this false)
+ * @param testsPass   simulated/model-provided signal, never generated-test execution evidence
+ *                    (TEST_FAILURE scripts this false)
  */
 public record CodeChangeSet(
 
@@ -29,4 +29,12 @@ public record CodeChangeSet(
         boolean testsPass
 
 ) {
+        public boolean hasProposedTests() {
+                return tests != null && !tests.isEmpty()
+                                && tests.stream().allMatch(test -> test != null && !test.isBlank());
+        }
+
+        public boolean hasPassingTestSignal() {
+                return hasProposedTests() && testsPass;
+        }
 }

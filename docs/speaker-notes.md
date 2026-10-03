@@ -87,8 +87,9 @@ leak."
 
 ## 🚀 Atlas — Release Manager
 
-**Summary:** **Rule-based, not AI.** Enforces the gates (review passed, no criticals, tests green,
+**Summary:** **Rule-based, not AI.** Enforces the gates (review passed, no criticals, valid proposed-test signal,
 human approved) and blocks deployment until a person signs off.
+Generated tests are never executed. Missing/blank test proposals cannot satisfy a passing signal.
 
 **Speaker notes:**
 

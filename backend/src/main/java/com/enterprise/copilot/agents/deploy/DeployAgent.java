@@ -98,12 +98,14 @@ public class DeployAgent {
         }
         gate(ctx, showGates, "NO_CRITICAL_FINDINGS", !criticalFindings, false);
 
-        boolean testsFailing = ctx.codeChangeSet() != null
-                && !ctx.codeChangeSet().testsPass();
-        if (testsFailing) {
-            blocking.add("Tests are failing.");
+                boolean testSignalPassed = ctx.codeChangeSet() != null
+                                && ctx.codeChangeSet().hasPassingTestSignal();
+                if (ctx.codeChangeSet() == null || !ctx.codeChangeSet().hasProposedTests()) {
+                        blocking.add("Proposed tests are missing or blank; the test signal is not evaluated.");
+                } else if (!testSignalPassed) {
+                        blocking.add("Tests have a failing simulated/model-provided signal; generated tests were not executed.");
         }
-        gate(ctx, showGates, "TESTS_PASS", !testsFailing, false);
+                gate(ctx, showGates, "TESTS_PASS", testSignalPassed, false);
 
         boolean gatesPass = blocking.isEmpty();
 

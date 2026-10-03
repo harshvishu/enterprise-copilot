@@ -35,12 +35,13 @@ Confirm **DEMO · DETERMINISTIC** before proceeding below.
    DEPLOY.
 
 3. **Rhea (15s).** 🔍
-   "Rhea confirms consent and audit requirements from policy."
+   "Rhea confirms the consent/audit rules and records the clear account-number logging request
+   as a policy conflict, not a missing product decision."
    Point at the requirement panel.
 
 4. **Nova (15s).** 💻
    "Nova proposes `NotificationService` as a pull-request diff
-   with tests."
+   with proposed tests. No generated tests execute."
    Show the diff.
 
 5. **Sentinel - the moment (20s).** 🛡️
@@ -63,6 +64,10 @@ Confirm **DEMO · DETERMINISTIC** before proceeding below.
 
    Show the audit trail: significant actions, ending with
    `Human: APPROVE_DEPLOYMENT`.
+
+For a clarification example, run UB-4823 and answer: outgoing debits only; SMS only; skip/audit without consent.
+UB-4825 now pauses for the missing screening contract and failure behaviour before demonstrating Sentinel's
+unsupported-API block. Follow the scripted answers in `docs/failure-scenarios.md`; DEMO does not adapt to arbitrary answers.
 
 ## If something misbehaves
 

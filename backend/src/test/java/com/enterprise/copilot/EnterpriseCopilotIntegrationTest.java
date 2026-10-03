@@ -6,6 +6,7 @@ import com.enterprise.copilot.domain.AiMode;
 import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.domain.PipelineState;
 import com.enterprise.copilot.domain.Ticket;
+import com.enterprise.copilot.demo.DemoTickets;
 import com.enterprise.copilot.infrastructure.ai.DemoState;
 import com.enterprise.copilot.orchestration.PipelineOrchestrator;
 import com.enterprise.copilot.persistence.PipelineStore;
@@ -177,7 +178,7 @@ class EnterpriseCopilotIntegrationTest {
         awaitState(ctx.pipelineId(), PipelineState.REQUIREMENTS_READY);
 
         PipelineContext resumed = orchestrator.clarify(ctx.pipelineId(), List.of(
-                "Use consented SMS only.", "Outgoing debits only.", "Configure R50,000 per product."));
+                "Outgoing debits only.", "Use consented SMS only.", "Skip and audit when there is no SMS consent."));
 
         assertThat(resumed.state()).isEqualTo(PipelineState.GENERATING_CODE);
         assertThat(resumed.requirementAnalysis().needsClarification()).isFalse();
@@ -186,7 +187,7 @@ class EnterpriseCopilotIntegrationTest {
                 .isInstanceOf(IllegalStateException.class);
         awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
         assertThat(store.load(ctx.pipelineId()).orElseThrow().requirementAnalysis().summary())
-                .contains("Outgoing debits only.", "Configure R50,000 per product.");
+                .contains("Outgoing debits only.", "Skip and audit when there is no SMS consent.");
     }
 
     @Test
@@ -226,4 +227,52 @@ class EnterpriseCopilotIntegrationTest {
                         .needsClarification())
                 .isTrue();
     }
+
+        @Test
+        void allCatalogIssuesFollowTheirTeachingLifecycle() {
+                for (var issue : new DemoTickets().issues()) {
+                        var ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
+                        UUID id = ctx.pipelineId();
+                        switch (issue.scenario()) {
+                                case AMBIGUOUS_REQUIREMENT -> {
+                                        awaitState(id, PipelineState.REQUIREMENTS_READY);
+                                        assertThat(store.load(id).orElseThrow().codeChangeSet()).isNull();
+                                        orchestrator.clarify(id, List.of("Outgoing debits only.", "SMS only.", "Skip and audit."));
+                                        awaitState(id, PipelineState.WAITING_FOR_APPROVAL);
+                                        assertThat(orchestrator.approve(id, "catalog-presenter").state()).isEqualTo(PipelineState.DEPLOYED);
+                                }
+                                case HALLUCINATED_API -> {
+                                        awaitState(id, PipelineState.REQUIREMENTS_READY);
+                                        assertThat(store.load(id).orElseThrow().codeChangeSet()).isNull();
+                                        assertThatThrownBy(() -> orchestrator.approve(id, "presenter"))
+                                                        .isInstanceOf(IllegalStateException.class);
+                                        orchestrator.clarify(id, List.of("No contract supplied; do not invent screening.",
+                                                        "Stop and audit without notification when screening is unavailable."));
+                                        awaitState(id, PipelineState.BLOCKED);
+                                        var blocked = store.load(id).orElseThrow();
+                                        assertThat(blocked.reviewDecision().outcome().name()).isEqualTo("REQUEST_CHANGES");
+                                        assertThat(blocked.reviewDecision().hasCriticalFindings()).isFalse();
+                                        assertThat(blocked.approvalState()).isEqualTo(ApprovalState.NOT_REQUIRED);
+                                }
+                                case SECURITY_FAILURE, TEST_FAILURE -> {
+                                        awaitState(id, PipelineState.BLOCKED);
+                                        var blocked = store.load(id).orElseThrow();
+                                        assertThat(blocked.deploymentDecision().requiresApproval()).isFalse();
+                                        if (issue.scenario() == DemoScenario.TEST_FAILURE) {
+                                                assertThat(blocked.reviewDecision().passed()).isTrue();
+                                                assertThat(blocked.codeChangeSet().hasPassingTestSignal()).isFalse();
+                                                assertThat(blocked.deploymentDecision().blockingReasons())
+                                                                .anyMatch(reason -> reason.contains("simulated/model-provided signal"));
+                                        }
+                                        assertThatThrownBy(() -> orchestrator.approve(id, "presenter"))
+                                                        .isInstanceOf(IllegalStateException.class);
+                                }
+                                default -> {
+                                        awaitState(id, PipelineState.WAITING_FOR_APPROVAL);
+                                        assertThat(orchestrator.approve(id, "catalog-presenter").state()).isEqualTo(PipelineState.DEPLOYED);
+                                }
+                        }
+                        assertThat(store.load(id).orElseThrow().ticket()).isEqualTo(issue.ticket());
+                }
+        }
 }

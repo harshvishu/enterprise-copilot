@@ -63,17 +63,15 @@ public class MockGitHubGateway implements GitHubGateway {
         }
 
         List<GitHubView.Check> checks = List.of(
-                new GitHubView.Check("Build", "success"),
+            new GitHubView.Check("Generated build (not executed)", "not_evaluated"),
                 new GitHubView.Check(
-                        "Tests",
-                        code != null && !code.testsPass()
-                                ? "failure"
-                                : "success"),
+                "Test signal (simulated/model-provided)",
+                code == null || !code.hasProposedTests() ? "not_evaluated"
+                    : code.hasPassingTestSignal() ? "success" : "failure"),
                 new GitHubView.Check(
-                        "Security",
-                        review != null && review.hasCriticalFindings()
-                                ? "failure"
-                                : "success")
+                "Sentinel review (not a CI scan)",
+                review == null ? "not_evaluated"
+                    : review.passed() && !review.hasCriticalFindings() ? "success" : "failure")
         );
 
         return new GitHubView(

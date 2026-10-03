@@ -114,10 +114,55 @@ class DeployAgentTest {
                 List.of(new FileChange("Service.java", FileChange.ChangeType.CREATE, "class Service {}")),
                 "+class Service {}",
                 "",
-                List.of(),
+                List.of("ServiceTest#suppressesDuplicateEvents"),
                 List.of(),
                 testsPass
         );
+    }
+
+    @Test
+    void missingOrBlankTestsCannotPassEvenWithHumanApproval() {
+        List<List<String>> invalidProposals = new java.util.ArrayList<>();
+        invalidProposals.add(null);
+        invalidProposals.add(List.of());
+        invalidProposals.add(List.of(" "));
+        invalidProposals.add(java.util.Arrays.asList("checks threshold", null));
+        invalidProposals.add(List.of("checks threshold", ""));
+        for (List<String> tests : invalidProposals) {
+            var ctx = ctx();
+            var validCode = code(true);
+            ctx.setCodeChangeSet(new CodeChangeSet(validCode.files(), validCode.unifiedDiff(),
+                    validCode.explanation(), tests, List.of(), true));
+            ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+
+            var decision = agent.evaluate(ctx);
+            assertThat(decision.requiresApproval()).isFalse();
+            assertThat(decision.blockingReasons()).anyMatch(reason -> reason.contains("missing or blank"));
+            ctx.setApprovalState(ApprovalState.APPROVED);
+            assertThat(agent.revalidate(ctx).allowed()).isFalse();
+        }
+        assertThat(gateEvents()).filteredOn(event -> "TESTS_PASS".equals(event.data().get("gate")))
+                .allSatisfy(event -> assertThat(event.data()).containsEntry("passed", false));
+    }
+
+    @Test
+    void mockChecksNeverClaimGeneratedBuildOrMissingTestsExecuted() {
+        var gateway = new com.enterprise.copilot.github.MockGitHubGateway();
+        var ctx = ctx();
+        assertThat(gateway.view(ctx).checks()).allSatisfy(check ->
+                assertThat(check.status()).isEqualTo("not_evaluated"));
+        var proposal = code(true);
+        ctx.setCodeChangeSet(new CodeChangeSet(proposal.files(), proposal.unifiedDiff(), "proposal",
+                List.of(), List.of(), true));
+        assertThat(gateway.view(ctx).checks().get(1).status()).isEqualTo("not_evaluated");
+        ctx.setCodeChangeSet(code(true));
+        assertThat(gateway.view(ctx).checks().get(0).status()).isEqualTo("not_evaluated");
+        assertThat(gateway.view(ctx).checks().get(1).name()).contains("signal");
+        assertThat(gateway.view(ctx).checks().get(1).status()).isEqualTo("success");
+        ctx.setCodeChangeSet(code(false));
+        assertThat(gateway.view(ctx).checks().get(1).status()).isEqualTo("failure");
+        ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.REQUEST_CHANGES, "fix it", List.of()));
+        assertThat(gateway.view(ctx).checks().get(2).status()).isEqualTo("failure");
     }
 
     @Test

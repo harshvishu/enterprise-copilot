@@ -50,13 +50,15 @@
 | NORMAL | WAITING_FOR_APPROVAL → (approve) → DEPLOYED |
 | SECURITY_FAILURE | REVIEW_FAILED then BLOCKED (CRITICAL) |
 | AMBIGUOUS_REQUIREMENT | REQUIREMENTS_READY (pauses; answer to resume) |
-| TEST_FAILURE | BLOCKED (tests fail) |
+| TEST_FAILURE | BLOCKED (scripted test signal fails; equality defect) |
 | MISSING_APPROVAL | WAITING_FOR_APPROVAL |
-| HALLUCINATED_API | REVIEW_FAILED then BLOCKED (invalid API) |
+| HALLUCINATED_API | REQUIREMENTS_READY clarification, then REVIEW_FAILED and BLOCKED (unsupported API) |
 | PROMPT_INJECTION | ignored → WAITING_FOR_APPROVAL |
 
 The scenario table applies only to DEMO. Its dropdown is hidden in LIVE.
 Test signals and deployment are simulated; the current deployment prompt is unused gate-reference material.
+UB-4823 rehearsal: outgoing debits, SMS, skip/audit without consent. UB-4825 rehearsal: no supplied screening
+contract; stop/audit without notification if unavailable. Its deliberately unsupported Nova fixture is then blocked.
 
 **Close:** "Not AI replacing engineers – AI accelerating delivery while humans own accountability."
 
