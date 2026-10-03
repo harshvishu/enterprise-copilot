@@ -1,10 +1,9 @@
 # LangChain4j
 
-LangChain4j is included as a **complementary** agent library,
-not a second orchestrator. Spring AI is
-the primary Spring-native layer; LangChain4j is present to
-demonstrate its distinct strengths without
-duplicating orchestration.
+LangChain4j is present only as a BOM/dependency in `backend/pom.xml`.
+There are no application imports, `AiServices`, tool annotations, memory or routing services.
+It currently demonstrates no runtime capability distinct from Spring AI.
+Removal is deferred; this workshop's actual model integration is Spring AI.
 
 ## Division of responsibility
 
@@ -12,7 +11,7 @@ duplicating orchestration.
 |----------|--------|
 | Spring-native DI, config, `ChatClient`, structured output | **Spring AI** |
 | Pipeline orchestration & gates | **This app (PipelineOrchestrator)** |
-| Illustrative agent-library capabilities (tool calling, bounded memory, routing) | **LangChain4j** |
+| Model-selected tools, bounded memory, routing | **Not implemented** |
 
 ## Where it adds value (extension points)
 
@@ -30,8 +29,6 @@ duplicating orchestration.
 - **Routing** - routing a ticket to the right first agent
   based on its content.
 
-> To keep the workshop understandable and the demo
-> deterministic, the main pipeline does not require a
-> live LangChain4j service. The dependency and patterns are
-> wired so attendees can extend them. This
-> avoids two competing orchestration layers.
+> The examples above are potential extensions only, not wired services.
+> OpenAI is the normal LIVE workshop provider through Spring AI. No second framework is
+> required to run OpenAI, Ollama or the deterministic preview.

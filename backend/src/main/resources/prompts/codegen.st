@@ -14,7 +14,14 @@ CONSTRAINTS:
 
 TOOLS: architecture (resolved above).
 
-OUTPUT CONTRACT: Produce a CodeChangeSet with files, a unified diff, explanation, tests and assumptions.
+OUTPUT CONTRACT: Produce a CodeChangeSet with files, a unified diff, explanation, tests, assumptions and testsPass.
+Return every field. files must contain at least one file change, each with a nonblank repository-relative
+path, changeType (CREATE or MODIFY), and nonblank content containing the complete proposed file source.
+The unifiedDiff does NOT replace files or files[].content: provide both full file content and the diff.
+unifiedDiff and explanation must be nonblank. tests and assumptions must be arrays (use [] if empty),
+never null. Do not omit required fields, abbreviate file content, or use placeholders for source code.
+testsPass is a simulated workshop signal, not actual CI evidence. Set it true when the proposed tests are
+expected to pass, or false when a known failure is identified. No generated code or tests are executed.
 
 FAILURE CONDITIONS: If a required detail is missing, record it under assumptions for the reviewer.
 

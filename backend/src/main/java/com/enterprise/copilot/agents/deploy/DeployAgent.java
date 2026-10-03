@@ -42,6 +42,18 @@ public class DeployAgent {
 
         List<String> blocking = new ArrayList<>();
 
+        if (ctx.requirementAnalysis() == null) {
+            blocking.add("Requirement analysis is missing.");
+        } else if (ctx.requirementAnalysis().needsClarification()) {
+            blocking.add("Requirements still need human clarification.");
+        }
+        if (ctx.codeChangeSet() == null || ctx.codeChangeSet().files() == null
+                || ctx.codeChangeSet().files().isEmpty()
+                || ctx.codeChangeSet().unifiedDiff() == null
+                || ctx.codeChangeSet().unifiedDiff().isBlank()) {
+            blocking.add("Code proposal artifacts are missing.");
+        }
+
         ReviewDecision review = ctx.reviewDecision();
 
         if (review == null || !review.passed()) {

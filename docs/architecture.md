@@ -16,7 +16,8 @@ graph TD
     subgraph Backend[Spring Boot 4.1 modular monolith]
         API[api/ controllers]
         ORCH[orchestration/ PipelineOrchestrator]
-        AG[agents/ Rhea Nova Sentinel Atlas]
+        AG[agents/ Rhea Nova Sentinel]
+        ATLAS[Atlas / deterministic Java gates]
         TOOLS[tools/ Compliance Architecture GitHistory ApiSpec]
         AI[infrastructure/ai AgentAiClient]
         GH[github/ Mock gateway]
@@ -25,14 +26,17 @@ graph TD
     end
 
     DB[(H2 / PostgreSQL)]
-    LLM[Ollama / Azure OpenAI]
+    LLM[OpenAI default / Ollama alternative]
 
     UI -->|REST + SSE| API --> ORCH --> AG
     AG --> TOOLS
     AG --> AI --> LLM
-    ORCH --> GH
+    ORCH --> ATLAS
+    API --> GH
+    GH --> PERSIST
     ORCH --> PERSIST --> DB
-    ORCH --> SEC
+    ORCH --> AUDIT[AuditService] --> SEC
+    AUDIT --> PERSIST
 ```
 
 ## 2. Agent flow
@@ -48,12 +52,12 @@ flowchart LR
     N --> S[🛡️ Sentinel]
 
     S -->|APPROVE| A[🚀 Atlas]
-    S -->|REJECT / REQUEST_CHANGES| BLOCK[Blocked]
+    S -->|REJECT / REQUEST_CHANGES| A
 
     A -->|gates pass| WAIT[Wait for human approval]
     A -->|gate fails| BLOCK
 
-    WAIT -->|human approves| DEPLOY[Deployed]
+    WAIT -->|human approves and gates rechecked| DEPLOY[Simulated deployment]
     WAIT -->|human rejects| BLOCK
 ```
 
@@ -69,7 +73,8 @@ stateDiagram-v2
     ANALYZING_REQUIREMENTS --> REQUIREMENTS_READY
 
     REQUIREMENTS_READY --> GENERATING_CODE: ready
-    REQUIREMENTS_READY --> [*]]: needs clarification (pause)
+    REQUIREMENTS_READY --> REQUIREMENTS_READY: awaiting human answers
+    REQUIREMENTS_READY --> GENERATING_CODE: answers saved and questions cleared
 
     GENERATING_CODE --> CODE_READY
 
@@ -79,6 +84,7 @@ stateDiagram-v2
     REVIEWING --> REVIEW_FAILED
 
     REVIEW_PASSED --> WAITING_FOR_APPROVAL
+    REVIEW_PASSED --> BLOCKED: missing artifacts or failing test signal
     REVIEW_FAILED --> BLOCKED
 
     WAITING_FOR_APPROVAL --> DEPLOYING: human approves
@@ -120,7 +126,7 @@ sequenceDiagram
     O->>A: evaluate()
     A-->>O: blocked - approval required
 
-    O-->>U: state = WAITING_FOR_APPROVAL (via SSE)
+    O-->>U: APPROVAL_REQUIRED activity event; UI fetches state
 
     H->>API: POST /{id}/approve
     API->>O: approve()
@@ -128,7 +134,7 @@ sequenceDiagram
     O->>A: evaluate()
     A-->>O: allowed
 
-    O-->>U: DEPLOYED (via SSE)
+    O-->>U: completion events; UI fetches DEPLOYED snapshot
 ```
 
 ## 5. Human approval flow
@@ -142,17 +148,25 @@ flowchart TD
 
     Q --> D{Human decision}
 
-    D -->|Approve| DEP[Deploy to production]
+    D -->|Approve and recheck gates| DEP[Simulated production deployment]
     D -->|Reject| B
 
-    note1[AI can recommend but never approve\]:::n -.-> D
+    note1[Model has no approval capability]:::n -.-> D
 
     classDef n fill:#1b2436,stroke:#f2b544,color:#f2b544
 ```
 
 ## Persistence
 
-`pipelines` stores the snapshot (structured agent outputs as JSON text columns for rtability across
+`pipelines` stores the snapshot (structured agent outputs as JSON text columns for portability across
 H2 and PostgreSQL). `audit_events` is an append-only,
 redacted trail. Flyway owns the schema
 (`V1__init.sql`); Hibernate is `validate`-only.
+
+OpenAI is the default LIVE profile; Ollama and DEMO are explicit alternatives without failover.
+DEMO supplies scripted results to the same first three agents and preserves all seven scenarios.
+LIVE uses the ordinary ticket and actual model output, not deterministic scenario guarantees.
+Human answers are saved into the analysis summary before async continuation. No chat memory is used.
+SSE history is in-memory; state transitions overwrite snapshots rather than emitting a state-change event.
+GitHub is a read-side projection requested by its controller; it is not an orchestrator side effect.
+Approval endpoints are open local workshop controls, not authenticated human identity checks.

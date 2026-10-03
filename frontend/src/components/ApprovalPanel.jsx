@@ -3,7 +3,8 @@ import React from 'react';
 export default function ApprovalPanel({
                                           pipeline,
                                           onApprove,
-                                          onReject
+                                          onReject,
+                                          pending
                                       }) {
     const dep = pipeline?.deploymentDecision;
     const waiting =
@@ -60,14 +61,16 @@ export default function ApprovalPanel({
 
                         <button
                             onClick={onApprove}
-                            className="px-4 py-2 rounded-md bg-ok/90 hover:bg-ok text-ink text-sm font-semibold"
+                            disabled={pending}
+                            className="px-4 py-2 rounded-md bg-ok/90 hover:bg-ok text-ink text-sm font-semibold disabled:opacity-50"
                         >
                             Approve deployment
                         </button>
 
                         <button
                             onClick={onReject}
-                            className="px-4 py-2 rounded-md bg-danger/80 hover:bg-danger text-white text-sm font-semibold"
+                            disabled={pending}
+                            className="px-4 py-2 rounded-md bg-danger/80 hover:bg-danger text-white text-sm font-semibold disabled:opacity-50"
                         >
                             Reject
                         </button>

@@ -6,6 +6,11 @@ joined your team. Format per agent: **summary**, **speaker notes (say + click)**
 
 > Guiding thesis: **AI proposes. Humans dispose.** — _AI accelerates delivery; humans own accountability._
 
+Normal workshop execution is OpenAI LIVE; Ollama is an explicit local alternative.
+DEMO is an explicitly identified deterministic preview/fallback. Restart the backend with its
+profile and reload the dashboard before showing scripted scenarios. Never promise deterministic LIVE findings.
+Rhea, Nova and Sentinel use real model calls in LIVE; Atlas is deterministic Java in every mode.
+
 ---
 
 ## Opening hook (10s)
@@ -31,8 +36,11 @@ structured analysis. Her superpower is **refusing to guess**.
 > R50,000" — she immediately spots what's missing: which channel? Has the customer consented? That's
 > POPIA. She won't let us build on assumptions."
 
-**Engagement move:** run the `AMBIGUOUS_REQUIREMENT` scenario — the pipeline **pauses** and shows her
+**Engagement move:** in explicit DEMO, run `AMBIGUOUS_REQUIREMENT` — the pipeline **pauses** and shows her
 questions. Ask: "How many of you have shipped the wrong thing because the ticket was vague?"
+
+In LIVE show whatever clarification Rhea actually requests. Submit one nonblank answer per question;
+the saved analysis summary carries those answers to Nova before implementation resumes.
 
 **One-liner:** "Rhea's job is to be the teammate who asks 'wait, what do you actually mean?' before a
 line of code exists."
@@ -50,8 +58,8 @@ tests. Never touches the filesystem.
 > pull request." (Point at the diff / Pull Requests tab.) "Nothing is applied. No AI reached into my
 > repo. It's asking for review, like any good engineer would."
 
-**Engagement move:** open the **Pull Requests** tab — "Looks just like GitHub, right? PR, checks, the
-works."
+**Engagement move:** open **Pull Requests**: this screen renders the proposed diff, not real GitHub
+operations or a full checks UI. Test names/signals are proposals/simulations, not executed tests.
 
 **One-liner:** "Nova proposes; it never merges. It hands you a diff and says 'take a look'."
 
@@ -64,10 +72,10 @@ severity-tagged findings. **This is the moment of the talk.**
 
 **Speaker notes (slow down here):**
 
-> "Now the one you'll remember. Sentinel doesn't rubber-stamp — it attacks the code." (Switch to
-> `SECURITY_FAILURE`, run it.) "...and there it is. Nova's code logs the customer's **account number**.
+> "Now the review boundary." (In explicitly labeled DEMO, select
+> `SECURITY_FAILURE`.) "This scripted example logs the customer's **account number**.
 > A rushed human reviewer misses that at 5pm on a Friday. Sentinel doesn't." (Point at the CRITICAL
-> finding + the red Security check.) "REJECT. POPIA violation. Caught before production."
+> finding.) "The scripted verdict is REJECT. Atlas blocks this even if someone wants to approve."
 
 **Engagement move:** pause. "Show of hands — who's confident that exact bug has never shipped in your
 org?" Let the silence land.
@@ -84,10 +92,10 @@ human approved) and blocks deployment until a person signs off.
 
 **Speaker notes:**
 
-> "And Atlas decides if we ship. Here's the deliberate twist: Atlas is **not** an AI. It's four rules.
+> "And Atlas controls authorization. Atlas is **not** an LLM; it evaluates hard rules.
 > Because the one decision that touches production shouldn't be a probability." (Point at
 > **DEPLOYMENT BLOCKED — human approval required**.) "The AI can recommend all day. It cannot click
-> this button." (Then approve → **DEPLOYED**.)
+> this button." (On a separate clean run only, approve -> simulated **DEPLOYED**.)
 
 **Engagement move:** the audience vote — "Should the AI just deploy it anyway?" Let them answer, then:
 "No. Accountability stays with us."

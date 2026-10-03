@@ -2,7 +2,7 @@ spring:
   application:
     name: enterprise-copilot
   profiles:
-    active: demo
+    default: openai
   datasource:
     url: jdbc:h2:mem:copilot;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -24,8 +24,12 @@ spring:
   ai:
     model:
       chat: none
-    openai:
-      api-key: ${OPENAI_API_KEY:demo-key-not-used}
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
 
 server:
   port: 8080
@@ -45,7 +49,7 @@ springdoc:
 
 copilot:
   ai:
-    mode: DEMO          # DEMO | LIVE – surfaced in the UI banner
+    mode: DEMO          # Legacy property; effective mode/banner is derived from the selected profile.
   demo:
     scenario: NORMAL   # NORMAL | SECURITY_FAILURE | AMBIGUOUS_REQUIREMENT | TEST_FAILURE | MISSING_APPROVAL | HALLUCINATED_API | PROMPT_INJECTION
   github:

@@ -1,26 +1,18 @@
 # Branch Guide
 
-The repository ships with seven checkpoint branches. **Every
-branch is the complete, runnable
-application** - stable checkpoints you can start a session
-from, not partial builds. Because the four
-agents, orchestrator and dashboard are interdependent in this
-modular monolith, each branch contains
-the whole app so it always compiles and runs.
+This checkout currently has `main` and `origin/main`, not seven checkpoint branches.
+Use the complete application on `main` and follow the source reading stages below.
+Do not instruct participants to check out branches that are not distributed.
 
-The **learning narrative lives in the commit history** (`git
-log --oneline`), structured phase by
-phase: scaffold → dashboard → orchestration → Rhea → Nova →
-Sentinel → Atlas → scenarios → tests →
-productionisation.
+Suggested reading order: scaffold/configuration, dashboard/API, orchestration/context,
+Rhea, Nova, Sentinel, Atlas, deterministic scenarios, persistence/audit and tests.
 
 ```bash
-git branch              # list checkpoints
-git checkout 04-review-agent
-cd backend && ./mvnw spring-boot:run
+git branch              # inspect available branches
+cd backend && sh ./mvnw spring-boot:run
 ```
 
-| Branch | Checkpoint focus |
+| Historical curriculum label (not an available branch) | Reading focus |
 |----------|------------------|
 | `00-start` | Scaffold: backend, frontend, Postgres, compose, health |
 | `01-dashboard` | Dashboard shell and pipeline visualisation |
@@ -28,4 +20,7 @@ cd backend && ./mvnw spring-boot:run
 | `03-code-agent` | Nova + the diff viewer |
 | `04-review-agent` | Sentinel + findings |
 | `05-deploy-agent` | Atlas + gates + human approval |
-| `06-complete-enterprise-copilot` | Full app (same as `main`) |
+| `06-complete-enterprise-copilot` | Full app on `main` |
+
+OpenAI LIVE is default and requires credentials. Select `demo` explicitly for credential-free preview;
+see [README](../README.md). A future set of teaching branches is outside the current implementation scope.

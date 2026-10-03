@@ -31,8 +31,10 @@ public class DemoController {
 
         return Map.of(
                 "aiMode", demoState.aiMode(),
+                "provider", demoState.provider(),
                 "scenario", demoState.scenario(),
-                "scenarios", List.of(DemoScenario.values()),
+                "scenarios", demoState.aiMode() == AiMode.DEMO
+                    ? List.of(DemoScenario.values()) : List.of(),
                 "live", demoState.aiMode() == AiMode.LIVE
         );
     }

@@ -25,6 +25,8 @@ the deterministic provider returns the same record shape.
   Architecture, GitHistory, ApiSpec).
 - Surfaces ambiguity as `clarificationQuestions`; a non-empty
   list **pauses the pipeline**.
+- Human answers must be nonblank and complete; they are saved in the analysis summary,
+  outstanding questions are cleared, and the code-stage state is persisted before continuation.
 - Treats the ticket body as untrusted (prompt-injection
   defence).
 
@@ -43,21 +45,25 @@ the deterministic provider returns the same record shape.
 - Validates API assumptions against the published contract to
   catch hallucinated APIs.
 
+In LIVE this is model reasoning over the supplied text, not a deterministic source scanner.
+In DEMO both proposal and findings are scripted per scenario.
+
 ## Atlas – Deploy
 
 - **Rule-based, not an LLM** – deterministic gate logic is
   more trustworthy for release decisions.
-- Blocks on: review not APPROVE, CRITICAL findings, failing
-  tests, or missing human approval.
+- Blocks on missing requirements/code artifacts, unresolved clarification, review not APPROVE,
+  CRITICAL findings, failing test signals, or missing human approval.
 - Sets `allowed=true` only when every gate passes **and** a
   human has approved.
 
-## Why the deterministic provider?
+## Live workshop and deterministic preview
 
 Live LLMs are non-deterministic. For a 45-minute conference
 slot, the central "AI catches the
 vulnerability" moment must be 100% reproducible.
-`DemoResponses` encodes the canonical UB-4821
-outcomes so the demo never depends on model randomness
-while the exact same code paths run in LIVE
-mode against a real model.
+OpenAI is the default workshop experience; Ollama is the explicit local LIVE alternative.
+`DemoResponses` encodes canonical UB-4821 outcomes for credential-free participant self-checks
+and a clearly identified presenter fallback. No live failure is silently replaced with a fixture.
+Atlas's `deploy.st` only restates the existing Java gate inputs, so it adds no distinct assessment
+and is not invoked. `testsPass` is a simulated/model-proposed signal, not independently run tests.

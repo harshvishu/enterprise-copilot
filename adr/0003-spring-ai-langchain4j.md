@@ -26,5 +26,5 @@ not as a second orchestrator.
   `PipelineOrchestrator` + Spring AI).
 - Attendees see where each framework shines without competing
   layers.
-- LangChain4j patterns are wired for extension without being
-  on the critical demo path.
+- LangChain4j currently exists only as a dependency: no tools, services, memory or routing are wired.
+  Retention/removal is deferred; all real model calls use Spring AI's existing OpenAI/Ollama abstraction.

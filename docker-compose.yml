@@ -21,15 +21,17 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-postgres,openai}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: copilot
       DB_USER: copilot
       DB_PASSWORD: copilot
 
-      # AI stays in deterministic DEMO mode by default
-      COPILOT_AI_MODE: DEMO
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
     ports:
       - "8080:8080"
 

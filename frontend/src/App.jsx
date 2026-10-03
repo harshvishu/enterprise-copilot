@@ -26,16 +26,19 @@ export default function App() {
     const [pipelines, setPipelines] = useState([]);
     const [audit, setAudit] = useState([]);
     const [github, setGithub] = useState(null);
+    const [error, setError] = useState('');
+    const [busy, setBusy] = useState(false);
 
     const sourceRef = useRef(null);
     const pollRef = useRef(null);
+    const actionRef = useRef(false);
 
     useEffect(() => {
 
         api.status().then((s) => {
             setStatus(s);
             setScenario(s.scenario);
-        });
+        }).catch((err) => setError(err.message));
 
         refreshList();
 
@@ -77,78 +80,71 @@ export default function App() {
         }
     }
 
+    async function perform(action) {
+        if (actionRef.current) return;
+        actionRef.current = true;
+        setBusy(true);
+        setError('');
+        try {
+            await action();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            actionRef.current = false;
+            setBusy(false);
+        }
+    }
+
     async function onScenarioChange(next) {
-
-        setScenario(next);
-
-        await api.setScenario(next);
+        await perform(async () => {
+            await api.setScenario(next);
+            setScenario(next);
+        });
     }
 
     async function runDemo() {
+        await perform(async () => {
+            sourceRef.current?.close();
+            clearInterval(pollRef.current);
+            setEvents([]);
+            const p = await api.runDemo();
 
-        sourceRef.current?.close();
-        clearInterval(pollRef.current);
+            setPipeline(p);
 
-        setEvents([]);
+            await refresh(p.id);
 
-        const p =
-            await api.runDemo();
-
-        setPipeline(p);
-
-        refresh(p.id);
-
-        sourceRef.current =
-            streamEvents(
-                p.id,
-                (evt) => {
-
-                    setEvents(prev => [
-                        ...prev,
-                        evt
-                    ]);
-
-                    refresh(p.id);
+            sourceRef.current = streamEvents(p.id, (evt) => {
+                setEvents(prev => [...prev, evt]);
+                if (evt.type === 'PIPELINE_FAILED') {
+                    setError(evt.message);
                 }
-            );
+                refresh(p.id).catch((err) => setError(err.message));
+            });
 
-        pollRef.current =
-            setInterval(
-                () => refresh(p.id),
-                1000
-            );
+            pollRef.current = setInterval(
+                () => refresh(p.id).catch((err) => setError(err.message)), 1000);
+        });
     }
 
     async function approve() {
-
-        await api.approve(
-            pipeline.id
-        );
-
-        refresh(pipeline.id);
+        await perform(async () => {
+            await api.approve(pipeline.id);
+            await refresh(pipeline.id);
+        });
     }
 
     async function reject() {
-
-        await api.reject(
-            pipeline.id
-        );
-
-        refresh(pipeline.id);
+        await perform(async () => {
+            await api.reject(pipeline.id);
+            await refresh(pipeline.id);
+        });
     }
 
     async function clarify(answers) {
-
-        if (!api.clarify) {
-            return;
-        }
-
-        await api.clarify(
-            pipeline.id,
-            answers
-        );
-
-        refresh(pipeline.id);
+        await perform(async () => {
+            await api.clarify(pipeline.id, answers);
+            await refresh(pipeline.id);
+        });
     }
 
     const live =
@@ -191,13 +187,15 @@ export default function App() {
                                     : 'bg-ok/20 text-ok'
                             }`}
                         >
-                            {live
-                                ? '● LIVE AI MODE'
-                                : '● DEMO MODE'}
+                            {!status ? 'CONNECTING' : live
+                                ? `LIVE · ${status.provider}`
+                                : 'DEMO · DETERMINISTIC'}
                         </span>
 
+                        {status && !live && (
                         <select
                             value={scenario}
+                            disabled={busy}
                             onChange={(e) =>
                                 onScenarioChange(
                                     e.target.value
@@ -212,10 +210,12 @@ export default function App() {
                                     </option>
                                 ))}
                         </select>
+                        )}
 
                         <button
                             onClick={runDemo}
-                            className="bg-accent px-4 py-1.5 rounded-md text-white"
+                            disabled={busy || !status}
+                            className="bg-accent px-4 py-1.5 rounded-md text-white disabled:opacity-50"
                         >
                             ▶ Run Pipeline
                         </button>
@@ -223,6 +223,12 @@ export default function App() {
                     </div>
 
                 </header>
+
+                {error && (
+                    <div role="alert" className="px-6 py-2 text-sm text-danger border-b border-edge">
+                        {error}
+                    </div>
+                )}
 
                 <div className="flex-1 flex overflow-hidden">
 
@@ -247,6 +253,7 @@ export default function App() {
                                                     pipeline.requirementAnalysis.clarificationQuestions?.length > 0
                                                 }
                                                 onClarify={clarify}
+                                                pending={busy}
                                             />
                                         ) : (
                                             <Empty text="No analysis yet." />
@@ -280,6 +287,7 @@ export default function App() {
                                             pipeline={pipeline}
                                             onApprove={approve}
                                             onReject={reject}
+                                            pending={busy}
                                         />
 
                                     </Panel>
@@ -360,7 +368,8 @@ function Empty({ text }) {
 function Requirements({
                           analysis,
                           awaiting,
-                          onClarify
+                          onClarify,
+                          pending
                       }) {
     return (
         <div className="space-y-3">
@@ -394,6 +403,7 @@ function Requirements({
                 <ClarificationForm
                     questions={analysis.clarificationQuestions}
                     onSubmit={onClarify}
+                    pending={pending}
                 />
             )}
         </div>
@@ -416,7 +426,7 @@ function List({ title, items }) {
     );
 }
 
-function ClarificationForm({ questions, onSubmit }) {
+function ClarificationForm({ questions, onSubmit, pending }) {
 
     const [answers, setAnswers] =
         useState(() =>
@@ -445,6 +455,7 @@ function ClarificationForm({ questions, onSubmit }) {
                     </div>
 
                     <input
+                        disabled={pending}
                         className="w-full bg-panel2 border border-edge rounded px-2 py-1"
                         value={answers[i]}
                         onChange={(e) =>
@@ -457,7 +468,8 @@ function ClarificationForm({ questions, onSubmit }) {
 
             <button
                 onClick={() => onSubmit(answers)}
-                className="bg-accent px-4 py-2 rounded"
+                disabled={pending || answers.length !== questions.length || answers.some(answer => !answer.trim())}
+                className="bg-accent px-4 py-2 rounded disabled:opacity-50"
             >
                 Submit clarifications & resume
             </button>

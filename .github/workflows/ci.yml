@@ -24,6 +24,8 @@ jobs:
 
       - name: Build and test (deterministic demo mode – no AI keys needed)
         working-directory: backend
+          env:
+            SPRING_PROFILES_ACTIVE: demo
         run: mvn -B verify
 
   frontend:

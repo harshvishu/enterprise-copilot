@@ -8,13 +8,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Deterministic AI provider used in DEMO mode (the default and workshop-safe path).
+ * Deterministic AI provider used in the explicitly selected DEMO preview/fallback profile.
  *
  * <p>Requires no external service or API key. Returns the canonical UB-4821 outputs from
  * {@link DemoResponses} based on the active scenario, mirroring the shape of real agent outputs.
  */
 @Component
-@Profile("!ollama & !openai")
+@Profile("demo")
 public class DemoAgentAiClient implements AgentAiClient {
 
     private final DemoResponses responses;

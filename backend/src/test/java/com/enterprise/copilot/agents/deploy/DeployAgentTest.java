@@ -2,6 +2,7 @@ package com.enterprise.copilot.agents.deploy;
 
 import com.enterprise.copilot.domain.ApprovalState;
 import com.enterprise.copilot.domain.CodeChangeSet;
+import com.enterprise.copilot.domain.FileChange;
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.AiMode;
 import com.enterprise.copilot.domain.PipelineContext;
@@ -11,6 +12,7 @@ import com.enterprise.copilot.domain.ReviewOutcome;
 import com.enterprise.copilot.domain.Severity;
 import com.enterprise.copilot.domain.Ticket;
 import com.enterprise.copilot.domain.audit.AuditService;
+import com.enterprise.copilot.infrastructure.ai.DemoResponses;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +34,7 @@ class DeployAgentTest {
 
     private PipelineContext ctx() {
 
-        return new PipelineContext(
+        PipelineContext ctx = new PipelineContext(
                 UUID.randomUUID(),
                 new Ticket(
                         "UB-4821",
@@ -43,13 +45,15 @@ class DeployAgentTest {
                 DemoScenario.NORMAL,
                 AiMode.DEMO
         );
+        ctx.setRequirementAnalysis(new DemoResponses().requirements(DemoScenario.NORMAL));
+        return ctx;
     }
 
     private CodeChangeSet code(boolean testsPass) {
 
         return new CodeChangeSet(
-                List.of(),
-                "",
+                List.of(new FileChange("Service.java", FileChange.ChangeType.CREATE, "class Service {}")),
+                "+class Service {}",
                 "",
                 List.of(),
                 List.of(),
@@ -58,6 +62,31 @@ class DeployAgentTest {
     }
 
     @Test
+        void approvalCannotOverrideMissingArtifacts() {
+                var ctx = ctx();
+                ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+                ctx.setApprovalState(ApprovalState.APPROVED);
+
+                assertThat(agent.evaluate(ctx).allowed()).isFalse();
+                assertThat(agent.evaluate(ctx).blockingReasons()).contains("Code proposal artifacts are missing.");
+
+                ctx.setCodeChangeSet(code(true));
+                ctx.setRequirementAnalysis(null);
+                assertThat(agent.evaluate(ctx).allowed()).isFalse();
+        }
+
+        @Test
+        void approvalCannotOverrideUnresolvedClarification() {
+                var ctx = ctx();
+                ctx.setCodeChangeSet(code(true));
+                ctx.setRequirementAnalysis(new DemoResponses().requirements(DemoScenario.AMBIGUOUS_REQUIREMENT));
+                ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+                ctx.setApprovalState(ApprovalState.APPROVED);
+
+                assertThat(agent.evaluate(ctx).allowed()).isFalse();
+        }
+
+        @Test
     void blocksWhenReviewRejected() {
 
         var ctx = ctx();

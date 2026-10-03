@@ -5,8 +5,8 @@ import com.enterprise.copilot.domain.DemoScenario;
 /**
  * Abstraction over the AI model used by agents. Two implementations exist:
  * <ul>
- *     <li>{@code DemoAgentAiClient} – deterministic, no external dependency (default / workshop mode)</li>
- *     <li>{@code SpringAiAgentAiClient} – real Spring AI {@code ChatClient} with structured output (azure/ollama profiles)</li>
+ *     <li>{@code SpringAiAgentAiClient} - Spring AI structured output (default OpenAI / explicit Ollama)</li>
+ *     <li>{@code DemoAgentAiClient} - explicit deterministic preview/fallback, no model dependency</li>
  * </ul>
  *
  * <p>Agents depend only on this port, so switching providers is a Spring profile change.

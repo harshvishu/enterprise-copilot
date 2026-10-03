@@ -25,3 +25,7 @@ endpoint.
 - The pipeline deliberately pauses at `WAITING_FOR_APPROVAL`.
 - Prompt-injection attempts to "approve anyway" cannot
   succeed by construction.
+
+The workshop endpoints are unauthenticated; the recorded approver is a presenter label,
+not verified human identity. Java also blocks missing requirements/code and unresolved
+clarification. The tests gate consumes a simulated/model-proposed signal, not executed CI.

@@ -183,10 +183,24 @@ public class PipelineOrchestrator {
                             + ")");
         }
 
-        String joined =
-                answers == null
-                        ? ""
-                        : String.join("; ", answers);
+        RequirementAnalysis analysis = ctx.requirementAnalysis();
+        List<String> questions = analysis.clarificationQuestions();
+        if (answers == null || answers.size() != questions.size()
+                || answers.stream().anyMatch(answer -> answer == null || answer.isBlank())) {
+            throw new IllegalArgumentException("Provide one nonblank answer per clarification question.");
+        }
+
+        StringBuilder clarification = new StringBuilder();
+        for (int index = 0; index < questions.size(); index++) {
+            clarification.append(questions.get(index)).append("\nAnswer: ")
+                    .append(answers.get(index).trim()).append('\n');
+        }
+        String joined = clarification.toString();
+        ctx.setRequirementAnalysis(new RequirementAnalysis(
+                analysis.summary() + "\nHuman clarification:\n" + joined,
+                List.of(), analysis.assumptions(), analysis.acceptanceCriteria(),
+                analysis.complianceConcerns(), analysis.technicalRisks(), List.of()));
+        transition(ctx, PipelineState.GENERATING_CODE);
 
         events.publish(
                 PipelineEvent.of(
@@ -240,9 +254,9 @@ public class PipelineOrchestrator {
 
         // 2. Code
 
-        transition(
-                ctx,
-                PipelineState.GENERATING_CODE);
+        if (ctx.state() != PipelineState.GENERATING_CODE) {
+            transition(ctx, PipelineState.GENERATING_CODE);
+        }
 
         CodeChangeSet changeSet =
                 codeAgent.generate(ctx);
@@ -406,6 +420,11 @@ public class PipelineOrchestrator {
         PipelineContext ctx =
                 store.load(pipelineId)
                         .orElseThrow();
+
+        if (ctx.state() != PipelineState.WAITING_FOR_APPROVAL) {
+            throw new IllegalStateException(
+                    "Pipeline is not awaiting approval (state=" + ctx.state() + ")");
+        }
 
         ctx.setApprovalState(
                 ApprovalState.REJECTED);

@@ -1,5 +1,11 @@
 # Enterprise Copilot
 
+> Historical design narrative, not the current implementation or setup guide.
+> Use [README.md](README.md) and the current workshop docs. OpenAI LIVE is now the
+> default; Ollama LIVE and DEMO are explicit alternatives. Atlas is deterministic.
+> Azure, active LangChain4j services, checkpoint branches, real generated-code CI,
+> and several directories/tests described below are not implemented in this checkout.
+
 > **Every sprint now has AI teammates.**
 
 **Enterprise Copilot** is a governed AI engineering workspace that brings specialized AI teammates into the software delivery lifecycle.
