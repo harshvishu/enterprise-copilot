@@ -6,55 +6,80 @@ import {
     LockKeyhole,
     ChevronDown,
     GitPullRequest,
+    Play,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { readable } from '@/lib/pipeline';
 import DiffViewer from './DiffViewer';
 
-export default function WorkspaceViews({ nav, pipelines, github, pipeline, audit, status }) {
+export default function WorkspaceViews({
+    nav,
+    pipelines,
+    issues = [],
+    onRunIssue,
+    running,
+    pending,
+    github,
+    pipeline,
+    audit,
+    status,
+}) {
     if (nav === 'issues')
         return (
             <section className="py-7">
-                <ViewHeading title="Issues" count={pipelines.length} />
-                {pipelines.length ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
-                            <thead className="border-b text-muted-foreground">
-                                <tr>
-                                    <th className="py-3 font-normal">Work item</th>
-                                    <th className="hidden py-3 font-normal sm:table-cell">
-                                        Execution
-                                    </th>
-                                    <th className="py-3 text-right font-normal">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pipelines.map((item) => (
-                                    <tr key={item.id} className="border-b">
-                                        <td className="py-4 pr-4">
-                                            <div className="font-mono text-[11px] text-muted-foreground">
-                                                {item.ticket.key}
-                                            </div>
-                                            <div className="mt-1 font-medium">
-                                                {item.ticket.title}
-                                            </div>
-                                        </td>
-                                        <td className="hidden py-4 pr-4 text-muted-foreground sm:table-cell">
-                                            {item.aiMode === 'DEMO'
-                                                ? readable(item.scenario)
-                                                : 'Live model'}
-                                        </td>
-                                        <td className="py-4 text-right text-muted-foreground">
-                                            {readable(item.state)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <ViewHeading title="Issues" count={issues.length} />
+                {issues.length ? (
+                    <ul>
+                        {issues.map((issue) => {
+                            const latest = pipelines.find((item) => item.ticket.key === issue.key);
+                            return (
+                                <li
+                                    key={issue.key}
+                                    className="flex flex-col gap-4 border-b py-5 sm:flex-row sm:items-start sm:justify-between"
+                                >
+                                    <div className="min-w-0 max-w-3xl">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-mono text-[11px] text-muted-foreground">
+                                                {issue.key}
+                                            </span>
+                                            {issue.labels?.map((label) => (
+                                                <Badge
+                                                    key={label}
+                                                    variant="outline"
+                                                    className="rounded-sm text-[10px] font-normal text-muted-foreground"
+                                                >
+                                                    {label}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                        <h3 className="mt-2 text-sm font-medium">{issue.title}</h3>
+                                        <p className="mt-1 line-clamp-2 whitespace-pre-line break-anywhere text-xs leading-5 text-muted-foreground">
+                                            {issue.description}
+                                        </p>
+                                        {latest && (
+                                            <p className="mt-2 text-[11px] text-muted-foreground">
+                                                Last run: {readable(latest.state)}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="shrink-0 self-start"
+                                        disabled={pending || running || !status}
+                                        onClick={() => onRunIssue(issue.key)}
+                                    >
+                                        <Play />
+                                        Run issue
+                                    </Button>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 ) : (
-                    <Empty>No work items yet.</Empty>
+                    <Empty>No backlog issues available.</Empty>
                 )}
             </section>
         );

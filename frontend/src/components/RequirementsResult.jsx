@@ -5,24 +5,35 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { splitClarification } from '@/lib/pipeline';
+import { agentProgress, modelLabel, splitClarification } from '@/lib/pipeline';
+import { cn } from '@/lib/utils';
+import AgentProgress from './AgentProgress';
 
-export default function RequirementsResult({ pipeline, pending, onClarify }) {
+export default function RequirementsResult({ pipeline, pending, onClarify, events, status }) {
     const analysis = pipeline?.requirementAnalysis;
     const awaiting =
         pipeline?.state === 'REQUIREMENTS_READY' && analysis?.clarificationQuestions?.length > 0;
+    const progress = agentProgress(events, 'Rhea');
     const running = pipeline?.state === 'ANALYZING_REQUIREMENTS';
+    const failed = !analysis && progress.failed;
     const text = splitClarification(analysis?.summary);
     return (
         <section id="requirements" className="scroll-mt-6 border-b">
             <Collapsible
-                key={`${pipeline?.id}-${Boolean(awaiting)}-${Boolean(pipeline?.codeChangeSet)}`}
+                key={`${pipeline?.id}-${Boolean(awaiting)}-${Boolean(pipeline?.codeChangeSet)}-${running}-${failed}`}
                 open={awaiting ? true : undefined}
-                defaultOpen={Boolean(awaiting || running || (analysis && !pipeline?.codeChangeSet))}
+                defaultOpen={Boolean(
+                    awaiting || running || failed || (analysis && !pipeline?.codeChangeSet),
+                )}
             >
                 <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
                     <div className="flex min-w-0 items-center gap-3">
-                        <FileSearch className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <FileSearch
+                            className={cn(
+                                'h-4 w-4 shrink-0',
+                                running ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                        />
                         <h2 className="text-sm font-medium">
                             Requirements{' '}
                             <span className="ml-3 text-xs font-normal text-muted-foreground">
@@ -31,11 +42,18 @@ export default function RequirementsResult({ pipeline, pending, onClarify }) {
                         </h2>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                        <span
+                            className={cn(
+                                'hidden text-xs sm:inline',
+                                running ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                        >
                             {awaiting
                                 ? 'Human input needed'
                                 : running
                                   ? 'Analyzing'
+                                  : failed
+                                    ? 'Stopped'
                                   : text.clarification
                                     ? 'Human clarified'
                                     : analysis
@@ -47,15 +65,19 @@ export default function RequirementsResult({ pipeline, pending, onClarify }) {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pb-6">
                     {!analysis ? (
-                        running ? (
-                            <div className="space-y-3">
-                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Rhea is analyzing the ticket...
-                                </p>
-                                <Skeleton className="h-4 w-full" />
-                                <Skeleton className="h-4 w-3/4" />
-                            </div>
+                        running || failed ? (
+                            progress.steps.length ? (
+                                <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Rhea is starting...
+                                    </p>
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                </div>
+                            )
                         ) : (
                             <p className="text-sm text-muted-foreground">
                                 Awaiting requirement analysis.

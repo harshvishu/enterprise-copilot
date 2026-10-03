@@ -13,12 +13,14 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { Skeleton } from './components/ui/skeleton';
 
 import { api, streamEvents } from './api.js';
+import { ACTIVE_STATES } from './lib/pipeline.js';
 
 const TERMINAL_STATES = ['DEPLOYED', 'BLOCKED', 'FAILED'];
 
 export default function App() {
     const [status, setStatus] = useState(null);
-    const [scenario, setScenario] = useState('NORMAL');
+    const [issues, setIssues] = useState([]);
+    const [selectedIssue, setSelectedIssue] = useState('UB-4821');
     const [pipeline, setPipeline] = useState(null);
     const [events, setEvents] = useState([]);
     const [nav, setNav] = useState('dashboard');
@@ -43,11 +45,16 @@ export default function App() {
                 const current = await api.status();
                 if (cancelled) return;
                 setStatus(current);
-                setScenario(current.scenario);
+                const backlog = await api.demoIssues();
+                if (cancelled) return;
+                setIssues(backlog);
                 const list = await api.listPipelines();
                 if (cancelled) return;
                 setPipelines(list);
                 if (list[0]) {
+                    if (backlog.some((issue) => issue.key === list[0].ticket.key)) {
+                        setSelectedIssue(list[0].ticket.key);
+                    }
                     setPipeline(list[0]);
                     connect(list[0].id);
                     await refresh(list[0].id);
@@ -129,20 +136,15 @@ export default function App() {
         }
     }
 
-    async function onScenarioChange(next) {
-        await perform(async () => {
-            await api.setScenario(next);
-            setScenario(next);
-        }, 'scenario');
-    }
-
-    async function runDemo() {
+    async function runIssue(key = selectedIssue) {
         await perform(async () => {
             sourceRef.current?.close();
             clearInterval(pollRef.current);
             setEvents([]);
-            const p = await api.runDemo();
+            const p = await api.runDemo(key);
 
+            setSelectedIssue(key);
+            setNav('dashboard');
             setPipeline(p);
             setAudit([]);
             setGithub(null);
@@ -172,6 +174,11 @@ export default function App() {
         }, 'clarify');
     }
 
+    const running =
+        ACTIVE_STATES.includes(pipeline?.state) ||
+        (pipeline?.state === 'REQUIREMENTS_READY' &&
+            !pipeline?.requirementAnalysis?.clarificationQuestions?.length);
+
     return (
         <TooltipProvider delayDuration={200}>
             <div className="flex min-h-screen bg-background text-foreground">
@@ -183,9 +190,8 @@ export default function App() {
                         <PageHeader
                             pipeline={pipeline}
                             status={status}
-                            scenario={scenario}
-                            onScenarioChange={onScenarioChange}
-                            onRun={runDemo}
+                            issue={issues.find((issue) => issue.key === selectedIssue)}
+                            onRun={() => runIssue()}
                             pending={busy}
                             action={pendingAction}
                             events={events}
@@ -225,13 +231,17 @@ export default function App() {
                                     pipeline={pipeline}
                                     pending={busy}
                                     onClarify={clarify}
+                                    events={events}
+                                    status={status}
                                 />
-                                <CodeProposal pipeline={pipeline} />
+                                <CodeProposal pipeline={pipeline} events={events} status={status} />
                                 <div className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-10">
                                     <Findings
                                         review={pipeline?.reviewDecision}
                                         running={pipeline?.state === 'REVIEWING'}
                                         mode={pipeline?.aiMode || status?.aiMode}
+                                        events={events}
+                                        status={status}
                                     />
                                     <div className="border-t lg:border-l lg:border-t-0 lg:pl-7">
                                         <ApprovalPanel
@@ -240,6 +250,7 @@ export default function App() {
                                             onReject={reject}
                                             pending={busy}
                                             action={pendingAction}
+                                            events={events}
                                         />
                                     </div>
                                 </div>
@@ -250,6 +261,10 @@ export default function App() {
                                 <WorkspaceViews
                                     nav={nav}
                                     pipelines={pipelines}
+                                    issues={issues}
+                                    onRunIssue={runIssue}
+                                    running={running}
+                                    pending={busy}
                                     github={github}
                                     pipeline={pipeline}
                                     audit={audit}

@@ -2,18 +2,24 @@ import React from 'react';
 import { Check, X, Clock3, LockKeyhole, Loader2, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { severityCounts } from '@/lib/pipeline';
+import { severityCounts, GATE_LABELS, gateResults, revalidation } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 
-export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, action }) {
+export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, action, events }) {
     const waiting = pipeline?.state === 'WAITING_FOR_APPROVAL';
     const deployed = pipeline?.state === 'DEPLOYED';
     const blocked = ['BLOCKED', 'REVIEW_FAILED'].includes(pipeline?.state);
     const failed = pipeline?.state === 'FAILED';
+    const evaluating =
+        !pipeline?.deploymentDecision &&
+        ['REVIEW_PASSED', 'REVIEW_FAILED'].includes(pipeline?.state);
+    const evaluated = gateResults(events);
+    const recheck = revalidation(events);
     const counts = severityCounts(pipeline?.reviewDecision);
-    const gates = [
+    const snapshotGates = [
         {
-            label: 'Requirements clarified',
+            id: 'REQUIREMENTS_RESOLVED',
+            label: GATE_LABELS.REQUIREMENTS_RESOLVED,
             passed: Boolean(
                 pipeline?.requirementAnalysis &&
                     !pipeline.requirementAnalysis.clarificationQuestions?.length,
@@ -25,7 +31,8 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
             waiting: Boolean(pipeline?.requirementAnalysis?.clarificationQuestions?.length),
         },
         {
-            label: 'Code proposal present',
+            id: 'CODE_PROPOSAL_PRESENT',
+            label: GATE_LABELS.CODE_PROPOSAL_PRESENT,
             passed: Boolean(
                 pipeline?.codeChangeSet?.files?.length &&
                     pipeline.codeChangeSet.unifiedDiff?.trim(),
@@ -33,29 +40,36 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
             known: Boolean(pipeline?.deploymentDecision || pipeline?.codeChangeSet),
         },
         {
-            label: 'Review passed',
+            id: 'REVIEW_APPROVED',
+            label: GATE_LABELS.REVIEW_APPROVED,
             passed: pipeline?.reviewDecision?.outcome === 'APPROVE',
             known: Boolean(pipeline?.reviewDecision),
         },
         {
+            id: 'NO_CRITICAL_FINDINGS',
             label: counts.CRITICAL
                 ? `${counts.CRITICAL} unresolved critical finding${counts.CRITICAL > 1 ? 's' : ''}`
-                : 'No critical findings',
+                : GATE_LABELS.NO_CRITICAL_FINDINGS,
             passed: !counts.CRITICAL,
             known: Boolean(pipeline?.reviewDecision),
         },
         {
-            label: 'Test signal passed',
+            id: 'TESTS_PASS',
+            label: GATE_LABELS.TESTS_PASS,
             passed: Boolean(pipeline?.codeChangeSet?.testsPass),
             known: Boolean(pipeline?.codeChangeSet),
         },
-        {
-            label: 'Human approval',
-            passed: pipeline?.approvalState === 'APPROVED',
-            known: ['APPROVED', 'REJECTED'].includes(pipeline?.approvalState),
-            waiting: pipeline?.approvalState === 'PENDING',
-        },
     ];
+    // While Atlas runs, reveal each gate only once its deterministic result has been published.
+    const gates = evaluating
+        ? snapshotGates.map((gate) =>
+              evaluated[gate.id]
+                  ? { ...gate, passed: evaluated[gate.id].passed, known: true, waiting: false }
+                  : { ...gate, known: false, waiting: false },
+          )
+        : snapshotGates;
+    const approvalRequested =
+        pipeline?.approvalState === 'PENDING' || Boolean(evaluated.HUMAN_APPROVAL?.waiting);
     return (
         <section id="release" className="scroll-mt-6 py-6 lg:sticky lg:top-6">
             <div className="mb-5 flex items-center justify-between gap-2">
@@ -64,7 +78,7 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
             </div>
             <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
                 <LockKeyhole className="h-3.5 w-3.5" />
-                Deterministic system policy
+                Deterministic Java rules · no model call
             </div>
             <h3
                 className={cn(
@@ -97,7 +111,9 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                           ? 'Ready for approval'
                           : pipeline?.state === 'DEPLOYING'
                             ? 'Deploying...'
-                            : 'Awaiting assessment'}
+                            : evaluating
+                              ? 'Evaluating release gates...'
+                              : 'Awaiting assessment'}
             </h3>
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 {deployed
@@ -136,10 +152,10 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                 </div>
             )}
             <Separator className="my-5" />
-            <h4 className="mb-3 text-xs font-medium">System gates</h4>
+            <h4 className="mb-3 text-xs font-medium">Release gates</h4>
             <ul className="space-y-3">
                 {gates.map((gate) => (
-                    <li key={gate.label} className="flex items-start gap-2.5 text-xs leading-5">
+                    <li key={gate.id} className="flex items-start gap-2.5 text-xs leading-5">
                         {gate.passed && gate.known ? (
                             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                         ) : gate.known ? (
@@ -164,6 +180,42 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                     </li>
                 ))}
             </ul>
+            <Separator className="my-5" />
+            <h4 className="mb-3 text-xs font-medium">Human authorization</h4>
+            <ul className="space-y-3">
+                <StatusLine
+                    status={
+                        pipeline?.approvalState === 'APPROVED'
+                            ? 'passed'
+                            : pipeline?.approvalState === 'REJECTED'
+                              ? 'failed'
+                              : approvalRequested
+                                ? 'waiting'
+                                : 'pending'
+                    }
+                    label={
+                        pipeline?.approvalState === 'APPROVED'
+                            ? 'Human approval granted'
+                            : pipeline?.approvalState === 'REJECTED'
+                              ? 'Rejected by a human'
+                              : approvalRequested
+                                ? 'Human approval required'
+                                : 'Requested after all release gates pass'
+                    }
+                />
+                {recheck && (
+                    <StatusLine
+                        status={recheck === 'running' ? 'current' : recheck}
+                        label={
+                            recheck === 'running'
+                                ? 'Re-validating release gates...'
+                                : recheck === 'passed'
+                                  ? 'All release gates satisfied'
+                                  : 'Release gates blocked deployment'
+                        }
+                    />
+                )}
+            </ul>
             {pipeline?.deploymentDecision?.blockingReasons?.length > 0 &&
                 blocked &&
                 pipeline.approvalState !== 'REJECTED' && (
@@ -179,5 +231,37 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                     </div>
                 )}
         </section>
+    );
+}
+
+function StatusLine({ status, label }) {
+    return (
+        <li className="flex items-start gap-2.5 text-xs leading-5">
+            <span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                {status === 'passed' ? (
+                    <Check className="h-3.5 w-3.5 text-success" />
+                ) : status === 'failed' ? (
+                    <X className="h-3.5 w-3.5 text-destructive" />
+                ) : status === 'current' ? (
+                    <span className="h-2 w-2 rounded-full bg-primary ring-4 ring-primary/15" />
+                ) : (
+                    <Clock3
+                        className={cn(
+                            'h-3.5 w-3.5',
+                            status === 'waiting' ? 'text-warning' : 'text-muted-foreground/50',
+                        )}
+                    />
+                )}
+            </span>
+            <span
+                className={
+                    status === 'current' || status === 'waiting'
+                        ? 'font-medium text-foreground'
+                        : 'text-muted-foreground'
+                }
+            >
+                {label}
+            </span>
+        </li>
     );
 }

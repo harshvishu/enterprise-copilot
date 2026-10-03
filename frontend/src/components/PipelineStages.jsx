@@ -33,7 +33,7 @@ const STATUS = {
 export default function PipelineStages({ pipeline, state }) {
     const statuses = stageStatuses(pipeline || (state ? { state } : null));
     return (
-        <section aria-label="Delivery pipeline" className="border-y py-6 sm:py-8">
+        <section aria-label="Delivery pipeline" className="py-6 sm:py-8">
             <ol className="grid grid-cols-5 gap-1 sm:gap-3">
                 {STAGES.map((stage, index) => {
                     const status = statuses[index];
@@ -70,7 +70,7 @@ export default function PipelineStages({ pipeline, state }) {
                                     status === 'completed'
                                         ? 'border-success/30 text-success'
                                         : status === 'running'
-                                          ? 'border-primary text-primary'
+                                          ? 'border-primary text-primary ring-4 ring-primary/15'
                                           : status === 'waiting'
                                             ? 'border-warning/50 text-warning'
                                             : ['rejected', 'blocked', 'failed'].includes(status)

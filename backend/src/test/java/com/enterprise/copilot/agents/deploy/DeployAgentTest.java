@@ -13,24 +13,83 @@ import com.enterprise.copilot.domain.Severity;
 import com.enterprise.copilot.domain.Ticket;
 import com.enterprise.copilot.domain.audit.AuditService;
 import com.enterprise.copilot.infrastructure.ai.DemoResponses;
+import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
+import com.enterprise.copilot.orchestration.PipelineEventType;
+import com.enterprise.copilot.orchestration.PresentationPacer;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Atlas must never allow deployment unless every gate passes AND a human has approved.
  */
 class DeployAgentTest {
 
+    private final PipelineEventPublisher events = mock(PipelineEventPublisher.class);
+
     private final DeployAgent agent =
             new DeployAgent(
-                    mock(PipelineEventPublisher.class),
-                    mock(AuditService.class));
+                    events,
+                    mock(AuditService.class),
+                    new PresentationPacer(0, 0));
+
+    private List<PipelineEvent> gateEvents() {
+        ArgumentCaptor<PipelineEvent> captor = ArgumentCaptor.forClass(PipelineEvent.class);
+        verify(events, atLeastOnce()).publish(captor.capture());
+        return captor.getAllValues().stream()
+                .filter(event -> event.type() == PipelineEventType.GATE_EVALUATED)
+                .toList();
+    }
+
+    @Test
+    void publishesEachGateWithStableIdentifiers() {
+        var ctx = ctx();
+        ctx.setCodeChangeSet(code(true));
+        ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+
+        agent.evaluate(ctx);
+
+        List<PipelineEvent> gates = gateEvents();
+        assertThat(gates).extracting(event -> event.data().get("gate")).containsExactly(
+                "REQUIREMENTS_RESOLVED", "CODE_PROPOSAL_PRESENT", "REVIEW_APPROVED",
+                "NO_CRITICAL_FINDINGS", "TESTS_PASS", "HUMAN_APPROVAL");
+        assertThat(gates.get(5).data()).containsEntry("passed", false).containsEntry("waiting", true);
+    }
+
+    @Test
+    void failedGateIsReportedAndApprovalIsNotRequested() {
+        var ctx = ctx();
+        ctx.setCodeChangeSet(code(false));
+        ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+
+        agent.evaluate(ctx);
+
+        List<PipelineEvent> gates = gateEvents();
+        assertThat(gates).extracting(event -> event.data().get("gate")).doesNotContain("HUMAN_APPROVAL");
+        assertThat(gates.get(4).data()).containsEntry("gate", "TESTS_PASS").containsEntry("passed", false);
+    }
+
+    @Test
+    void revalidationAppliesTheSameRulesWithoutPerGateEvents() {
+        var ctx = ctx();
+        ctx.setCodeChangeSet(code(true));
+        ctx.setReviewDecision(new ReviewDecision(ReviewOutcome.APPROVE, "ok", List.of()));
+        ctx.setApprovalState(ApprovalState.APPROVED);
+
+        assertThat(agent.revalidate(ctx).allowed()).isTrue();
+        assertThat(gateEvents()).isEmpty();
+
+        ctx.setCodeChangeSet(code(false));
+        assertThat(agent.revalidate(ctx).allowed()).isFalse();
+    }
 
     private PipelineContext ctx() {
 

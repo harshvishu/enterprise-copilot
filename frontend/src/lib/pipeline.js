@@ -10,6 +10,70 @@ export const ACTIVE_STATES = [
 ];
 export const TERMINAL_STATES = ['DEPLOYED', 'BLOCKED', 'FAILED'];
 
+export const GATE_LABELS = {
+    REQUIREMENTS_RESOLVED: 'Requirements resolved',
+    CODE_PROPOSAL_PRESENT: 'Code proposal available',
+    REVIEW_APPROVED: 'Sentinel review approved',
+    NO_CRITICAL_FINDINGS: 'No critical findings',
+    TESTS_PASS: 'Test signal passed',
+    HUMAN_APPROVAL: 'Human approval',
+};
+
+export function modelLabel(status) {
+    if (status?.aiMode === 'DEMO') return 'Deterministic fixture';
+    if (status?.provider === 'OPENAI') return 'Model call · OpenAI';
+    if (status?.provider === 'OLLAMA') return 'Model call · Ollama';
+    return 'Model call';
+}
+
+// Steps since the agent's latest start; the last step is current until the agent completes or the pipeline fails.
+export function agentProgress(events = [], agent) {
+    let start = -1;
+    events.forEach((event, index) => {
+        if (event.agent === agent && event.type === 'AGENT_STARTED') start = index;
+    });
+    const result = { steps: [], completed: false, failed: false, failure: '' };
+    if (start < 0) return result;
+    for (const event of events.slice(start + 1)) {
+        if (event.type === 'PIPELINE_FAILED') {
+            result.failed = true;
+            result.failure = event.message;
+        } else if (event.agent === agent && event.type === 'AGENT_COMPLETED') {
+            result.completed = true;
+        } else if (event.agent === agent && event.data?.step) {
+            if (!result.steps.some((step) => step.key === event.data.step)) {
+                result.steps.push({ key: event.data.step, label: event.message });
+            }
+        }
+    }
+    result.steps = result.steps.map((step, index) => ({
+        ...step,
+        status:
+            result.completed || index < result.steps.length - 1
+                ? 'done'
+                : result.failed
+                  ? 'failed'
+                  : 'current',
+    }));
+    result.failed = result.failed && !result.completed && result.steps.length > 0;
+    return result;
+}
+
+export function gateResults(events = []) {
+    return events
+        .filter((event) => event.type === 'GATE_EVALUATED')
+        .reduce((gates, event) => ({ ...gates, [event.data.gate]: event.data }), {});
+}
+
+export function revalidation(events = []) {
+    const granted = events.findIndex((event) => event.type === 'APPROVAL_GRANTED');
+    if (granted < 0) return null;
+    const after = events.slice(granted + 1).filter((event) => event.agent === 'Atlas');
+    if (after.some((event) => event.type === 'AGENT_COMPLETED')) return 'passed';
+    if (after.some((event) => event.type === 'GATE_BLOCKED')) return 'failed';
+    return 'running';
+}
+
 export function readable(value = '') {
     return value
         .toLowerCase()

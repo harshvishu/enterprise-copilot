@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { GATE_LABELS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 
 const ICONS = {
@@ -32,11 +33,12 @@ const ICONS = {
 const LABELS = {
     PIPELINE_STARTED: 'Pipeline started',
     AGENT_STARTED: 'Started',
-    AGENT_THINKING: 'Assessing',
+    AGENT_THINKING: 'Step',
     TOOL_INVOKED: 'Reference consulted',
     AGENT_COMPLETED: 'Assessment complete',
     FINDING_CREATED: 'Finding identified',
     GATE_BLOCKED: 'Gate blocked',
+    GATE_EVALUATED: 'Gate evaluated',
     APPROVAL_REQUIRED: 'Approval needed',
     APPROVAL_GRANTED: 'Human approved',
     APPROVAL_REJECTED: 'Human rejected',
@@ -129,7 +131,15 @@ export default function AgentActivity({ events = [] }) {
                                                     </time>
                                                 </div>
                                                 <p className="break-anywhere text-xs leading-5 text-muted-foreground">
-                                                    {event.message}
+                                                    {event.type === 'GATE_EVALUATED'
+                                                        ? `${GATE_LABELS[event.data?.gate] || event.data?.gate}: ${
+                                                              event.data?.waiting
+                                                                  ? 'waiting for a human'
+                                                                  : event.data?.passed
+                                                                    ? 'passed'
+                                                                    : 'failed'
+                                                          }`
+                                                        : event.message}
                                                 </p>
                                             </li>
                                         ))}

@@ -1,9 +1,12 @@
 # Failure Scenarios
 
-In the explicit `demo` profile, switch scenarios from the dashboard dropdown or
+In the explicit `demo` profile, run a backlog issue from the dashboard **Issues** view
+(`POST /api/demo/run?issueKey=UB-4822`); each issue maps to one scenario below
+(UB-4821 NORMAL, UB-4822 SECURITY_FAILURE, UB-4823 AMBIGUOUS_REQUIREMENT, UB-4824 TEST_FAILURE,
+UB-4825 HALLUCINATED_API, UB-4826 PROMPT_INJECTION). Alternatively
 `POST /api/demo/scenario?scenario=<NAME>`, then
 `POST /api/demo/run`. Each is deterministic. OpenAI LIVE is the default workshop experience;
-LIVE hides the scenario dropdown and rejects scenario-selection requests. Model outcomes are not guaranteed.
+LIVE runs the selected issue's real ticket text and rejects scenario-selection requests. Model outcomes are not guaranteed.
 
 | Scenario | What happens | Terminal state |
 |-----------|--------------|----------------|

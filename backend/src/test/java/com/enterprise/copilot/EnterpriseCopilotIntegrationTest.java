@@ -32,7 +32,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @SpringBootTest
 @ActiveProfiles("demo")
-@TestPropertySource(properties = "copilot.demo.step-delay-ms=0")
+@TestPropertySource(properties = {
+        "copilot.demo.step-delay-ms=0",
+        "copilot.demo.activity-delay-ms=0"})
 class EnterpriseCopilotIntegrationTest {
 
     @Autowired

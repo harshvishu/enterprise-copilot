@@ -2,8 +2,9 @@ import React from 'react';
 import { ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { readable, severityCounts } from '@/lib/pipeline';
+import { agentProgress, modelLabel, readable, severityCounts } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
+import AgentProgress from './AgentProgress';
 
 const COLORS = {
     CRITICAL: 'border-l-destructive',
@@ -12,26 +13,37 @@ const COLORS = {
     LOW: 'border-l-border',
 };
 
-export default function Findings({ review, running = false, mode }) {
+export default function Findings({ review, running = false, mode, events, status }) {
     const counts = severityCounts(review);
     const passed = review?.outcome === 'APPROVE';
+    const progress = agentProgress(events, 'Sentinel');
+    const failed = !review && progress.failed;
     return (
         <section id="review" className="scroll-mt-6 min-w-0 py-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">
                     Review{' '}
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">Sentinel</span>
+                    <span
+                        className={cn(
+                            'ml-2 text-xs font-normal',
+                            running ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                    >
+                        Sentinel
+                    </span>
                 </h2>
                 <span className="text-xs text-muted-foreground">
                     {mode === 'DEMO' ? 'Deterministic preview' : 'Model assessment'}
                 </span>
             </div>
             {!review ? (
-                running ? (
+                (running || failed) && progress.steps.length ? (
+                    <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                ) : running ? (
                     <div className="space-y-3">
                         <p className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Sentinel is reviewing the proposal...
+                            Sentinel is starting...
                         </p>
                         <Skeleton className="h-4 w-4/5" />
                         <Skeleton className="h-4 w-3/5" />

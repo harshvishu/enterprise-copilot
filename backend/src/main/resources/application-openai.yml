@@ -16,3 +16,7 @@ spring:
 copilot:
   ai:
     mode: LIVE
+  demo:
+    # Provider latency already paces LIVE runs.
+    step-delay-ms: ${COPILOT_STEP_DELAY_MS:250}
+    activity-delay-ms: ${COPILOT_ACTIVITY_DELAY_MS:250}

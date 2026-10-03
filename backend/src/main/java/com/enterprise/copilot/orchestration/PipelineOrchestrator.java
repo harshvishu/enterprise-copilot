@@ -11,7 +11,6 @@ import com.enterprise.copilot.persistence.PipelineStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +37,7 @@ public class PipelineOrchestrator {
     private final AuditService audit;
     private final DemoState demoState;
     private final ObjectProvider<PipelineOrchestrator> self;
-    private final long stepDelayMs;
+    private final PresentationPacer pacer;
 
     public PipelineOrchestrator(
             RequirementsAgent requirementsAgent,
@@ -50,7 +49,7 @@ public class PipelineOrchestrator {
             AuditService audit,
             DemoState demoState,
             ObjectProvider<PipelineOrchestrator> self,
-            @Value("${copilot.demo.step-delay-ms:600}") long stepDelayMs) {
+            PresentationPacer pacer) {
 
         this.requirementsAgent = requirementsAgent;
         this.codeAgent = codeAgent;
@@ -61,15 +60,20 @@ public class PipelineOrchestrator {
         this.audit = audit;
         this.demoState = demoState;
         this.self = self;
-        this.stepDelayMs = stepDelayMs;
+        this.pacer = pacer;
     }
 
     /**
      * Create a pipeline for a ticket using the currently active scenario, then run it asynchronously.
      */
     public PipelineContext createAndRun(Ticket ticket) {
+        return createAndRun(ticket, demoState.scenario());
+    }
 
-        DemoScenario scenario = demoState.scenario();
+    /**
+     * Create and run a pipeline with an explicit scenario; only the DEMO provider reads it.
+     */
+    public PipelineContext createAndRun(Ticket ticket, DemoScenario scenario) {
 
         PipelineContext ctx =
                 new PipelineContext(
@@ -392,7 +396,7 @@ public class PipelineOrchestrator {
         );
 
         DeploymentDecision decision =
-                deployAgent.evaluate(ctx);
+                deployAgent.revalidate(ctx);
 
         ctx.setDeploymentDecision(decision);
 
@@ -469,7 +473,7 @@ public class PipelineOrchestrator {
                         "Deploying to production..."
                 ));
 
-        pace();
+        pacer.afterTransition();
 
         transition(
                 ctx,
@@ -507,22 +511,6 @@ public class PipelineOrchestrator {
 
         ctx.setState(state);
         store.save(ctx);
-        pace();
-    }
-
-    private void pace() {
-
-        if (stepDelayMs <= 0) {
-            return;
-        }
-
-        try {
-
-            Thread.sleep(stepDelayMs);
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-        }
+        pacer.afterTransition();
     }
 }

@@ -19,7 +19,12 @@ export const api = {
     setScenario: (scenario) =>
         fetch(`${BASE}/demo/scenario?scenario=${scenario}`, { method: 'POST' }).then(json),
 
-    runDemo: () => fetch(`${BASE}/demo/run`, { method: 'POST' }).then(json),
+    runDemo: (issueKey) =>
+        fetch(`${BASE}/demo/run${issueKey ? `?issueKey=${encodeURIComponent(issueKey)}` : ''}`, {
+            method: 'POST',
+        }).then(json),
+
+    demoIssues: () => fetch(`${BASE}/demo/issues`).then(json),
 
     listPipelines: () => fetch(`${BASE}/pipelines`).then(json),
 
@@ -52,6 +57,7 @@ export function streamEvents(id, onEvent) {
         'AGENT_COMPLETED',
         'FINDING_CREATED',
         'GATE_BLOCKED',
+        'GATE_EVALUATED',
         'APPROVAL_REQUIRED',
         'APPROVAL_GRANTED',
         'APPROVAL_REJECTED',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Play, Loader2, ChevronDown } from 'lucide-react';
+import { Menu, Play, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,23 +9,15 @@ import {
     SheetTitle,
     SheetDescription,
 } from '@/components/ui/sheet';
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
-} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { ACTIVE_STATES, readable } from '@/lib/pipeline';
+import { ACTIVE_STATES } from '@/lib/pipeline';
 import Sidebar from './Sidebar';
 import AgentActivity from './AgentActivity';
 
 export default function PageHeader({
     pipeline,
     status,
-    scenario,
-    onScenarioChange,
+    issue,
     onRun,
     pending,
     action,
@@ -77,12 +69,14 @@ export default function PageHeader({
                     </Sheet>
                     <span className="text-xs text-muted-foreground">Ubuntu Bank</span>
                     <span className="text-border">/</span>
-                    <span className="font-mono text-xs">{pipeline?.ticket.key || 'UB-4821'}</span>
+                    <span className="font-mono text-xs">
+                        {pipeline?.ticket.key || issue?.key || 'UB-4821'}
+                    </span>
                 </div>
                 <AgentActivity events={events} />
             </div>
             <h1 className="max-w-4xl break-anywhere text-xl font-semibold leading-tight sm:text-2xl">
-                {pipeline?.ticket.title || 'High Value Transaction Notification'}
+                {pipeline?.ticket.title || issue?.title || 'High Value Transaction Notification'}
             </h1>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
@@ -97,32 +91,16 @@ export default function PageHeader({
                     <span className="text-xs text-muted-foreground">Delivery pipeline</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    {status?.aiMode === 'DEMO' && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={pending || running}
-                                    className="text-xs"
-                                >
-                                    {readable(scenario)}
-                                    <ChevronDown />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuRadioGroup
-                                    value={scenario}
-                                    onValueChange={onScenarioChange}
-                                >
-                                    {status.scenarios?.map((value) => (
-                                        <DropdownMenuRadioItem key={value} value={value}>
-                                            {readable(value)}
-                                        </DropdownMenuRadioItem>
-                                    ))}
-                                </DropdownMenuRadioGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                    {issue && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => onNavigate('issues')}
+                        >
+                            <span className="font-mono text-muted-foreground">{issue.key}</span>
+                            Change issue
+                        </Button>
                     )}
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -148,7 +126,7 @@ export default function PageHeader({
                         <TooltipContent>
                             {running
                                 ? 'A pipeline is currently executing'
-                                : 'Start a new pipeline for this work item'}
+                                : `Run ${issue?.key || 'the selected issue'} through the pipeline`}
                         </TooltipContent>
                     </Tooltip>
                 </div>

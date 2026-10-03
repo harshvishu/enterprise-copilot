@@ -28,7 +28,7 @@ For Ollama LIVE, select `ollama`, run Ollama and pull the model. See [README](..
 
 ## What to explore
 
-- In DEMO only, switch all seven scenarios in the dropdown and re-run.
+- Open **Issues** and run each Ubuntu Bank backlog issue; in DEMO each has a deterministic outcome.
 - Watch **Live Agent Activity** (SSE) on the right.
 - Open Swagger at http://localhost:8080/swagger-ui.html and try `/api/agents/review`.
 - Inspect the audit trail: `GET /api/audit/pipelines/{id}`.

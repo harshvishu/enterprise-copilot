@@ -9,6 +9,7 @@ import com.enterprise.copilot.infrastructure.ai.PromptLibrary;
 import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import com.enterprise.copilot.orchestration.PipelineEventType;
+import com.enterprise.copilot.orchestration.PresentationPacer;
 import com.enterprise.copilot.tools.ArchitectureTool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -30,6 +31,7 @@ public class CodeGenerationAgent {
     private final ArchitectureTool architecture;
     private final PipelineEventPublisher events;
     private final AuditService audit;
+    private final PresentationPacer pacer;
 
     public CodeChangeSet generate(PipelineContext ctx) {
 
@@ -46,7 +48,8 @@ public class CodeGenerationAgent {
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_THINKING,
                         NAME,
-                        "Applying approved architecture patterns and writing tests."
+                        "Reviewing approved requirement analysis",
+                        Map.of("step", "REQUIREMENTS")
                 ));
 
         String analysisSummary =
@@ -54,13 +57,38 @@ public class CodeGenerationAgent {
                         ? ""
                         : ctx.requirementAnalysis().summary();
 
+        pacer.afterActivity();
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.TOOL_INVOKED,
+                        NAME,
+                        "Reading architecture guidance",
+                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")
+                ));
+
+        String architectureGuidance = architecture.lookup("notification service");
+
+        pacer.afterActivity();
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_THINKING,
+                        NAME,
+                        "Requesting implementation proposal",
+                        Map.of("step", "MODEL_CALL")
+                ));
+
+        pacer.afterActivity();
+
         String prompt =
                 prompts.render(
                         "codegen",
                         Map.of(
                                 "analysis", analysisSummary,
-                                "architecture",
-                                architecture.lookup("notification service")
+                                "architecture", architectureGuidance
                         ));
 
         CodeChangeSet changeSet =
@@ -70,6 +98,8 @@ public class CodeGenerationAgent {
                         prompt,
                         CodeChangeSet.class);
 
+        int testsProposed = changeSet.tests() == null ? 0 : changeSet.tests().size();
+
         events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
@@ -77,10 +107,14 @@ public class CodeGenerationAgent {
                         NAME,
                         "Proposed "
                                 + changeSet.files().size()
-                                + " file change(s) with tests. Awaiting review.",
+                                + " file change(s) and "
+                                + testsProposed
+                                + " test(s). Awaiting review.",
                         Map.of(
                                 "filesChanged",
-                                changeSet.files().size()
+                                changeSet.files().size(),
+                                "testsProposed",
+                                testsProposed
                         )
                 ));
 

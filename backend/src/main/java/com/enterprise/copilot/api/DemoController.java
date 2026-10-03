@@ -51,17 +51,41 @@ public class DemoController {
         );
     }
 
+    @GetMapping("/issues")
+    public List<Map<String, Object>> issues() {
+
+        return demoTickets.issues().stream()
+                .map(issue -> Map.<String, Object>of(
+                        "key", issue.ticket().key(),
+                        "title", issue.ticket().title(),
+                        "description", issue.ticket().description(),
+                        "labels", issue.labels()))
+                .toList();
+    }
+
     /**
-     * One-click workshop demo: seed the Ubuntu Bank ticket
-     * for the active scenario and run it.
+     * Run a backlog issue, or without issueKey the UB-4821 ticket for the active scenario.
+     * LIVE providers always receive the real ticket; only DEMO uses the issue's scenario.
      */
     @PostMapping("/run")
-    public PipelineResponse run() {
+    public PipelineResponse run(
+            @RequestParam(required = false) String issueKey) {
 
-        PipelineContext ctx =
-                orchestrator.createAndRun(
-                        demoTickets.ubuntuBankTicket(
-                                demoState.scenario()));
+        if (issueKey == null || issueKey.isBlank()) {
+            return PipelineResponse.from(
+                    orchestrator.createAndRun(
+                            demoTickets.ubuntuBankTicket(
+                                    demoState.scenario())));
+        }
+
+        DemoTickets.DemoIssue issue = demoTickets.find(issueKey)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown demo issue: " + issueKey));
+
+        DemoScenario scenario = demoState.aiMode() == AiMode.DEMO
+                ? issue.scenario()
+                : DemoScenario.NORMAL;
+
+        PipelineContext ctx = orchestrator.createAndRun(issue.ticket(), scenario);
 
         return PipelineResponse.from(ctx);
     }

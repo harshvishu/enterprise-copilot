@@ -3,11 +3,13 @@ package com.enterprise.copilot.agents.deploy;
 import com.enterprise.copilot.domain.ApprovalState;
 import com.enterprise.copilot.domain.DeploymentDecision;
 import com.enterprise.copilot.domain.PipelineContext;
+import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
 import com.enterprise.copilot.domain.audit.AuditService;
 import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import com.enterprise.copilot.orchestration.PipelineEventType;
+import com.enterprise.copilot.orchestration.PresentationPacer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,34 +31,57 @@ public class DeployAgent {
 
     private final PipelineEventPublisher events;
     private final AuditService audit;
+    private final PresentationPacer pacer;
 
+    /** Full gate evaluation, shown gate by gate. */
     public DeploymentDecision evaluate(PipelineContext ctx) {
+        return decide(ctx, true);
+    }
 
-        events.publish(
-                PipelineEvent.of(
+    /** The same gate evaluation after human approval, presented compactly and without pacing. */
+    public DeploymentDecision revalidate(PipelineContext ctx) {
+        return decide(ctx, false);
+    }
+
+    private DeploymentDecision decide(PipelineContext ctx, boolean showGates) {
+
+        events.publish(showGates
+                ? PipelineEvent.of(
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_STARTED,
                         NAME,
-                        "Evaluating deployment gates..."
-                ));
+                        "Evaluating release gates with deterministic Java rules...")
+                : PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_THINKING,
+                        NAME,
+                        "Re-validating release gates...",
+                        Map.of("step", "REVALIDATE")));
 
         List<String> blocking = new ArrayList<>();
 
-        if (ctx.requirementAnalysis() == null) {
+        RequirementAnalysis analysis = ctx.requirementAnalysis();
+        if (analysis == null) {
             blocking.add("Requirement analysis is missing.");
-        } else if (ctx.requirementAnalysis().needsClarification()) {
+        } else if (analysis.needsClarification()) {
             blocking.add("Requirements still need human clarification.");
         }
-        if (ctx.codeChangeSet() == null || ctx.codeChangeSet().files() == null
-                || ctx.codeChangeSet().files().isEmpty()
-                || ctx.codeChangeSet().unifiedDiff() == null
-                || ctx.codeChangeSet().unifiedDiff().isBlank()) {
+        gate(ctx, showGates, "REQUIREMENTS_RESOLVED",
+                analysis != null && !analysis.needsClarification(), false);
+
+        boolean codePresent = ctx.codeChangeSet() != null && ctx.codeChangeSet().files() != null
+                && !ctx.codeChangeSet().files().isEmpty()
+                && ctx.codeChangeSet().unifiedDiff() != null
+                && !ctx.codeChangeSet().unifiedDiff().isBlank();
+        if (!codePresent) {
             blocking.add("Code proposal artifacts are missing.");
         }
+        gate(ctx, showGates, "CODE_PROPOSAL_PRESENT", codePresent, false);
 
         ReviewDecision review = ctx.reviewDecision();
 
-        if (review == null || !review.passed()) {
+        boolean reviewApproved = review != null && review.passed();
+        if (!reviewApproved) {
             blocking.add(
                     "Review did not pass (outcome: "
                             + (review == null
@@ -64,23 +89,31 @@ public class DeployAgent {
                             : review.outcome())
                             + ").");
         }
+        gate(ctx, showGates, "REVIEW_APPROVED", reviewApproved, false);
 
-        if (review != null
-                && review.hasCriticalFindings()) {
+        boolean criticalFindings = review != null && review.hasCriticalFindings();
+        if (criticalFindings) {
             blocking.add(
                     "Unresolved CRITICAL review findings.");
         }
+        gate(ctx, showGates, "NO_CRITICAL_FINDINGS", !criticalFindings, false);
 
-        if (ctx.codeChangeSet() != null
-                && !ctx.codeChangeSet().testsPass()) {
+        boolean testsFailing = ctx.codeChangeSet() != null
+                && !ctx.codeChangeSet().testsPass();
+        if (testsFailing) {
             blocking.add("Tests are failing.");
         }
+        gate(ctx, showGates, "TESTS_PASS", !testsFailing, false);
 
         boolean gatesPass = blocking.isEmpty();
 
         boolean approved =
                 ctx.approvalState()
                         == ApprovalState.APPROVED;
+
+        if (gatesPass) {
+            gate(ctx, showGates, "HUMAN_APPROVAL", approved, !approved);
+        }
 
         if (gatesPass && !approved) {
 
@@ -158,6 +191,14 @@ public class DeployAgent {
                         "All gates passed and human approval granted. Cleared for deployment."
                 );
 
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_COMPLETED,
+                        NAME,
+                        "All release gates satisfied. Deployment authorized.",
+                        Map.of("decision", "ALLOWED")));
+
         audit.record(
                 ctx.pipelineId(),
                 NAME,
@@ -168,5 +209,27 @@ public class DeployAgent {
         );
 
         return decision;
+    }
+
+    private void gate(
+            PipelineContext ctx,
+            boolean show,
+            String gate,
+            boolean passed,
+            boolean waiting) {
+
+        if (!show) {
+            return;
+        }
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.GATE_EVALUATED,
+                        NAME,
+                        gate + (waiting ? ": waiting" : passed ? ": passed" : ": failed"),
+                        Map.of("gate", gate, "passed", passed, "waiting", waiting)));
+
+        pacer.afterActivity();
     }
 }

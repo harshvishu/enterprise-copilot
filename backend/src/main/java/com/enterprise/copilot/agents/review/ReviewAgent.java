@@ -10,6 +10,7 @@ import com.enterprise.copilot.infrastructure.ai.PromptLibrary;
 import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
 import com.enterprise.copilot.orchestration.PipelineEventType;
+import com.enterprise.copilot.orchestration.PresentationPacer;
 import com.enterprise.copilot.tools.ApiSpecificationTool;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class ReviewAgent {
     private final ApiSpecificationTool apiSpec;
     private final PipelineEventPublisher events;
     private final AuditService audit;
+    private final PresentationPacer pacer;
 
     public ReviewDecision review(PipelineContext ctx) {
 
@@ -47,18 +49,10 @@ public class ReviewAgent {
         events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
-                        PipelineEventType.TOOL_INVOKED,
-                        NAME,
-                        "Validating API assumptions against the published contract.",
-                        Map.of("tool", apiSpec.name())
-                ));
-
-        events.publish(
-                PipelineEvent.of(
-                        ctx.pipelineId(),
                         PipelineEventType.AGENT_THINKING,
                         NAME,
-                        "Scanning for security, compliance, quality and architecture issues."
+                        "Preparing proposed diff and requirement analysis for review",
+                        Map.of("step", "DIFF")
                 ));
 
         String diff =
@@ -71,12 +65,38 @@ public class ReviewAgent {
                         ? ""
                         : ctx.requirementAnalysis().summary();
 
+        pacer.afterActivity();
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.TOOL_INVOKED,
+                        NAME,
+                        "Reading published API contract",
+                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")
+                ));
+
+        String contract = apiSpec.lookup("notification");
+
+        pacer.afterActivity();
+
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.AGENT_THINKING,
+                        NAME,
+                        "Requesting security, compliance, quality and architecture review",
+                        Map.of("step", "MODEL_CALL")
+                ));
+
+        pacer.afterActivity();
+
         String prompt = prompts.render(
                 "review",
                 Map.of(
                         "analysis", analysis,
                         "diff", diff,
-                        "apiSpec", apiSpec.lookup("notification")
+                        "apiSpec", contract
                 ));
 
         ReviewDecision decision =
@@ -85,6 +105,19 @@ public class ReviewAgent {
                         ctx.scenario(),
                         prompt,
                         ReviewDecision.class);
+
+        if (!decision.findings().isEmpty()) {
+            events.publish(
+                    PipelineEvent.of(
+                            ctx.pipelineId(),
+                            PipelineEventType.AGENT_THINKING,
+                            NAME,
+                            "Recording " + decision.findings().size() + " finding(s) from the review",
+                            Map.of("step", "FINDINGS")
+                    ));
+
+            pacer.afterActivity();
+        }
 
         for (ReviewFinding finding : decision.findings()) {
 
@@ -102,6 +135,8 @@ public class ReviewAgent {
                                     "location", finding.location()
                             )
                     ));
+
+            pacer.afterActivity();
         }
 
         events.publish(

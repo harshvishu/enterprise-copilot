@@ -2,17 +2,27 @@ import React from 'react';
 import { Code2, ChevronDown, FileCode2, FlaskConical, Loader2 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { agentProgress, modelLabel } from '@/lib/pipeline';
+import { cn } from '@/lib/utils';
+import AgentProgress from './AgentProgress';
 import DiffViewer from './DiffViewer';
 
-export default function CodeProposal({ pipeline }) {
+export default function CodeProposal({ pipeline, events, status }) {
     const proposal = pipeline?.codeChangeSet;
     const running = pipeline?.state === 'GENERATING_CODE';
+    const progress = agentProgress(events, 'Nova');
+    const failed = !proposal && progress.failed;
     return (
         <section className="min-w-0 border-b">
-            <Collapsible key={`${pipeline?.id}-${running}`} defaultOpen={running}>
+            <Collapsible key={`${pipeline?.id}-${running}-${failed}`} defaultOpen={running || failed}>
                 <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
                     <div className="flex min-w-0 items-center gap-3">
-                        <Code2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Code2
+                            className={cn(
+                                'h-4 w-4 shrink-0',
+                                running ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                        />
                         <h2 className="text-sm font-medium">
                             Code proposal{' '}
                             <span className="ml-3 text-xs font-normal text-muted-foreground">
@@ -21,10 +31,17 @@ export default function CodeProposal({ pipeline }) {
                         </h2>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                        <span
+                            className={cn(
+                                'hidden text-xs sm:inline',
+                                running ? 'text-primary' : 'text-muted-foreground',
+                            )}
+                        >
                             {running
                                 ? 'Generating'
-                                : proposal
+                                : failed
+                                  ? 'Stopped'
+                                  : proposal
                                   ? `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
                                   : 'Not started'}
                         </span>
@@ -33,15 +50,19 @@ export default function CodeProposal({ pipeline }) {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="min-w-0 pb-6">
                     {!proposal ? (
-                        running ? (
-                            <div className="space-y-3">
-                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Nova is generating a proposal...
-                                </p>
-                                <Skeleton className="h-4 w-3/4" />
-                                <Skeleton className="h-4 w-1/2" />
-                            </div>
+                        running || failed ? (
+                            progress.steps.length ? (
+                                <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Nova is starting...
+                                    </p>
+                                    <Skeleton className="h-4 w-3/4" />
+                                    <Skeleton className="h-4 w-1/2" />
+                                </div>
+                            )
                         ) : (
                             <p className="text-sm text-muted-foreground">
                                 Awaiting clarified requirements.
