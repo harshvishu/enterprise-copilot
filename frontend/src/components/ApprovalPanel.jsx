@@ -2,7 +2,14 @@ import React from 'react';
 import { Check, X, Clock3, LockKeyhole, Loader2, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { severityCounts, GATE_LABELS, gateResults, revalidation, hasProposedTests, hasPassingTestSignal } from '@/lib/pipeline';
+import {
+    severityCounts,
+    GATE_LABELS,
+    gateResults,
+    revalidation,
+    hasProposedTests,
+    hasPassingTestSignal,
+} from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 
 export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, action, events }) {
@@ -55,9 +62,10 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
         },
         {
             id: 'TESTS_PASS',
-            label: pipeline?.codeChangeSet && !hasProposedTests(pipeline.codeChangeSet)
-                ? 'Test signal not evaluated: no valid proposed tests'
-                : GATE_LABELS.TESTS_PASS,
+            label:
+                pipeline?.codeChangeSet && !hasProposedTests(pipeline.codeChangeSet)
+                    ? 'Test signal not evaluated: no valid proposed tests'
+                    : GATE_LABELS.TESTS_PASS,
             passed: hasPassingTestSignal(pipeline?.codeChangeSet),
             known: Boolean(pipeline?.codeChangeSet),
         },

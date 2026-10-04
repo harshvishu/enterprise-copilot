@@ -25,8 +25,7 @@ public class GitHubController {
     private final PipelineStore store;
 
     @GetMapping("/pipelines/{id}")
-    public ResponseEntity<GitHubView> view(
-            @PathVariable UUID id) {
+    public ResponseEntity<GitHubView> view(@PathVariable UUID id) {
 
         return store.load(id)
                 .map(gitHub::view)

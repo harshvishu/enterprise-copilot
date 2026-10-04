@@ -12,7 +12,7 @@ LIVE runs the selected issue's real ticket text and rejects scenario-selection r
 |-----------|--------------|----------------|
 | `NORMAL` | Clean run; only human approval remains | `WAITING_FOR_APPROVAL` → `DEPLOYED` |
 | `SECURITY_FAILURE` | Nova logs the account number; scripted Sentinel finds a CRITICAL POPIA violation | `REVIEW_FAILED` then `BLOCKED` |
-| `AMBIGUOUS_REQUIREMENT` | Rhea asks about credit eligibility, selected channel and no-consent behaviour; threshold/currency are known | `REQUIREMENTS_READY` (paused) |
+| `AMBIGUOUS_REQUIREMENT` | Deterministic Confluence Agent supplies approved retail launch decisions; the baseline Rhea preview still asks about credit eligibility, channel and no-consent behaviour | Active pipeline: `WAITING_FOR_APPROVAL`; baseline preview: clarification |
 | `TEST_FAILURE` | Scripted review misses the equality defect; the failing simulated test signal makes Atlas block | `BLOCKED` |
 | `MISSING_APPROVAL` | Everything green; blocked pending a human | `WAITING_FOR_APPROVAL` |
 | `HALLUCINATED_API` | Rhea first asks for the missing screening capability/contract and failure behaviour; after answers, deliberately defective Nova assumes an unsupported `FraudClient.verifyTransaction(...)` | `REQUIREMENTS_READY`, then `REVIEW_FAILED` and `BLOCKED` |
@@ -26,6 +26,11 @@ test proposals also fail Atlas's gate, even with `testsPass=true` or human appro
 measured by a deterministic run. A live failure is visible; selecting another provider requires a restart.
 
 ## Scripted clarification rehearsal
+
+The active reference pipeline resolves UB-4823 with the approved local Confluence document, so it does not need these
+human rehearsal answers. The following UB-4823 answers apply to the baseline/missing-context path, not the active reference.
+The Confluence Agent makes no model call; Rhea remains responsible for reasoning in LIVE. Empty, unrelated or partial
+additional context retains DEMO clarification. The retail policy never supplies a fraud integration contract for UB-4825.
 
 For UB-4823, answer in question order: outgoing debits only; SMS only; skip and audit when SMS consent is absent.
 For UB-4825: no approved screening contract has been supplied and none may be invented; when screening is

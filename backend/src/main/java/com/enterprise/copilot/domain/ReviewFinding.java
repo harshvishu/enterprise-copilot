@@ -16,6 +16,4 @@ public record ReviewFinding(
         String file,
         String location,
         String description,
-        String recommendation
-) {
-}
+        String recommendation) {}

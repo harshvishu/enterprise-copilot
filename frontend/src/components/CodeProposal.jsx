@@ -14,7 +14,10 @@ export default function CodeProposal({ pipeline, events, status }) {
     const failed = !proposal && progress.failed;
     return (
         <section className="min-w-0 border-b">
-            <Collapsible key={`${pipeline?.id}-${running}-${failed}`} defaultOpen={running || failed}>
+            <Collapsible
+                key={`${pipeline?.id}-${running}-${failed}`}
+                defaultOpen={running || failed}
+            >
                 <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
                     <div className="flex min-w-0 items-center gap-3">
                         <Code2
@@ -42,8 +45,8 @@ export default function CodeProposal({ pipeline, events, status }) {
                                 : failed
                                   ? 'Stopped'
                                   : proposal
-                                  ? `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
-                                  : 'Not started'}
+                                    ? `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
+                                    : 'Not started'}
                         </span>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                     </div>
@@ -52,7 +55,10 @@ export default function CodeProposal({ pipeline, events, status }) {
                     {!proposal ? (
                         running || failed ? (
                             progress.steps.length ? (
-                                <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                                <AgentProgress
+                                    progress={progress}
+                                    modelLabel={modelLabel(status)}
+                                />
                             ) : (
                                 <div className="space-y-3">
                                     <p className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -15,14 +15,4 @@ import java.util.List;
  * @param summary          human-readable explanation
  */
 public record DeploymentDecision(
-
-        boolean allowed,
-
-        boolean requiresApproval,
-
-        List<String> blockingReasons,
-
-        String summary
-
-) {
-}
+        boolean allowed, boolean requiresApproval, List<String> blockingReasons, String summary) {}

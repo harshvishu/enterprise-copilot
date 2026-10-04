@@ -49,14 +49,14 @@ springdoc:
 
 copilot:
   ai:
-    mode: DEMO          # Legacy property; effective mode/banner is derived from the selected profile.
+    mode: DEMO # Legacy property; effective mode/banner is derived from the selected profile.
   demo:
-    scenario: NORMAL   # NORMAL | SECURITY_FAILURE | AMBIGUOUS_REQUIREMENT | TEST_FAILURE | MISSING_APPROVAL | HALLUCINATED_API | PROMPT_INJECTION
+    scenario: NORMAL # NORMAL | SECURITY_FAILURE | AMBIGUOUS_REQUIREMENT | TEST_FAILURE | MISSING_APPROVAL | HALLUCINATED_API | PROMPT_INJECTION
     # Presentation pacing for workshops; set both to 0 to disable.
     step-delay-ms: ${COPILOT_STEP_DELAY_MS:400}
     activity-delay-ms: ${COPILOT_ACTIVITY_DELAY_MS:700}
   github:
-    mode: MOCK         # MOCK | REAL
+    mode: MOCK # MOCK | REAL
 
 logging:
   level:

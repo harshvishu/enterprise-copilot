@@ -21,7 +21,7 @@ public class AiConfig {
     static BeanFactoryPostProcessor validateAiConfiguration(Environment environment) {
         return beanFactory -> {
             int providers = 0;
-            for (String profile : new String[]{"openai", "ollama", "demo"}) {
+            for (String profile : new String[] {"openai", "ollama", "demo"}) {
                 if (environment.matchesProfiles(profile)) {
                     providers++;
                 }
@@ -43,24 +43,14 @@ public class AiConfig {
     @Bean
     @Profile("ollama")
     OllamaChatModel ollamaChatModel(
+            @Value("${spring.ai.ollama.base-url:http://localhost:11434}") String baseUrl,
+            @Value("${spring.ai.ollama.chat.options.model:llama3.1}") String model) {
 
-            @Value("${spring.ai.ollama.base-url:http://localhost:11434}")
-            String baseUrl,
-
-            @Value("${spring.ai.ollama.chat.options.model:llama3.1}")
-            String model) {
-
-        OllamaApi api =
-                OllamaApi.builder()
-                        .baseUrl(baseUrl)
-                        .build();
+        OllamaApi api = OllamaApi.builder().baseUrl(baseUrl).build();
 
         return OllamaChatModel.builder()
                 .ollamaApi(api)
-                .options(
-                        OllamaChatOptions.builder()
-                                .model(model)
-                                .build())
+                .options(OllamaChatOptions.builder().model(model).build())
                 .build();
     }
 }

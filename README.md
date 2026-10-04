@@ -117,7 +117,7 @@ Only DEMO guarantees these outcomes; LIVE uses actual model responses to the ord
 |---|---|
 | NORMAL | WAITING_FOR_APPROVAL; approval produces simulated DEPLOYED |
 | SECURITY_FAILURE | Scripted critical finding and REJECT; ends BLOCKED, not approvable |
-| AMBIGUOUS_REQUIREMENT | REQUIREMENTS_READY pause; valid human answers resume implementation |
+| AMBIGUOUS_REQUIREMENT | Active Confluence Agent supplies retail launch decisions; baseline Rhea preview still asks three questions |
 | TEST_FAILURE | Scripted failing test signal for the equality defect; ends BLOCKED |
 | MISSING_APPROVAL | Same clean fixtures as NORMAL; remains WAITING_FOR_APPROVAL without action |
 | HALLUCINATED_API | Missing-screening clarification pause; after answers, scripted unsupported-API finding ends BLOCKED |
@@ -134,7 +134,23 @@ and reads architecture/API evidence. LIVE rehearsal demonstrated material retry 
 summary; forwarding that existing list prevents the observed loss without changing records or PipelineContext.
 Sentinel independently receives the original ticket, resolved analysis, full proposal including tests/assumptions,
 and the existing compliance, architecture and API references. Findings must be grounded and calibrated.
-No additional business-policy/Confluence knowledge is included; that remains the separate participant exercise.
+The simplified Confluence Agent reference solution is currently active. `ConfluenceAgent.gatherContext(ticket)`
+calls `ConfluenceTool`, which reads one local workshop business document, and returns a plain string to Rhea.
+The agent is deterministic: no extra AI call, prompt, structured result, citations subsystem or model-generated gaps.
+Rhea applies its existing reasoning policy to the document's scope and approved decisions. No PipelineContext/database
+fields, real Confluence integration, search infrastructure or runtime flag were added.
+The participant starter and recovery package have not yet been extracted.
+
+For the BEFORE comparison, use `POST /api/agents/requirements` with the UB-4823 ticket
+(select AMBIGUOUS_REQUIREMENT first in DEMO). This preserves `analyze(ctx)` without additional context.
+For AFTER, use `POST /api/demo/run?issueKey=UB-4823`: the active pipeline supplies the approved retail launch
+decisions, resolving credit eligibility, channel and absent-consent behaviour. UB-4825 remains paused because
+the policy does not provide a screening contract. Context availability never authorizes deployment.
+The participant task is one tiny agent plus constructor wiring and two handoff statements: five minutes expected,
+eight minutes maximum. See [workshop guide](docs/workshop-guide.md) for the teaching sequence.
+The provided activity wrapper and UI support an optional Confluence stage using existing events. No Confluence
+activity means the original stage rail; emitted activity inserts Confluence before Rhea. Participants do not edit
+frontend code, SSE infrastructure, event schemas or pipeline state.
 
 | Endpoint | Purpose |
 |---|---|
@@ -170,7 +186,7 @@ sh ./mvnw -B -DskipTests test-compile
 
 For a full stabilization check, run `SPRING_PROFILES_ACTIVE=demo sh ./mvnw -B verify` in `backend/`
 and `npm test` plus `npm run build` in `frontend/`. These test the application, not generated artifacts.
-CI runs `mvn verify` in DEMO. All seven backend test classes are under `backend/src/test/java`;
+CI runs `mvn verify` in DEMO. All eight backend test classes are under `backend/src/test/java`;
 Spring context tests explicitly select DEMO. Testcontainers is a dependency, not an implemented test suite.
 Builds do not establish provider availability: rehearse OpenAI/Ollama and all DEMO scenarios manually.
 

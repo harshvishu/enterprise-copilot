@@ -206,7 +206,7 @@ export default function App() {
                             </div>
                         ) : nav === 'dashboard' ? (
                             <>
-                                <PipelineStages pipeline={pipeline} />
+                                <PipelineStages pipeline={pipeline} events={events} />
                                 <div className="my-6">
                                     <PipelineAlert
                                         pipeline={pipeline}

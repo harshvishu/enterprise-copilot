@@ -27,8 +27,7 @@ public class AuditEventEntity {
     @Column(nullable = false)
     private String action;
 
-    @Column
-    private String decision;
+    @Column private String decision;
 
     @Column(name = "policy_outcome")
     private String policyOutcome;
@@ -39,8 +38,7 @@ public class AuditEventEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    protected AuditEventEntity() {
-    }
+    protected AuditEventEntity() {}
 
     public AuditEventEntity(
             UUID pipelineId,

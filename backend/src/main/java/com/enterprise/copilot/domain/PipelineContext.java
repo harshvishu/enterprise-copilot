@@ -29,11 +29,7 @@ public class PipelineContext {
     private ApprovalState approvalState = ApprovalState.NOT_REQUIRED;
     private Instant updatedAt;
 
-    public PipelineContext(
-            UUID pipelineId,
-            Ticket ticket,
-            DemoScenario scenario,
-            AiMode aiMode) {
+    public PipelineContext(UUID pipelineId, Ticket ticket, DemoScenario scenario, AiMode aiMode) {
 
         this(pipelineId, ticket, scenario, aiMode, Instant.now());
     }
@@ -106,32 +102,27 @@ public class PipelineContext {
         touch();
     }
 
-    public void setRequirementAnalysis(
-            RequirementAnalysis analysis) {
+    public void setRequirementAnalysis(RequirementAnalysis analysis) {
         this.requirementAnalysis = analysis;
         touch();
     }
 
-    public void setCodeChangeSet(
-            CodeChangeSet changeSet) {
+    public void setCodeChangeSet(CodeChangeSet changeSet) {
         this.codeChangeSet = changeSet;
         touch();
     }
 
-    public void setReviewDecision(
-            ReviewDecision reviewDecision) {
+    public void setReviewDecision(ReviewDecision reviewDecision) {
         this.reviewDecision = reviewDecision;
         touch();
     }
 
-    public void setDeploymentDecision(
-            DeploymentDecision deploymentDecision) {
+    public void setDeploymentDecision(DeploymentDecision deploymentDecision) {
         this.deploymentDecision = deploymentDecision;
         touch();
     }
 
-    public void setApprovalState(
-            ApprovalState approvalState) {
+    public void setApprovalState(ApprovalState approvalState) {
         this.approvalState = approvalState;
         touch();
     }

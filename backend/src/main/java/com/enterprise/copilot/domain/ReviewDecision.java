@@ -9,18 +9,13 @@ import java.util.List;
  * @param summary  reviewer summary
  * @param findings individual findings with severity
  */
-public record ReviewDecision(
-        ReviewOutcome outcome,
-        String summary,
-        List<ReviewFinding> findings
-) {
+public record ReviewDecision(ReviewOutcome outcome, String summary, List<ReviewFinding> findings) {
     /**
      * Any finding at CRITICAL severity blocks deployment outright.
      */
     public boolean hasCriticalFindings() {
         return findings != null
-                && findings.stream()
-                .anyMatch(f -> f.severity() == Severity.CRITICAL);
+                && findings.stream().anyMatch(f -> f.severity() == Severity.CRITICAL);
     }
 
     public boolean passed() {

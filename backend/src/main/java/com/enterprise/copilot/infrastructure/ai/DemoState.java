@@ -20,12 +20,11 @@ public class DemoState {
     private final String provider;
 
     public DemoState(CopilotProperties properties, Environment environment) {
-        this.scenario =
-                new AtomicReference<>(
-                        properties.demo().scenario());
-        this.provider = environment.matchesProfiles("openai")
-            ? "OPENAI"
-            : environment.matchesProfiles("ollama") ? "OLLAMA" : "DEMO";
+        this.scenario = new AtomicReference<>(properties.demo().scenario());
+        this.provider =
+                environment.matchesProfiles("openai")
+                        ? "OPENAI"
+                        : environment.matchesProfiles("ollama") ? "OLLAMA" : "DEMO";
         this.aiMode = provider.equals("DEMO") ? AiMode.DEMO : AiMode.LIVE;
     }
 

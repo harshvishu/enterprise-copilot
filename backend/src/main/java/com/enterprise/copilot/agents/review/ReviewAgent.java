@@ -36,9 +36,9 @@ public class ReviewAgent {
     private final AgentAiClient ai;
     private final PromptLibrary prompts;
     private final ApiSpecificationTool apiSpec;
-        private final ComplianceTool compliance;
-        private final ArchitectureTool architecture;
-        private final ObjectMapper objectMapper;
+    private final ComplianceTool compliance;
+    private final ArchitectureTool architecture;
+    private final ObjectMapper objectMapper;
     private final PipelineEventPublisher events;
     private final AuditService audit;
     private final PresentationPacer pacer;
@@ -50,8 +50,7 @@ public class ReviewAgent {
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_STARTED,
                         NAME,
-                        "Reviewing the proposed change set..."
-                ));
+                        "Reviewing the proposed change set..."));
 
         events.publish(
                 PipelineEvent.of(
@@ -59,8 +58,7 @@ public class ReviewAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Preparing proposed diff and requirement analysis for review",
-                        Map.of("step", "DIFF")
-                ));
+                        Map.of("step", "DIFF")));
 
         String proposal = evidence(ctx.codeChangeSet());
         String analysis = evidence(ctx.requirementAnalysis());
@@ -73,22 +71,29 @@ public class ReviewAgent {
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
                         "Reading published API contract",
-                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")
-                ));
+                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
 
         String contract = apiSpec.lookup(ctx.ticket().description());
 
         pacer.afterActivity();
 
-        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
-                NAME, "Reading compliance guidance",
-                Map.of("tool", compliance.name(), "step", "COMPLIANCE")));
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.TOOL_INVOKED,
+                        NAME,
+                        "Reading compliance guidance",
+                        Map.of("tool", compliance.name(), "step", "COMPLIANCE")));
         String complianceGuidance = compliance.lookup(ctx.ticket().description());
         pacer.afterActivity();
 
-        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
-                NAME, "Reading architecture guidance",
-                Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.TOOL_INVOKED,
+                        NAME,
+                        "Reading architecture guidance",
+                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
         String architectureGuidance = architecture.lookup(ctx.ticket().description());
         pacer.afterActivity();
 
@@ -98,28 +103,23 @@ public class ReviewAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Requesting security, compliance, quality and architecture review",
-                        Map.of("step", "MODEL_CALL")
-                ));
+                        Map.of("step", "MODEL_CALL")));
 
         pacer.afterActivity();
 
-        String prompt = prompts.render(
-                "review",
-                Map.of(
-                        "ticket", evidence(ctx.ticket()),
-                        "analysis", analysis,
-                        "proposal", proposal,
-                        "apiSpec", contract,
-                        "compliance", complianceGuidance,
-                        "architecture", architectureGuidance
-                ));
+        String prompt =
+                prompts.render(
+                        "review",
+                        Map.of(
+                                "ticket", evidence(ctx.ticket()),
+                                "analysis", analysis,
+                                "proposal", proposal,
+                                "apiSpec", contract,
+                                "compliance", complianceGuidance,
+                                "architecture", architectureGuidance));
 
         ReviewDecision decision =
-                ai.generate(
-                        AgentKind.REVIEW,
-                        ctx.scenario(),
-                        prompt,
-                        ReviewDecision.class);
+                ai.generate(AgentKind.REVIEW, ctx.scenario(), prompt, ReviewDecision.class);
 
         if (!decision.findings().isEmpty()) {
             events.publish(
@@ -127,9 +127,10 @@ public class ReviewAgent {
                             ctx.pipelineId(),
                             PipelineEventType.AGENT_THINKING,
                             NAME,
-                            "Recording " + decision.findings().size() + " finding(s) from the review",
-                            Map.of("step", "FINDINGS")
-                    ));
+                            "Recording "
+                                    + decision.findings().size()
+                                    + " finding(s) from the review",
+                            Map.of("step", "FINDINGS")));
 
             pacer.afterActivity();
         }
@@ -141,15 +142,17 @@ public class ReviewAgent {
                             ctx.pipelineId(),
                             PipelineEventType.FINDING_CREATED,
                             NAME,
-                            "[" + finding.severity() + "/" + finding.category() + "] "
+                            "["
+                                    + finding.severity()
+                                    + "/"
+                                    + finding.category()
+                                    + "] "
                                     + finding.description(),
                             Map.of(
                                     "severity", finding.severity().name(),
                                     "category", finding.category(),
                                     "file", finding.file(),
-                                    "location", finding.location()
-                            )
-                    ));
+                                    "location", finding.location())));
 
             pacer.afterActivity();
         }
@@ -164,31 +167,24 @@ public class ReviewAgent {
                                 + " ("
                                 + decision.findings().size()
                                 + " finding(s)).",
-                        Map.of(
-                                "outcome",
-                                decision.outcome().name()
-                        )
-                ));
+                        Map.of("outcome", decision.outcome().name())));
 
         audit.record(
                 ctx.pipelineId(),
                 NAME,
                 "REVIEW_CODE",
                 decision.outcome().name(),
-                decision.hasCriticalFindings()
-                        ? "CRITICAL_FINDINGS"
-                        : "OK",
-                decision.summary()
-        );
+                decision.hasCriticalFindings() ? "CRITICAL_FINDINGS" : "OK",
+                decision.summary());
 
         return decision;
     }
 
-        private String evidence(Object value) {
-                try {
-                        return objectMapper.writeValueAsString(value);
-                } catch (JsonProcessingException ex) {
-                        throw new IllegalStateException("Unable to prepare review evidence", ex);
-                }
+    private String evidence(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to prepare review evidence", ex);
         }
+    }
 }

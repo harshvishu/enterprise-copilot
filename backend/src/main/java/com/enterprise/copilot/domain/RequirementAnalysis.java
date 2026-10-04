@@ -15,13 +15,11 @@ public record RequirementAnalysis(
         List<String> acceptanceCriteria,
         List<String> complianceConcerns,
         List<String> technicalRisks,
-        List<String> clarificationQuestions
-) {
+        List<String> clarificationQuestions) {
     /**
      * True when the agent needs human clarification before implementation should proceed.
      */
     public boolean needsClarification() {
-        return clarificationQuestions != null
-                && !clarificationQuestions.isEmpty();
+        return clarificationQuestions != null && !clarificationQuestions.isEmpty();
     }
 }

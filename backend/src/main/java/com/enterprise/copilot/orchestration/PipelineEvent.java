@@ -14,20 +14,10 @@ public record PipelineEvent(
         String agent,
         String message,
         Map<String, Object> data,
-        Instant timestamp
-) {
+        Instant timestamp) {
     public static PipelineEvent of(
-            UUID pipelineId,
-            PipelineEventType type,
-            String agent,
-            String message) {
-        return new PipelineEvent(
-                pipelineId,
-                type,
-                agent,
-                message,
-                Map.of(),
-                Instant.now());
+            UUID pipelineId, PipelineEventType type, String agent, String message) {
+        return new PipelineEvent(pipelineId, type, agent, message, Map.of(), Instant.now());
     }
 
     public static PipelineEvent of(
@@ -37,12 +27,6 @@ public record PipelineEvent(
             String message,
             Map<String, Object> data) {
 
-        return new PipelineEvent(
-                pipelineId,
-                type,
-                agent,
-                message,
-                data,
-                Instant.now());
+        return new PipelineEvent(pipelineId, type, agent, message, data, Instant.now());
     }
 }

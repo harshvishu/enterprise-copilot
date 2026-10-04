@@ -30,7 +30,7 @@ public class CodeGenerationAgent {
     private final AgentAiClient ai;
     private final PromptLibrary prompts;
     private final ArchitectureTool architecture;
-        private final ApiSpecificationTool apiSpec;
+    private final ApiSpecificationTool apiSpec;
     private final PipelineEventPublisher events;
     private final AuditService audit;
     private final PresentationPacer pacer;
@@ -42,8 +42,7 @@ public class CodeGenerationAgent {
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_STARTED,
                         NAME,
-                        "Generating an implementation proposal..."
-                ));
+                        "Generating an implementation proposal..."));
 
         events.publish(
                 PipelineEvent.of(
@@ -51,13 +50,10 @@ public class CodeGenerationAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Reviewing approved requirement analysis",
-                        Map.of("step", "REQUIREMENTS")
-                ));
+                        Map.of("step", "REQUIREMENTS")));
 
         String analysisSummary =
-                ctx.requirementAnalysis() == null
-                        ? ""
-                        : ctx.requirementAnalysis().summary();
+                ctx.requirementAnalysis() == null ? "" : ctx.requirementAnalysis().summary();
 
         pacer.afterActivity();
 
@@ -67,16 +63,19 @@ public class CodeGenerationAgent {
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
                         "Reading architecture guidance",
-                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")
-                ));
+                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
 
         String architectureGuidance = architecture.lookup("notification service");
 
         pacer.afterActivity();
 
-        events.publish(PipelineEvent.of(ctx.pipelineId(), PipelineEventType.TOOL_INVOKED,
-                NAME, "Reading published API contract",
-                Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
+        events.publish(
+                PipelineEvent.of(
+                        ctx.pipelineId(),
+                        PipelineEventType.TOOL_INVOKED,
+                        NAME,
+                        "Reading published API contract",
+                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
         String contract = apiSpec.lookup(ctx.ticket().description());
         pacer.afterActivity();
 
@@ -86,8 +85,7 @@ public class CodeGenerationAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Requesting implementation proposal",
-                        Map.of("step", "MODEL_CALL")
-                ));
+                        Map.of("step", "MODEL_CALL")));
 
         pacer.afterActivity();
 
@@ -96,18 +94,18 @@ public class CodeGenerationAgent {
                         "codegen",
                         Map.of(
                                 "analysis", analysisSummary,
-                                "acceptanceCriteria", ctx.requirementAnalysis() == null
-                                        ? "" : String.join("\n", ctx.requirementAnalysis().acceptanceCriteria()),
+                                "acceptanceCriteria",
+                                        ctx.requirementAnalysis() == null
+                                                ? ""
+                                                : String.join(
+                                                        "\n",
+                                                        ctx.requirementAnalysis()
+                                                                .acceptanceCriteria()),
                                 "architecture", architectureGuidance,
-                                "apiSpec", contract
-                        ));
+                                "apiSpec", contract));
 
         CodeChangeSet changeSet =
-                ai.generate(
-                        AgentKind.CODE,
-                        ctx.scenario(),
-                        prompt,
-                        CodeChangeSet.class);
+                ai.generate(AgentKind.CODE, ctx.scenario(), prompt, CodeChangeSet.class);
 
         int testsProposed = changeSet.tests() == null ? 0 : changeSet.tests().size();
 
@@ -125,18 +123,10 @@ public class CodeGenerationAgent {
                                 "filesChanged",
                                 changeSet.files().size(),
                                 "testsProposed",
-                                testsProposed
-                        )
-                ));
+                                testsProposed)));
 
         audit.record(
-                ctx.pipelineId(),
-                NAME,
-                "GENERATE_CODE",
-                "PROPOSAL",
-                "OK",
-                changeSet.explanation()
-        );
+                ctx.pipelineId(), NAME, "GENERATE_CODE", "PROPOSAL", "OK", changeSet.explanation());
 
         return changeSet;
     }

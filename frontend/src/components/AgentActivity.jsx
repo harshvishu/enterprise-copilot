@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Activity,
+    BookOpen,
     FileSearch,
     Code2,
     ShieldCheck,
@@ -23,6 +24,7 @@ import { GATE_LABELS } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 
 const ICONS = {
+    Confluence: BookOpen,
     Rhea: FileSearch,
     Nova: Code2,
     Sentinel: ShieldCheck,

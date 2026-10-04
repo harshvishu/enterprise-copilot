@@ -1,6 +1,7 @@
 import React from 'react';
 import {
     CircleDot,
+    BookOpen,
     FileSearch,
     Code2,
     ShieldCheck,
@@ -30,12 +31,25 @@ const STATUS = {
     failed: 'Failed',
 };
 
-export default function PipelineStages({ pipeline, state }) {
-    const statuses = stageStatuses(pipeline || (state ? { state } : null));
+export default function PipelineStages({ pipeline, state, events = [] }) {
+    const statuses = stageStatuses(pipeline || (state ? { state } : null), events);
+    const stages =
+        statuses.length > STAGES.length
+            ? [
+                  STAGES[0],
+                  { name: 'Context', agent: 'Confluence', icon: BookOpen },
+                  ...STAGES.slice(1),
+              ]
+            : STAGES;
     return (
         <section aria-label="Delivery pipeline" className="py-6 sm:py-8">
-            <ol className="grid grid-cols-5 gap-1 sm:gap-3">
-                {STAGES.map((stage, index) => {
+            <ol
+                className={cn(
+                    'grid gap-1 sm:gap-3',
+                    stages.length > STAGES.length ? 'grid-cols-6' : 'grid-cols-5',
+                )}
+            >
+                {stages.map((stage, index) => {
                     const status = statuses[index];
                     const Icon =
                         status === 'completed'
@@ -55,7 +69,7 @@ export default function PipelineStages({ pipeline, state }) {
                             }
                             className="relative min-w-0"
                         >
-                            {index < STAGES.length - 1 && (
+                            {index < stages.length - 1 && (
                                 <div
                                     aria-hidden="true"
                                     className={cn(
@@ -89,12 +103,12 @@ export default function PipelineStages({ pipeline, state }) {
                             <div className="mt-3 break-anywhere text-[10px] font-medium sm:text-sm">
                                 {stage.name}
                             </div>
-                            <div className="mt-1 text-[10px] text-muted-foreground sm:text-xs">
+                            <div className="mt-1 break-anywhere text-[10px] text-muted-foreground sm:text-xs">
                                 {stage.agent}
                             </div>
                             <div
                                 className={cn(
-                                    'mt-1 text-[10px] sm:text-xs',
+                                    'mt-1 break-anywhere text-[10px] sm:text-xs',
                                     status === 'running'
                                         ? 'text-primary'
                                         : status === 'waiting'
@@ -104,7 +118,8 @@ export default function PipelineStages({ pipeline, state }) {
                                             : 'text-muted-foreground',
                                 )}
                             >
-                                {index === 3 && pipeline?.reviewDecision?.outcome === 'REQUEST_CHANGES'
+                                {stage.agent === 'Sentinel' &&
+                                pipeline?.reviewDecision?.outcome === 'REQUEST_CHANGES'
                                     ? 'Changes requested'
                                     : STATUS[status]}
                             </div>

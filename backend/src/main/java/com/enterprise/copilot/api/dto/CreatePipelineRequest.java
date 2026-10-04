@@ -9,11 +9,8 @@ public record CreatePipelineRequest(
         @NotBlank String ticketKey,
         @NotBlank String title,
         @NotBlank String description,
-        String source
-) {
+        String source) {
     public String sourceOrDefault() {
-        return source == null || source.isBlank()
-                ? "JIRA"
-                : source;
+        return source == null || source.isBlank() ? "JIRA" : source;
     }
 }

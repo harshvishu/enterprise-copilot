@@ -54,11 +54,11 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                                   ? 'Analyzing'
                                   : failed
                                     ? 'Stopped'
-                                  : text.clarification
-                                    ? 'Human clarified'
-                                    : analysis
-                                      ? `${analysis.acceptanceCriteria?.length || 0} acceptance criteria`
-                                      : 'Not started'}
+                                    : text.clarification
+                                      ? 'Human clarified'
+                                      : analysis
+                                        ? `${analysis.acceptanceCriteria?.length || 0} acceptance criteria`
+                                        : 'Not started'}
                         </span>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
                     </div>
@@ -67,7 +67,10 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                     {!analysis ? (
                         running || failed ? (
                             progress.steps.length ? (
-                                <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                                <AgentProgress
+                                    progress={progress}
+                                    modelLabel={modelLabel(status)}
+                                />
                             ) : (
                                 <div className="space-y-3">
                                     <p className="flex items-center gap-2 text-sm text-muted-foreground">

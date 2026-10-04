@@ -12,22 +12,18 @@ import java.nio.charset.StandardCharsets;
  */
 final class ToolResources {
 
-    private ToolResources() {
-    }
+    private ToolResources() {}
 
     static String read(String path) {
 
         try {
 
             return StreamUtils.copyToString(
-                    new ClassPathResource(path).getInputStream(),
-                    StandardCharsets.UTF_8);
+                    new ClassPathResource(path).getInputStream(), StandardCharsets.UTF_8);
 
         } catch (IOException e) {
 
-            throw new UncheckedIOException(
-                    "Missing demo-data resource: " + path,
-                    e);
+            throw new UncheckedIOException("Missing demo-data resource: " + path, e);
         }
     }
 }

@@ -9,11 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * mutable at runtime via the presenter controls, so this holds the startup defaults only.
  */
 @ConfigurationProperties(prefix = "copilot")
-public record CopilotProperties(
-        Ai ai,
-        Demo demo,
-        GitHub github
-) {
+public record CopilotProperties(Ai ai, Demo demo, GitHub github) {
 
     public CopilotProperties {
 
@@ -30,12 +26,9 @@ public record CopilotProperties(
         }
     }
 
-    public record Ai(AiMode mode) {
-    }
+    public record Ai(AiMode mode) {}
 
-    public record Demo(DemoScenario scenario) {
-    }
+    public record Demo(DemoScenario scenario) {}
 
-    public record GitHub(String mode) {
-    }
+    public record GitHub(String mode) {}
 }

@@ -33,70 +33,53 @@ public class AgentController {
     private final DemoState demoState;
 
     @PostMapping("/requirements")
-    public RequirementAnalysis requirements(
-            @Valid @RequestBody CreatePipelineRequest req) {
+    public RequirementAnalysis requirements(@Valid @RequestBody CreatePipelineRequest req) {
 
         return requirementsAgent.analyze(context(req));
     }
 
     @PostMapping("/code")
-    public CodeChangeSet code(
-            @Valid @RequestBody CreatePipelineRequest req) {
+    public CodeChangeSet code(@Valid @RequestBody CreatePipelineRequest req) {
 
         PipelineContext ctx = context(req);
 
-        ctx.setRequirementAnalysis(
-                requirementsAgent.analyze(ctx));
+        ctx.setRequirementAnalysis(requirementsAgent.analyze(ctx));
 
         return codeAgent.generate(ctx);
     }
 
     @PostMapping("/review")
-    public ReviewDecision review(
-            @Valid @RequestBody CreatePipelineRequest req) {
+    public ReviewDecision review(@Valid @RequestBody CreatePipelineRequest req) {
 
         PipelineContext ctx = context(req);
 
-        ctx.setRequirementAnalysis(
-                requirementsAgent.analyze(ctx));
+        ctx.setRequirementAnalysis(requirementsAgent.analyze(ctx));
 
-        ctx.setCodeChangeSet(
-                codeAgent.generate(ctx));
+        ctx.setCodeChangeSet(codeAgent.generate(ctx));
 
         return reviewAgent.review(ctx);
     }
 
     @PostMapping("/deploy")
-    public DeploymentDecision deploy(
-            @Valid @RequestBody CreatePipelineRequest req) {
+    public DeploymentDecision deploy(@Valid @RequestBody CreatePipelineRequest req) {
 
         PipelineContext ctx = context(req);
 
-        ctx.setRequirementAnalysis(
-                requirementsAgent.analyze(ctx));
+        ctx.setRequirementAnalysis(requirementsAgent.analyze(ctx));
 
-        ctx.setCodeChangeSet(
-                codeAgent.generate(ctx));
+        ctx.setCodeChangeSet(codeAgent.generate(ctx));
 
-        ctx.setReviewDecision(
-                reviewAgent.review(ctx));
+        ctx.setReviewDecision(reviewAgent.review(ctx));
 
         return deployAgent.evaluate(ctx);
     }
 
-    private PipelineContext context(
-            CreatePipelineRequest req) {
+    private PipelineContext context(CreatePipelineRequest req) {
 
-        Ticket ticket = new Ticket(
-                req.ticketKey(),
-                req.title(),
-                req.description(),
-                req.sourceOrDefault());
+        Ticket ticket =
+                new Ticket(req.ticketKey(), req.title(), req.description(), req.sourceOrDefault());
 
         return new PipelineContext(
-                UUID.randomUUID(),
-                ticket,
-                demoState.scenario(),
-                demoState.aiMode());
+                UUID.randomUUID(), ticket, demoState.scenario(), demoState.aiMode());
     }
 }

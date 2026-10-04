@@ -20,8 +20,6 @@ public class OpenApiConfig {
                                 .title("Enterprise Copilot API")
                                 .version("1.0.0")
                                 .description(
-                                        "Multi-agent SDLC platform – AI accelerates delivery, humans own accountability."
-                                )
-                );
+                                        "Multi-agent SDLC platform – AI accelerates delivery, humans own accountability."));
     }
 }

@@ -17,8 +17,7 @@ import java.util.UUID;
 @Table(name = "pipelines")
 public class PipelineEntity {
 
-    @Id
-    private UUID id;
+    @Id private UUID id;
 
     @Column(name = "ticket_key", nullable = false)
     private String ticketKey;
@@ -66,8 +65,7 @@ public class PipelineEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected PipelineEntity() {
-    }
+    protected PipelineEntity() {}
 
     public PipelineEntity(UUID id) {
         this.id = id;

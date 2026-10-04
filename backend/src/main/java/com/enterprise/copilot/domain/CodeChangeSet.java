@@ -15,26 +15,20 @@ import java.util.List;
  *                    (TEST_FAILURE scripts this false)
  */
 public record CodeChangeSet(
-
         List<FileChange> files,
-
         String unifiedDiff,
-
         String explanation,
-
         List<String> tests,
-
         List<String> assumptions,
+        boolean testsPass) {
 
-        boolean testsPass
+    public boolean hasProposedTests() {
+        return tests != null
+                && !tests.isEmpty()
+                && tests.stream().allMatch(test -> test != null && !test.isBlank());
+    }
 
-) {
-        public boolean hasProposedTests() {
-                return tests != null && !tests.isEmpty()
-                                && tests.stream().allMatch(test -> test != null && !test.isBlank());
-        }
-
-        public boolean hasPassingTestSignal() {
-                return hasProposedTests() && testsPass;
-        }
+    public boolean hasPassingTestSignal() {
+        return hasProposedTests() && testsPass;
+    }
 }

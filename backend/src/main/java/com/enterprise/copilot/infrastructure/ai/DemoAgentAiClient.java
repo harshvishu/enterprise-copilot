@@ -4,6 +4,7 @@ import com.enterprise.copilot.domain.CodeChangeSet;
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
+import com.enterprise.copilot.tools.ConfluenceTool;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -18,21 +19,24 @@ import org.springframework.stereotype.Component;
 public class DemoAgentAiClient implements AgentAiClient {
 
     private final DemoResponses responses;
+    private final ConfluenceTool confluence;
 
-    public DemoAgentAiClient(DemoResponses responses) {
+    public DemoAgentAiClient(DemoResponses responses, ConfluenceTool confluence) {
         this.responses = responses;
+        this.confluence = confluence;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T> T generate(
-            AgentKind agent,
-            DemoScenario scenario,
-            String renderedPrompt,
-            Class<T> responseType) {
+            AgentKind agent, DemoScenario scenario, String renderedPrompt, Class<T> responseType) {
 
         if (responseType.equals(RequirementAnalysis.class)) {
-            return (T) responses.requirements(scenario);
+            String policySection =
+                    "\n--- ADDITIONAL TRUSTED BUSINESS CONTEXT ---\n"
+                            + confluence.lookup("")
+                            + "\n--- END ADDITIONAL TRUSTED BUSINESS CONTEXT ---\n";
+            return (T) responses.requirements(scenario, renderedPrompt.endsWith(policySection));
         }
 
         if (responseType.equals(CodeChangeSet.class)) {
@@ -43,7 +47,6 @@ public class DemoAgentAiClient implements AgentAiClient {
             return (T) responses.review(scenario);
         }
 
-        throw new IllegalArgumentException(
-                "No deterministic response for type " + responseType);
+        throw new IllegalArgumentException("No deterministic response for type " + responseType);
     }
 }

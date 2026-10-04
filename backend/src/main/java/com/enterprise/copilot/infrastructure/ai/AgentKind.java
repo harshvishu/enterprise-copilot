@@ -5,7 +5,7 @@ package com.enterprise.copilot.infrastructure.ai;
  */
 public enum AgentKind {
     REQUIREMENTS, // Rhea
-    CODE,         // Nova
-    REVIEW,       // Sentinel
-    DEPLOY        // Atlas
+    CODE, // Nova
+    REVIEW, // Sentinel
+    DEPLOY // Atlas
 }

@@ -10,5 +10,4 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @Configuration(proxyBeanMethods = false)
 @EnableAsync
 @EnableConfigurationProperties(CopilotProperties.class)
-public class ApplicationConfig {
-}
+public class ApplicationConfig {}

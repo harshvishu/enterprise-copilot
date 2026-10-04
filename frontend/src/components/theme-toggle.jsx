@@ -35,7 +35,11 @@ export default function ThemeToggle() {
             <DropdownMenuContent align="start" side="top">
                 <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
                     {OPTIONS.map((option) => (
-                        <DropdownMenuRadioItem key={option.value} value={option.value} className="gap-2">
+                        <DropdownMenuRadioItem
+                            key={option.value}
+                            value={option.value}
+                            className="gap-2"
+                        >
                             <option.icon className="h-4 w-4" />
                             {option.label}
                         </DropdownMenuRadioItem>

@@ -20,19 +20,23 @@ public class MockGitHubGateway implements GitHubGateway {
 
         var ticket = ctx.ticket();
 
-        GitHubView.Issue issue = new GitHubView.Issue(
-                ticket.key(),
-                ticket.title(),
-                ctx.state() == PipelineState.DEPLOYED ? "closed" : "open",
-                ticket.description());
+        GitHubView.Issue issue =
+                new GitHubView.Issue(
+                        ticket.key(),
+                        ticket.title(),
+                        ctx.state() == PipelineState.DEPLOYED ? "closed" : "open",
+                        ticket.description());
 
         CodeChangeSet code = ctx.codeChangeSet();
 
-        GitHubView.PullRequest pr = code == null ? null : new GitHubView.PullRequest(
-                "PR-" + ticket.key(),
-                ticket.key() + " " + ticket.title(),
-                prState(ctx),
-                code.unifiedDiff());
+        GitHubView.PullRequest pr =
+                code == null
+                        ? null
+                        : new GitHubView.PullRequest(
+                                "PR-" + ticket.key(),
+                                ticket.key() + " " + ticket.title(),
+                                prState(ctx),
+                                code.unifiedDiff());
 
         List<GitHubView.ReviewComment> comments = new ArrayList<>();
 
@@ -42,55 +46,52 @@ public class MockGitHubGateway implements GitHubGateway {
 
             for (ReviewFinding f : review.findings()) {
 
-                comments.add(new GitHubView.ReviewComment(
-                        "Sentinel",
-                        review.outcome().name(),
-                        "[" + f.severity() + "] "
-                                + f.description()
-                                + " – "
-                                + f.recommendation(),
-                        f.file() + ":" + f.location()));
+                comments.add(
+                        new GitHubView.ReviewComment(
+                                "Sentinel",
+                                review.outcome().name(),
+                                "["
+                                        + f.severity()
+                                        + "] "
+                                        + f.description()
+                                        + " – "
+                                        + f.recommendation(),
+                                f.file() + ":" + f.location()));
             }
 
             if (review.findings().isEmpty()) {
 
-                comments.add(new GitHubView.ReviewComment(
-                        "Sentinel",
-                        review.outcome().name(),
-                        review.summary(),
-                        ""));
+                comments.add(
+                        new GitHubView.ReviewComment(
+                                "Sentinel", review.outcome().name(), review.summary(), ""));
             }
         }
 
-        List<GitHubView.Check> checks = List.of(
-            new GitHubView.Check("Generated build (not executed)", "not_evaluated"),
-                new GitHubView.Check(
-                "Test signal (simulated/model-provided)",
-                code == null || !code.hasProposedTests() ? "not_evaluated"
-                    : code.hasPassingTestSignal() ? "success" : "failure"),
-                new GitHubView.Check(
-                "Sentinel review (not a CI scan)",
-                review == null ? "not_evaluated"
-                    : review.passed() && !review.hasCriticalFindings() ? "success" : "failure")
-        );
+        List<GitHubView.Check> checks =
+                List.of(
+                        new GitHubView.Check("Generated build (not executed)", "not_evaluated"),
+                        new GitHubView.Check(
+                                "Test signal (simulated/model-provided)",
+                                code == null || !code.hasProposedTests()
+                                        ? "not_evaluated"
+                                        : code.hasPassingTestSignal() ? "success" : "failure"),
+                        new GitHubView.Check(
+                                "Sentinel review (not a CI scan)",
+                                review == null
+                                        ? "not_evaluated"
+                                        : review.passed() && !review.hasCriticalFindings()
+                                                ? "success"
+                                                : "failure"));
 
-        return new GitHubView(
-                issue,
-                pr,
-                comments,
-                checks,
-                deploymentStatus(ctx));
+        return new GitHubView(issue, pr, comments, checks, deploymentStatus(ctx));
     }
 
     private String prState(PipelineContext ctx) {
 
         return switch (ctx.state()) {
-
             case DEPLOYED -> "merged";
 
-            case BLOCKED,
-                 REVIEW_FAILED,
-                 FAILED -> "changes_requested";
+            case BLOCKED, REVIEW_FAILED, FAILED -> "changes_requested";
 
             default -> "open";
         };
@@ -99,7 +100,6 @@ public class MockGitHubGateway implements GitHubGateway {
     private String deploymentStatus(PipelineContext ctx) {
 
         return switch (ctx.state()) {
-
             case DEPLOYED -> "Deployed";
 
             case WAITING_FOR_APPROVAL -> "Blocked – human approval required";

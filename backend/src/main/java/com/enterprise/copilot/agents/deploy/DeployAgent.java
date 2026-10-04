@@ -45,18 +45,19 @@ public class DeployAgent {
 
     private DeploymentDecision decide(PipelineContext ctx, boolean showGates) {
 
-        events.publish(showGates
-                ? PipelineEvent.of(
-                        ctx.pipelineId(),
-                        PipelineEventType.AGENT_STARTED,
-                        NAME,
-                        "Evaluating release gates with deterministic Java rules...")
-                : PipelineEvent.of(
-                        ctx.pipelineId(),
-                        PipelineEventType.AGENT_THINKING,
-                        NAME,
-                        "Re-validating release gates...",
-                        Map.of("step", "REVALIDATE")));
+        events.publish(
+                showGates
+                        ? PipelineEvent.of(
+                                ctx.pipelineId(),
+                                PipelineEventType.AGENT_STARTED,
+                                NAME,
+                                "Evaluating release gates with deterministic Java rules...")
+                        : PipelineEvent.of(
+                                ctx.pipelineId(),
+                                PipelineEventType.AGENT_THINKING,
+                                NAME,
+                                "Re-validating release gates...",
+                                Map.of("step", "REVALIDATE")));
 
         List<String> blocking = new ArrayList<>();
 
@@ -66,13 +67,19 @@ public class DeployAgent {
         } else if (analysis.needsClarification()) {
             blocking.add("Requirements still need human clarification.");
         }
-        gate(ctx, showGates, "REQUIREMENTS_RESOLVED",
-                analysis != null && !analysis.needsClarification(), false);
+        gate(
+                ctx,
+                showGates,
+                "REQUIREMENTS_RESOLVED",
+                analysis != null && !analysis.needsClarification(),
+                false);
 
-        boolean codePresent = ctx.codeChangeSet() != null && ctx.codeChangeSet().files() != null
-                && !ctx.codeChangeSet().files().isEmpty()
-                && ctx.codeChangeSet().unifiedDiff() != null
-                && !ctx.codeChangeSet().unifiedDiff().isBlank();
+        boolean codePresent =
+                ctx.codeChangeSet() != null
+                        && ctx.codeChangeSet().files() != null
+                        && !ctx.codeChangeSet().files().isEmpty()
+                        && ctx.codeChangeSet().unifiedDiff() != null
+                        && !ctx.codeChangeSet().unifiedDiff().isBlank();
         if (!codePresent) {
             blocking.add("Code proposal artifacts are missing.");
         }
@@ -84,34 +91,30 @@ public class DeployAgent {
         if (!reviewApproved) {
             blocking.add(
                     "Review did not pass (outcome: "
-                            + (review == null
-                            ? "NONE"
-                            : review.outcome())
+                            + (review == null ? "NONE" : review.outcome())
                             + ").");
         }
         gate(ctx, showGates, "REVIEW_APPROVED", reviewApproved, false);
 
         boolean criticalFindings = review != null && review.hasCriticalFindings();
         if (criticalFindings) {
-            blocking.add(
-                    "Unresolved CRITICAL review findings.");
+            blocking.add("Unresolved CRITICAL review findings.");
         }
         gate(ctx, showGates, "NO_CRITICAL_FINDINGS", !criticalFindings, false);
 
-                boolean testSignalPassed = ctx.codeChangeSet() != null
-                                && ctx.codeChangeSet().hasPassingTestSignal();
-                if (ctx.codeChangeSet() == null || !ctx.codeChangeSet().hasProposedTests()) {
-                        blocking.add("Proposed tests are missing or blank; the test signal is not evaluated.");
-                } else if (!testSignalPassed) {
-                        blocking.add("Tests have a failing simulated/model-provided signal; generated tests were not executed.");
+        boolean testSignalPassed =
+                ctx.codeChangeSet() != null && ctx.codeChangeSet().hasPassingTestSignal();
+        if (ctx.codeChangeSet() == null || !ctx.codeChangeSet().hasProposedTests()) {
+            blocking.add("Proposed tests are missing or blank; the test signal is not evaluated.");
+        } else if (!testSignalPassed) {
+            blocking.add(
+                    "Tests have a failing simulated/model-provided signal; generated tests were not executed.");
         }
-                gate(ctx, showGates, "TESTS_PASS", testSignalPassed, false);
+        gate(ctx, showGates, "TESTS_PASS", testSignalPassed, false);
 
         boolean gatesPass = blocking.isEmpty();
 
-        boolean approved =
-                ctx.approvalState()
-                        == ApprovalState.APPROVED;
+        boolean approved = ctx.approvalState() == ApprovalState.APPROVED;
 
         if (gatesPass) {
             gate(ctx, showGates, "HUMAN_APPROVAL", approved, !approved);
@@ -127,18 +130,14 @@ public class DeployAgent {
                             ctx.pipelineId(),
                             PipelineEventType.APPROVAL_REQUIRED,
                             NAME,
-                            "All gates passed. Human approval is required before production deployment."
-                    ));
+                            "All gates passed. Human approval is required before production deployment."));
 
             DeploymentDecision decision =
                     new DeploymentDecision(
                             false,
                             true,
-                            List.of(
-                                    "Human approval required for production."
-                            ),
-                            "Deployment blocked pending human approval."
-                    );
+                            List.of("Human approval required for production."),
+                            "Deployment blocked pending human approval.");
 
             audit.record(
                     ctx.pipelineId(),
@@ -146,8 +145,7 @@ public class DeployAgent {
                     "EVALUATE_DEPLOYMENT",
                     "BLOCKED",
                     "APPROVAL_REQUIRED",
-                    decision.summary()
-            );
+                    decision.summary());
 
             return decision;
         }
@@ -160,16 +158,11 @@ public class DeployAgent {
                             PipelineEventType.GATE_BLOCKED,
                             NAME,
                             "Deployment blocked: " + String.join(" ", blocking),
-                            Map.of("reasons", blocking)
-                    ));
+                            Map.of("reasons", blocking)));
 
             DeploymentDecision decision =
                     new DeploymentDecision(
-                            false,
-                            false,
-                            blocking,
-                            "Deployment blocked by failed gates."
-                    );
+                            false, false, blocking, "Deployment blocked by failed gates.");
 
             audit.record(
                     ctx.pipelineId(),
@@ -177,8 +170,7 @@ public class DeployAgent {
                     "EVALUATE_DEPLOYMENT",
                     "BLOCKED",
                     "GATE_FAILED",
-                    decision.summary()
-            );
+                    decision.summary());
 
             return decision;
         }
@@ -190,8 +182,7 @@ public class DeployAgent {
                         true,
                         true,
                         List.of(),
-                        "All gates passed and human approval granted. Cleared for deployment."
-                );
+                        "All gates passed and human approval granted. Cleared for deployment.");
 
         events.publish(
                 PipelineEvent.of(
@@ -207,18 +198,13 @@ public class DeployAgent {
                 "EVALUATE_DEPLOYMENT",
                 "ALLOWED",
                 "APPROVED",
-                decision.summary()
-        );
+                decision.summary());
 
         return decision;
     }
 
     private void gate(
-            PipelineContext ctx,
-            boolean show,
-            String gate,
-            boolean passed,
-            boolean waiting) {
+            PipelineContext ctx, boolean show, String gate, boolean passed, boolean waiting) {
 
         if (!show) {
             return;

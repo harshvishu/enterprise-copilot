@@ -41,6 +41,10 @@ public class RequirementsAgent {
     private final PresentationPacer pacer;
 
     public RequirementAnalysis analyze(PipelineContext ctx) {
+        return analyze(ctx, "");
+    }
+
+    public RequirementAnalysis analyze(PipelineContext ctx, String additionalContext) {
 
         Ticket ticket = ctx.ticket();
 
@@ -49,8 +53,7 @@ public class RequirementsAgent {
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_STARTED,
                         NAME,
-                        "Analyzing " + ticket.key() + "..."
-                ));
+                        "Analyzing " + ticket.key() + "..."));
 
         String complianceGuidance =
                 invokeTool(
@@ -90,34 +93,36 @@ public class RequirementsAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Requesting structured requirement analysis",
-                        Map.of("step", "MODEL_CALL")
-                ));
+                        Map.of("step", "MODEL_CALL")));
 
         pacer.afterActivity();
 
-        String prompt = prompts.render(
-                "requirements",
-                Map.of(
-                        "ticketKey", ticket.key(),
-                        "title", ticket.title(),
-                        "description", ticket.description(),
-                        "compliance", complianceGuidance,
-                        "architecture", architectureGuidance,
-                        "gitHistory", history,
-                        "apiSpec", spec
-                ));
+        String prompt =
+                prompts.render(
+                        "requirements",
+                        Map.of(
+                                "ticketKey",
+                                ticket.key(),
+                                "title",
+                                ticket.title(),
+                                "description",
+                                ticket.description(),
+                                "compliance",
+                                complianceGuidance,
+                                "architecture",
+                                architectureGuidance,
+                                "gitHistory",
+                                history,
+                                "apiSpec",
+                                spec,
+                                "additionalContext",
+                                additionalContext == null ? "" : additionalContext));
 
         RequirementAnalysis analysis =
                 ai.generate(
-                        AgentKind.REQUIREMENTS,
-                        ctx.scenario(),
-                        prompt,
-                        RequirementAnalysis.class);
+                        AgentKind.REQUIREMENTS, ctx.scenario(), prompt, RequirementAnalysis.class);
 
-        String decision =
-                analysis.needsClarification()
-                        ? "NEEDS_CLARIFICATION"
-                        : "READY";
+        String decision = analysis.needsClarification() ? "NEEDS_CLARIFICATION" : "READY";
 
         events.publish(
                 PipelineEvent.of(
@@ -126,23 +131,13 @@ public class RequirementsAgent {
                         NAME,
                         analysis.needsClarification()
                                 ? "Found "
-                                  + analysis.clarificationQuestions().size()
-                                  + " clarification question(s)."
+                                        + analysis.clarificationQuestions().size()
+                                        + " clarification question(s)."
                                 : "Requirement is clear and ready.",
-                        Map.of(
-                                "decision",
-                                decision
-                        )
-                ));
+                        Map.of("decision", decision)));
 
         audit.record(
-                ctx.pipelineId(),
-                NAME,
-                "ANALYZE_REQUIREMENTS",
-                decision,
-                "OK",
-                analysis.summary()
-        );
+                ctx.pipelineId(), NAME, "ANALYZE_REQUIREMENTS", decision, "OK", analysis.summary());
 
         return analysis;
     }
@@ -160,8 +155,7 @@ public class RequirementsAgent {
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
                         message,
-                        Map.of("tool", toolName, "step", step)
-                ));
+                        Map.of("tool", toolName, "step", step)));
 
         String result = call.get();
         pacer.afterActivity();

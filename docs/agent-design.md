@@ -1,14 +1,13 @@
 # Agent Design
 
-## Typed contracts, not strings
+## Pipeline Contracts And Context
 
-Agents never exchange loosely-structured text. Everything
-flows through the typed
-`PipelineContext`, and each agent returns an immutable Java
-record:
+The reasoning/release agents return typed records. Pipeline results accumulate in `PipelineContext`;
+the deterministic Confluence Agent passes document text transiently to Rhea rather than adding persistent state:
 
-| Agent | Input | Output record |
+| Agent | Input | Output |
 |--------|--------|---------------|
+| Confluence Agent | `Ticket` + ConfluenceTool | transient business context string |
 | 🔍 Rhea | `Ticket` (+ tool data) | `RequirementAnalysis` |
 | 💻 Nova | `RequirementAnalysis.summary` + existing `acceptanceCriteria` + architecture/API tools | `CodeChangeSet` |
 | 🛡️ Sentinel | original `Ticket` + full `CodeChangeSet` / `RequirementAnalysis` + compliance/architecture/API tools | `ReviewDecision` (+ `ReviewFinding`) |
@@ -29,6 +28,22 @@ the deterministic provider returns the same record shape.
   outstanding questions are cleared, and the code-stage state is persisted before continuation.
 - Treats the ticket body as untrusted (prompt-injection
   defence).
+
+## Confluence Agent Reference
+
+- `ConfluenceTool` reads one supplied local retail launch decision document; it does not perform search.
+- `ConfluenceAgent.gatherContext(ticket)` simply calls the tool and returns its text. Not every agent needs an LLM.
+- The initial pipeline passes the string to `RequirementsAgent.analyze(ctx, businessContext)` once. Rhea receives
+  the full document with its owner/status/scope metadata and applies its unchanged decision policy.
+- Baseline `analyze(ctx)` remains available through agent previews. Empty, irrelevant or partial context retains
+  clarification in the scripted rehearsal. The fraud-contract negative control remains unresolved.
+- DEMO uses its existing requirements fixtures and checks that the supplied policy is in the additional-reference
+  section. This is a narrow simulation, not another agent fixture subsystem or a model-quality measurement.
+- No new AI kind, result model, prompt, state, persistent field or feature flag is needed.
+- Supplied orchestration plumbing wraps the context call in existing activity events. The prepared UI displays an
+  optional Confluence stage only when those events exist; no participant frontend or SSE changes are required.
+- Participants write roughly 15-20 lines including imports, plus supplied constructor wiring and two handoff statements.
+  The complete active reference is implemented; packaging and participant starter restoration come later.
 
 ## Nova – Code
 
@@ -72,4 +87,4 @@ OpenAI is the default workshop experience; Ollama is the explicit local LIVE alt
 and a clearly identified presenter fallback. No live failure is silently replaced with a fixture.
 Atlas's `deploy.st` only restates the existing Java gate inputs, so it adds no distinct assessment
 and is not invoked. `testsPass` is a simulated/model-proposed signal, not independently run tests.
-Additional business-policy knowledge from mock Confluence remains absent for the participant exercise.
+The active Phase A reference adds the local retail business policy; the participant starter is not restored yet.

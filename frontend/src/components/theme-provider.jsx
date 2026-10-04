@@ -2,7 +2,11 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeProviderContext = createContext({ theme: 'dark', setTheme: () => null });
 
-export function ThemeProvider({ children, defaultTheme = 'dark', storageKey = 'enterprise-copilot-theme' }) {
+export function ThemeProvider({
+    children,
+    defaultTheme = 'dark',
+    storageKey = 'enterprise-copilot-theme',
+}) {
     const [theme, setThemeState] = useState(() => localStorage.getItem(storageKey) || defaultTheme);
 
     useEffect(() => {

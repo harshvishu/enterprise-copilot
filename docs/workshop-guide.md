@@ -11,13 +11,56 @@ After changing provider, restart the backend and reload the dashboard to refresh
 
 ## Suggested 45-minute flow
 
-1. **(5m)** The idea: AI teammates across the SDLC; the accountability principle.
-2. **(5m)** Tour the dashboard and the pipeline stages.
-3. **(10m)** Rhea + real OpenAI call + structured output + directly supplied reference tools; answer clarification.
-4. **(5m)** Nova + the diff-as-proposal safety model.
-5. **(10m)** Sentinel's real review, then an explicitly labeled DEMO security-failure run if needed.
-6. **(5m)** Atlas + gates + the human approval vote.
-7. **(5m)** Audit trail, provider distinction and limitations, Q&A.
+| Minutes | Activity |
+|---|---|
+| 0-5 | Problem and agentic SDLC concept |
+| 5-12 | Rhea, Nova, Sentinel, deterministic Atlas and human authorization |
+| 12-20 | Spring AI fundamentals using the actual ChatModel, ChatClient and structured output code |
+| 20-27 | Run the pipeline; explain events, tools, proposals and typed results |
+| 27-32 | Human clarification and governance demonstration |
+| 32-40 | Participant exercise: add a deterministic Confluence Agent |
+| 40-45 | Run the AFTER comparison and recap |
+
+## Five-Minute Exercise
+
+Show `SpringAiAgentAiClient` calling `chatClient.prompt().user(renderedPrompt).call().entity(RequirementAnalysis.class)`.
+Explain ChatModel as the provider abstraction, ChatClient as the interaction API, the prompt as instructions/context,
+and `.entity(...)` as structured Java output. Rhea already knows how to reason; it needs the missing business context.
+
+The tool and document loading, Rhea's string overload and DEMO plumbing are provided. Participants create only
+`agents/confluence/ConfluenceAgent.java` with the supplied package/imports and constructor injection:
+
+```java
+public String gatherContext(Ticket ticket) {
+	return confluenceTool.lookup(ticket.description());
+}
+```
+
+Inject the agent using the supplied constructor snippet and replace the initial Rhea call:
+
+```java
+String businessContext = withConfluenceActivity(ctx,
+	() -> confluenceAgent.gatherContext(ctx.ticket()));
+RequirementAnalysis analysis = requirementsAgent.analyze(ctx, businessContext);
+```
+
+This is about 15-20 lines for the agent including imports, plus supplied wiring: five minutes expected, eight maximum.
+No extra LLM call, prompt, DTO, validation subsystem, fixtures or persistence work is assigned to participants.
+`ConfluenceTool` reads one local workshop Markdown page, not a real Confluence service or search system.
+Rhea decides whether that page's approved decisions apply; the new agent only gathers context.
+The supplied `withConfluenceActivity` wrapper records existing agent/tool activity events. It is provided plumbing,
+not participant work. Without Confluence activity, the stage rail stays Rhea -> Nova -> Sentinel -> Atlas. Once the
+participant context call runs, it shows Confluence -> Rhea -> Nova -> Sentinel -> Atlas. Participants never change
+React, event schemas, SSE infrastructure or pipeline state; the UI detects the optional stage from the events.
+
+Use UB-4823 BEFORE to show missing credit eligibility, channel and absent-consent choices. AFTER supplies the
+approved retail launch decision. UB-4825 remains a negative control because that page provides no fraud contract.
+The currently active reference exposes BEFORE through the baseline `/api/agents/requirements` preview (select
+AMBIGUOUS_REQUIREMENT first in DEMO); the pipeline itself is AFTER. The participant starter is not restored yet.
+
+After four or five exercise minutes, offer the recovery helper; minute eight is the hard stop. The helper will be
+packaged from this tested reference only after approval. It does not exist in the repository yet, and no installer
+or destructive reset is part of the current implementation.
 
 Do not promise a deterministic live security finding or a 90-second real model response.
 Atlas is intentionally Java: the unused deploy prompt merely repeats its hard gates.

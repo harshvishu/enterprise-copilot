@@ -6,10 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
-public interface AuditEventRepository
-        extends JpaRepository<AuditEventEntity, Long> {
+public interface AuditEventRepository extends JpaRepository<AuditEventEntity, Long> {
 
-    List<AuditEventEntity>
-    findByPipelineIdOrderByCreatedAtAsc(UUID pipelineId);
-
+    List<AuditEventEntity> findByPipelineIdOrderByCreatedAtAsc(UUID pipelineId);
 }

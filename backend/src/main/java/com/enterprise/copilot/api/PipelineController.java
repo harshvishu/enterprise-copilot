@@ -32,18 +32,16 @@ public class PipelineController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public PipelineResponse create(
-            @Valid @RequestBody CreatePipelineRequest request) {
+    public PipelineResponse create(@Valid @RequestBody CreatePipelineRequest request) {
 
-        Ticket ticket = new Ticket(
-                request.ticketKey(),
-                request.title(),
-                request.description(),
-                request.sourceOrDefault()
-        );
+        Ticket ticket =
+                new Ticket(
+                        request.ticketKey(),
+                        request.title(),
+                        request.description(),
+                        request.sourceOrDefault());
 
-        PipelineContext ctx =
-                orchestrator.createAndRun(ticket);
+        PipelineContext ctx = orchestrator.createAndRun(ticket);
 
         return PipelineResponse.from(ctx);
     }
@@ -51,16 +49,11 @@ public class PipelineController {
     @GetMapping
     public List<PipelineResponse> list() {
 
-        return store.listAll()
-                .stream()
-                .map(store::toContext)
-                .map(PipelineResponse::from)
-                .toList();
+        return store.listAll().stream().map(store::toContext).map(PipelineResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PipelineResponse> get(
-            @PathVariable UUID id) {
+    public ResponseEntity<PipelineResponse> get(@PathVariable UUID id) {
 
         return store.load(id)
                 .map(PipelineResponse::from)
@@ -69,42 +62,33 @@ public class PipelineController {
     }
 
     @GetMapping("/{id}/events")
-    public SseEmitter events(
-            @PathVariable UUID id) {
+    public SseEmitter events(@PathVariable UUID id) {
 
         return events.subscribe(id);
     }
 
     @PostMapping("/{id}/approve")
     public PipelineResponse approve(
-            @PathVariable UUID id,
-            @RequestParam(defaultValue = "presenter")
-            String approver) {
+            @PathVariable UUID id, @RequestParam(defaultValue = "presenter") String approver) {
 
-        return PipelineResponse.from(
-                orchestrator.approve(id, approver));
+        return PipelineResponse.from(orchestrator.approve(id, approver));
     }
 
     @PostMapping("/{id}/clarify")
     public PipelineResponse clarify(
-            @PathVariable UUID id,
-            @RequestBody(required = false) ClarifyRequest request) {
+            @PathVariable UUID id, @RequestBody(required = false) ClarifyRequest request) {
 
-        List<String> answers = request == null || request.answers() == null ? List.of() : request.answers();
-        return PipelineResponse.from(
-                orchestrator.clarify(id, answers));
+        List<String> answers =
+                request == null || request.answers() == null ? List.of() : request.answers();
+        return PipelineResponse.from(orchestrator.clarify(id, answers));
     }
 
     @PostMapping("/{id}/reject")
     public PipelineResponse reject(
-            @PathVariable UUID id,
-            @RequestParam(defaultValue = "presenter")
-            String approver) {
+            @PathVariable UUID id, @RequestParam(defaultValue = "presenter") String approver) {
 
-        return PipelineResponse.from(
-                orchestrator.reject(id, approver));
+        return PipelineResponse.from(orchestrator.reject(id, approver));
     }
 
-    public record ClarifyRequest(List<String> answers) {
-    }
+    public record ClarifyRequest(List<String> answers) {}
 }

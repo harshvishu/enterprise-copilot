@@ -43,11 +43,8 @@ public class AuditService {
         repository.save(event);
     }
 
-    public List<AuditEventEntity> forPipeline(
-            UUID pipelineId) {
+    public List<AuditEventEntity> forPipeline(UUID pipelineId) {
 
-        return repository
-                .findByPipelineIdOrderByCreatedAtAsc(
-                        pipelineId);
+        return repository.findByPipelineIdOrderByCreatedAtAsc(pipelineId);
     }
 }

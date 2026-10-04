@@ -18,28 +18,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class PromptLibrary {
 
-    private final Map<String, String> cache =
-            new ConcurrentHashMap<>();
+    private final Map<String, String> cache = new ConcurrentHashMap<>();
 
-    public String render(
-            String promptName,
-            Map<String, String> vars) {
+    public String render(String promptName, Map<String, String> vars) {
 
-        String template =
-                cache.computeIfAbsent(
-                        promptName,
-                        this::load);
+        String template = cache.computeIfAbsent(promptName, this::load);
 
         String out = template;
 
         for (Map.Entry<String, String> e : vars.entrySet()) {
-            out = out.replace(
-                    "{"
-                            + e.getKey()
-                            + "}",
-                    e.getValue() == null
-                            ? ""
-                            : e.getValue());
+            out = out.replace("{" + e.getKey() + "}", e.getValue() == null ? "" : e.getValue());
         }
         return out;
     }
@@ -47,17 +35,10 @@ public class PromptLibrary {
     private String load(String promptName) {
         try {
             return StreamUtils.copyToString(
-                    new ClassPathResource(
-                            "prompts/"
-                                    + promptName
-                                    + ".st")
-                            .getInputStream(),
+                    new ClassPathResource("prompts/" + promptName + ".st").getInputStream(),
                     StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException(
-                    "Missing prompt template: "
-                            + promptName,
-                    e);
+            throw new UncheckedIOException("Missing prompt template: " + promptName, e);
         }
     }
 }

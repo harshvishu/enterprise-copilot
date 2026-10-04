@@ -21,7 +21,8 @@ export const GATE_LABELS = {
 
 export function hasProposedTests(proposal) {
     return Boolean(
-        Array.isArray(proposal?.tests) && proposal.tests.length &&
+        Array.isArray(proposal?.tests) &&
+            proposal.tests.length &&
             proposal.tests.every((test) => typeof test === 'string' && test.trim()),
     );
 }
@@ -100,9 +101,34 @@ export function severityCounts(review) {
     }, {});
 }
 
-export function stageStatuses(pipeline) {
+export function confluenceStageStatus(events = []) {
+    const activityTypes = ['AGENT_STARTED', 'AGENT_THINKING', 'TOOL_INVOKED', 'AGENT_COMPLETED'];
+    const firstActivity = events.findIndex(
+        (event) => event.agent === 'Confluence' && activityTypes.includes(event.type),
+    );
+    if (firstActivity < 0) return null;
+    const latestStart = events.findLastIndex(
+        (event) => event.agent === 'Confluence' && event.type === 'AGENT_STARTED',
+    );
+    const current = events.slice(latestStart < 0 ? firstActivity : latestStart);
+    if (current.some((event) => event.agent === 'Confluence' && event.type === 'AGENT_COMPLETED'))
+        return 'completed';
+    if (current.some((event) => event.type === 'PIPELINE_FAILED')) return 'failed';
+    return 'running';
+}
+
+function addConfluenceStage(stages, events) {
+    const status = confluenceStageStatus(events);
+    if (status) {
+        stages.splice(1, 0, status);
+        if (status !== 'completed') stages[2] = 'pending';
+    }
+    return stages;
+}
+
+export function stageStatuses(pipeline, events = []) {
     const stages = ['pending', 'pending', 'pending', 'pending', 'pending'];
-    if (!pipeline) return stages;
+    if (!pipeline) return addConfluenceStage(stages, events);
     stages[0] = 'completed';
     if (pipeline.requirementAnalysis) stages[1] = 'completed';
     if (pipeline.codeChangeSet) stages[2] = 'completed';
@@ -131,7 +157,7 @@ export function stageStatuses(pipeline) {
                 : 4;
         stages[failedStage] = 'failed';
     }
-    return stages;
+    return addConfluenceStage(stages, events);
 }
 
 export function pipelineAttention(pipeline, events = []) {
@@ -175,9 +201,10 @@ export function pipelineAttention(pipeline, events = []) {
             title: review.outcome === 'REJECT' ? 'Review rejected' : 'Changes requested',
             description:
                 'Sentinel identified issues that prevent this change from progressing. Atlas blocks deployment until the review gate passes.',
-            nextStep: pipeline.state === 'BLOCKED'
-                ? 'Address the implementation findings and start a new pipeline run.'
-                : undefined,
+            nextStep:
+                pipeline.state === 'BLOCKED'
+                    ? 'Address the implementation findings and start a new pipeline run.'
+                    : undefined,
             counts,
             target: 'review',
             action: 'View findings',
@@ -196,11 +223,12 @@ export function pipelineAttention(pipeline, events = []) {
                     ? 'The deployment was not authorized. This pipeline will not proceed.'
                     : pipeline.deploymentDecision?.blockingReasons?.join(' ') ||
                       'A required system gate did not pass.',
-                        nextStep: pipeline.approvalState === 'REJECTED'
-                                ? 'Discuss the rejection with the approver and address their concerns before starting a new run.'
-                                : pipeline.codeChangeSet && !hasPassingTestSignal(pipeline.codeChangeSet)
-                                    ? 'Correct the proposed implementation/tests before starting another run.'
-                                    : 'Address the failed release gates before starting a new pipeline run.',
+            nextStep:
+                pipeline.approvalState === 'REJECTED'
+                    ? 'Discuss the rejection with the approver and address their concerns before starting a new run.'
+                    : pipeline.codeChangeSet && !hasPassingTestSignal(pipeline.codeChangeSet)
+                      ? 'Correct the proposed implementation/tests before starting another run.'
+                      : 'Address the failed release gates before starting a new pipeline run.',
             counts,
             target: 'release',
             action: 'View system gates',

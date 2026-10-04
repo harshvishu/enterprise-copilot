@@ -9,10 +9,4 @@ package com.enterprise.copilot.domain;
  * @param description free-text body (may contain ambiguity or injected instructions)
  * @param source      origin system, e.g. {@code JIRA} or {@code GITHUB}
  */
-public record Ticket(
-        String key,
-        String title,
-        String description,
-        String source
-) {
-}
+public record Ticket(String key, String title, String description, String source) {}

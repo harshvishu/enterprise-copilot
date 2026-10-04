@@ -17,45 +17,35 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleConflict(
-            IllegalStateException ex) {
+    public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex) {
 
-        return body(
-                HttpStatus.CONFLICT,
-                ex.getMessage());
+        return body(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(
-            NoSuchElementException ex) {
+    public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
 
-        return body(
-                HttpStatus.NOT_FOUND,
-                "Resource not found");
+        return body(HttpStatus.NOT_FOUND, "Resource not found");
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleBadRequest(
-            IllegalArgumentException ex) {
+    public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
 
-        return body(
-                HttpStatus.BAD_REQUEST,
-                ex.getMessage());
+        return body(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    private ResponseEntity<Map<String, Object>> body(
-            HttpStatus status,
-            String message) {
+    private ResponseEntity<Map<String, Object>> body(HttpStatus status, String message) {
 
-        return ResponseEntity.status(status).body(
-                Map.of(
-                        "timestamp", Instant.now().toString(),
-                        "status", status.value(),
-                        "error", status.getReasonPhrase(),
-                        "message",
-                        message == null
-                                ? status.getReasonPhrase()
-                                : message
-                ));
+        return ResponseEntity.status(status)
+                .body(
+                        Map.of(
+                                "timestamp",
+                                Instant.now().toString(),
+                                "status",
+                                status.value(),
+                                "error",
+                                status.getReasonPhrase(),
+                                "message",
+                                message == null ? status.getReasonPhrase() : message));
     }
 }

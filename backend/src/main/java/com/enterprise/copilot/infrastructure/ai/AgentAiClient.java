@@ -22,9 +22,5 @@ public interface AgentAiClient {
      * @param responseType   the target structured type; the provider maps the model output to it
      */
     <T> T generate(
-            AgentKind agent,
-            DemoScenario scenario,
-            String renderedPrompt,
-            Class<T> responseType
-    );
+            AgentKind agent, DemoScenario scenario, String renderedPrompt, Class<T> responseType);
 }

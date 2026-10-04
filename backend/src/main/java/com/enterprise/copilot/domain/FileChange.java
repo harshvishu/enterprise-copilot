@@ -10,15 +10,7 @@ package com.enterprise.copilot.domain;
  * @param content    full proposed file content (for CREATE)
  *                   or new content (for MODIFY)
  */
-public record FileChange(
-
-        String path,
-
-        ChangeType changeType,
-
-        String content
-
-) {
+public record FileChange(String path, ChangeType changeType, String content) {
 
     public enum ChangeType {
         CREATE,
