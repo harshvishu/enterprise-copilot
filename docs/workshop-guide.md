@@ -55,16 +55,15 @@ React, event schemas, SSE infrastructure or pipeline state; the UI detects the o
 
 Use UB-4823 BEFORE to show missing credit eligibility, channel and absent-consent choices. AFTER supplies the
 approved retail launch decision. UB-4825 remains a negative control because that page provides no fraud contract.
-The currently active reference exposes BEFORE through the baseline `/api/agents/requirements` preview (select
-AMBIGUOUS_REQUIREMENT first in DEMO); the pipeline itself is AFTER. The participant starter is not restored yet.
-
-After four or five exercise minutes, offer the recovery helper; minute eight is the hard stop. The helper will be
-packaged from this tested reference only after approval. It does not exist in the repository yet, and no installer
-or destructive reset is part of the current implementation.
+Before the exercise, run `./workshop/scripts/confluence-exercise.sh reset` to restore the participant starter.
+After the exercise or at the eight-minute recovery point, run `./workshop/scripts/confluence-exercise.sh apply`
+to restore the tested reference. Both commands are idempotent. `apply` refuses to replace a modified
+`ConfluenceAgent.java`; presenters can explicitly use `apply --force` to restore those exercise-owned files.
 
 Do not promise a deterministic live security finding or a 90-second real model response.
 Atlas is intentionally Java: the unused deploy prompt merely repeats its hard gates.
 DEMO security failure ends BLOCKED and cannot be approved. Use a separate clean run for approval.
-Generated tests and deployment are simulated even in LIVE. No production identity/integration is implied.
+The UI intentionally presents a production-like deployment workflow; the underlying deployment action is
+simulated, including in LIVE. No production identity/integration is implied.
 
 See [demo-script.md](demo-script.md) for the tight 90-second version.

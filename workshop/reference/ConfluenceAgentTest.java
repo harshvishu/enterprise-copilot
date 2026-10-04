@@ -109,7 +109,7 @@ class ConfluenceAgentTest {
 
     @Test
     void demoBeforeAfterRequiresThePolicyInTheAdditionalReferenceSection() {
-        var client = new DemoAgentAiClient(new DemoResponses(), tool);
+        var client = new DemoAgentAiClient(new DemoResponses());
         var requirements = rhea(client);
         var ctx = context("UB-4823");
         assertThat(requirements.analyze(ctx).clarificationQuestions()).hasSize(3);
@@ -142,7 +142,7 @@ class ConfluenceAgentTest {
         var ctx = context("UB-4825");
         String businessContext = new ConfluenceAgent(tool).gatherContext(ctx.ticket());
         assertThat(
-                        rhea(new DemoAgentAiClient(new DemoResponses(), tool))
+                        rhea(new DemoAgentAiClient(new DemoResponses()))
                                 .analyze(ctx, businessContext)
                                 .clarificationQuestions())
                 .hasSize(2);

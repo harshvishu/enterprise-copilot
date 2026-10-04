@@ -3,7 +3,9 @@ package com.enterprise.copilot.orchestration;
 import com.enterprise.copilot.agents.code.CodeGenerationAgent;
 import com.enterprise.copilot.agents.deploy.DeployAgent;
 // WORKSHOP: Import the participant-created ConfluenceAgent.
-import com.enterprise.copilot.agents.confluence.ConfluenceAgent;
+// CONFLUENCE_EXERCISE:IMPORT_BEGIN
+// TODO: Import the participant-created ConfluenceAgent here.
+// CONFLUENCE_EXERCISE:IMPORT_END
 import com.enterprise.copilot.agents.requirements.RequirementsAgent;
 import com.enterprise.copilot.agents.review.ReviewAgent;
 import com.enterprise.copilot.domain.*;
@@ -33,7 +35,9 @@ public class PipelineOrchestrator {
 
     private final RequirementsAgent requirementsAgent;
     // WORKSHOP 1/4: Add the participant agent as a constructor-injected dependency.
-    private final ConfluenceAgent confluenceAgent;
+    // CONFLUENCE_EXERCISE:FIELD_BEGIN
+    // TODO: Add the participant-created ConfluenceAgent dependency here.
+    // CONFLUENCE_EXERCISE:FIELD_END
     private final CodeGenerationAgent codeAgent;
     private final ReviewAgent reviewAgent;
     private final DeployAgent deployAgent;
@@ -47,7 +51,9 @@ public class PipelineOrchestrator {
     public PipelineOrchestrator(
             RequirementsAgent requirementsAgent,
             // WORKSHOP 2/4: Add this parameter to the existing constructor.
-            ConfluenceAgent confluenceAgent,
+            // CONFLUENCE_EXERCISE:PARAMETER_BEGIN
+            // TODO: Add ConfluenceAgent to this constructor.
+            // CONFLUENCE_EXERCISE:PARAMETER_END
             CodeGenerationAgent codeAgent,
             ReviewAgent reviewAgent,
             DeployAgent deployAgent,
@@ -60,7 +66,9 @@ public class PipelineOrchestrator {
 
         this.requirementsAgent = requirementsAgent;
         // WORKSHOP 3/4: Store the injected participant agent.
-        this.confluenceAgent = confluenceAgent;
+        // CONFLUENCE_EXERCISE:ASSIGNMENT_BEGIN
+        // TODO: Store the injected ConfluenceAgent here.
+        // CONFLUENCE_EXERCISE:ASSIGNMENT_END
         this.codeAgent = codeAgent;
         this.reviewAgent = reviewAgent;
         this.deployAgent = deployAgent;
@@ -122,9 +130,10 @@ public class PipelineOrchestrator {
 
             // WORKSHOP 4/4: The supplied wrapper records activity; participants only add their
             // context call.
-            String businessContext =
-                    withConfluenceActivity(ctx, () -> confluenceAgent.gatherContext(ctx.ticket()));
-            RequirementAnalysis analysis = requirementsAgent.analyze(ctx, businessContext);
+            // CONFLUENCE_EXERCISE:CALL_BEGIN
+            // TODO: Gather business context here and pass it to Rhea before analysis.
+            RequirementAnalysis analysis = requirementsAgent.analyze(ctx);
+            // CONFLUENCE_EXERCISE:CALL_END
 
             ctx.setRequirementAnalysis(analysis);
 

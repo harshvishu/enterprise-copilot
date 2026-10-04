@@ -1,0 +1,31 @@
+diff --git a/backend/src/main/java/com/enterprise/copilot/orchestration/PipelineOrchestrator.java b/backend/src/main/java/com/enterprise/copilot/orchestration/PipelineOrchestrator.java
+--- a/backend/src/main/java/com/enterprise/copilot/orchestration/PipelineOrchestrator.java
++++ b/backend/src/main/java/com/enterprise/copilot/orchestration/PipelineOrchestrator.java
+@@ -6,3 +6,3 @@
+ // CONFLUENCE_EXERCISE:IMPORT_BEGIN
+-import com.enterprise.copilot.agents.confluence.ConfluenceAgent;
++// TODO: Import the participant-created ConfluenceAgent here.
+ // CONFLUENCE_EXERCISE:IMPORT_END
+@@ -38,3 +38,3 @@
+     // CONFLUENCE_EXERCISE:FIELD_BEGIN
+-    private final ConfluenceAgent confluenceAgent;
++    // TODO: Add the participant-created ConfluenceAgent dependency here.
+     // CONFLUENCE_EXERCISE:FIELD_END
+@@ -54,3 +54,3 @@
+             // CONFLUENCE_EXERCISE:PARAMETER_BEGIN
+-            ConfluenceAgent confluenceAgent,
++            // TODO: Add ConfluenceAgent to this constructor.
+             // CONFLUENCE_EXERCISE:PARAMETER_END
+@@ -69,3 +69,3 @@
+         // CONFLUENCE_EXERCISE:ASSIGNMENT_BEGIN
+-        this.confluenceAgent = confluenceAgent;
++        // TODO: Store the injected ConfluenceAgent here.
+         // CONFLUENCE_EXERCISE:ASSIGNMENT_END
+@@ -133,5 +133,4 @@
+             // CONFLUENCE_EXERCISE:CALL_BEGIN
+-            String businessContext =
+-                    withConfluenceActivity(ctx, () -> confluenceAgent.gatherContext(ctx.ticket()));
+-            RequirementAnalysis analysis = requirementsAgent.analyze(ctx, businessContext);
++            // TODO: Gather business context here and pass it to Rhea before analysis.
++            RequirementAnalysis analysis = requirementsAgent.analyze(ctx);
+             // CONFLUENCE_EXERCISE:CALL_END

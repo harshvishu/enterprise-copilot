@@ -6,7 +6,6 @@ import com.enterprise.copilot.domain.AiMode;
 import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.domain.PipelineState;
 import com.enterprise.copilot.domain.Ticket;
-import com.enterprise.copilot.agents.confluence.ConfluenceAgent;
 import com.enterprise.copilot.demo.DemoTickets;
 import com.enterprise.copilot.infrastructure.ai.DemoState;
 import com.enterprise.copilot.orchestration.PipelineOrchestrator;
@@ -15,6 +14,7 @@ import com.enterprise.copilot.orchestration.PipelineEventType;
 import com.enterprise.copilot.persistence.PipelineStore;
 import com.enterprise.copilot.persistence.entity.PipelineEntity;
 import com.enterprise.copilot.persistence.repository.PipelineRepository;
+import com.enterprise.copilot.tools.ConfluenceTool;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +30,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 /**
  * Full-stack test on H2: exercises the orchestrator, agents, persistence and approval gate for the
@@ -56,7 +54,7 @@ class EnterpriseCopilotIntegrationTest {
 
     @Autowired PipelineEventPublisher events;
 
-    @MockitoSpyBean ConfluenceAgent confluenceAgent;
+        @MockitoSpyBean ConfluenceTool confluenceTool;
 
     private Ticket ticket() {
 
@@ -154,7 +152,7 @@ class EnterpriseCopilotIntegrationTest {
 
     @Test
     void clarificationAnswersAreSavedBeforeImplementationResumes() {
-        doReturn("").when(confluenceAgent).gatherContext(any());
+                doReturn("").when(confluenceTool).lookup(anyString());
         demoState.setScenario(DemoScenario.AMBIGUOUS_REQUIREMENT);
         PipelineContext ctx = orchestrator.createAndRun(ticket());
         awaitState(ctx.pipelineId(), PipelineState.REQUIREMENTS_READY);
@@ -175,12 +173,11 @@ class EnterpriseCopilotIntegrationTest {
         awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
         assertThat(store.load(ctx.pipelineId()).orElseThrow().requirementAnalysis().summary())
                 .contains("Outgoing debits only.", "Skip and audit when there is no SMS consent.");
-        verify(confluenceAgent, times(1)).gatherContext(any());
     }
 
     @Test
     void blankClarificationDoesNotResumePipeline() {
-        doReturn("").when(confluenceAgent).gatherContext(any());
+                doReturn("").when(confluenceTool).lookup(anyString());
         demoState.setScenario(DemoScenario.AMBIGUOUS_REQUIREMENT);
         PipelineContext ctx = orchestrator.createAndRun(ticket());
         awaitState(ctx.pipelineId(), PipelineState.REQUIREMENTS_READY);
@@ -193,7 +190,7 @@ class EnterpriseCopilotIntegrationTest {
 
     @Test
     void ambiguousRequirementPausesForClarification() {
-        doReturn("").when(confluenceAgent).gatherContext(any());
+                doReturn("").when(confluenceTool).lookup(anyString());
 
         demoState.setScenario(DemoScenario.AMBIGUOUS_REQUIREMENT);
 
@@ -215,10 +212,26 @@ class EnterpriseCopilotIntegrationTest {
     void confluenceActivityPrecedesRheaUsingExistingEventTypes() {
         var issue = new DemoTickets().find("UB-4823").orElseThrow();
         var ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
-        awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
+        PipelineState state =
+                awaitState(
+                        ctx.pipelineId(),
+                        PipelineState.WAITING_FOR_APPROVAL,
+                        PipelineState.REQUIREMENTS_READY);
         var history = events.historyFor(ctx.pipelineId());
         var confluenceEvents =
                 history.stream().filter(event -> "Confluence".equals(event.agent())).toList();
+
+        if (state == PipelineState.REQUIREMENTS_READY) {
+            assertThat(
+                            store.load(ctx.pipelineId())
+                                    .orElseThrow()
+                                    .requirementAnalysis()
+                                    .needsClarification())
+                    .isTrue();
+            assertThat(confluenceEvents).isEmpty();
+            return;
+        }
+
         assertThat(confluenceEvents)
                 .extracting(event -> event.type())
                 .containsExactly(
@@ -241,11 +254,26 @@ class EnterpriseCopilotIntegrationTest {
     @Test
     void failedConfluenceLookupDoesNotStartRheaOrEmitCompletion() {
         doThrow(new IllegalStateException("Confluence context unavailable"))
-                .when(confluenceAgent)
-                .gatherContext(any());
+                .when(confluenceTool)
+                .lookup(anyString());
         var issue = new DemoTickets().find("UB-4823").orElseThrow();
         var ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
-        awaitState(ctx.pipelineId(), PipelineState.FAILED);
+        PipelineState state =
+                awaitState(
+                        ctx.pipelineId(), PipelineState.FAILED, PipelineState.REQUIREMENTS_READY);
+
+        if (state == PipelineState.REQUIREMENTS_READY) {
+            assertThat(
+                            store.load(ctx.pipelineId())
+                                    .orElseThrow()
+                                    .requirementAnalysis()
+                                    .needsClarification())
+                    .isTrue();
+            assertThat(events.historyFor(ctx.pipelineId()))
+                    .noneMatch(event -> "Confluence".equals(event.agent()));
+            return;
+        }
+
         Awaitility.await()
                 .atMost(Duration.ofSeconds(15))
                 .untilAsserted(
@@ -272,19 +300,29 @@ class EnterpriseCopilotIntegrationTest {
             UUID id = ctx.pipelineId();
             switch (issue.scenario()) {
                 case AMBIGUOUS_REQUIREMENT -> {
-                    awaitState(id, PipelineState.WAITING_FOR_APPROVAL);
+                    PipelineState state =
+                            awaitState(
+                                    id,
+                                    PipelineState.WAITING_FOR_APPROVAL,
+                                    PipelineState.REQUIREMENTS_READY);
                     var resolved = store.load(id).orElseThrow();
-                    assertThat(resolved.requirementAnalysis().needsClarification()).isFalse();
-                    assertThat(resolved.requirementAnalysis().summary())
-                            .contains(
-                                    "retail-high-value-alerts",
-                                    "exclude credits",
-                                    "SMS only",
-                                    "skip/audit");
-                    assertThat(resolved.requirementAnalysis().summary())
-                            .doesNotContain("Human clarification:");
-                    assertThat(orchestrator.approve(id, "catalog-presenter").state())
-                            .isEqualTo(PipelineState.DEPLOYED);
+                    if (state == PipelineState.REQUIREMENTS_READY) {
+                        assertThat(resolved.requirementAnalysis().needsClarification()).isTrue();
+                        assertThatThrownBy(() -> orchestrator.approve(id, "catalog-presenter"))
+                                .isInstanceOf(IllegalStateException.class);
+                    } else {
+                        assertThat(resolved.requirementAnalysis().needsClarification()).isFalse();
+                        assertThat(resolved.requirementAnalysis().summary())
+                                .contains(
+                                        "retail-high-value-alerts",
+                                        "exclude credits",
+                                        "SMS only",
+                                        "skip/audit");
+                        assertThat(resolved.requirementAnalysis().summary())
+                                .doesNotContain("Human clarification:");
+                        assertThat(orchestrator.approve(id, "catalog-presenter").state())
+                                .isEqualTo(PipelineState.DEPLOYED);
+                    }
                 }
                 case HALLUCINATED_API -> {
                     awaitState(id, PipelineState.REQUIREMENTS_READY);

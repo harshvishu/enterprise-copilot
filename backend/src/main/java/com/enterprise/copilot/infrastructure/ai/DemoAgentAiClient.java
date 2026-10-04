@@ -4,7 +4,6 @@ import com.enterprise.copilot.domain.CodeChangeSet;
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
-import com.enterprise.copilot.tools.ConfluenceTool;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -18,12 +17,16 @@ import org.springframework.stereotype.Component;
 @Profile("demo")
 public class DemoAgentAiClient implements AgentAiClient {
 
-    private final DemoResponses responses;
-    private final ConfluenceTool confluence;
+    private static final String ADDITIONAL_CONTEXT_START =
+            "--- ADDITIONAL TRUSTED BUSINESS CONTEXT ---";
+    private static final String ADDITIONAL_CONTEXT_END =
+            "--- END ADDITIONAL TRUSTED BUSINESS CONTEXT ---";
+    private static final String APPROVED_RETAIL_POLICY_ID = "Source ID: retail-high-value-alerts";
 
-    public DemoAgentAiClient(DemoResponses responses, ConfluenceTool confluence) {
+    private final DemoResponses responses;
+
+    public DemoAgentAiClient(DemoResponses responses) {
         this.responses = responses;
-        this.confluence = confluence;
     }
 
     @Override
@@ -32,11 +35,7 @@ public class DemoAgentAiClient implements AgentAiClient {
             AgentKind agent, DemoScenario scenario, String renderedPrompt, Class<T> responseType) {
 
         if (responseType.equals(RequirementAnalysis.class)) {
-            String policySection =
-                    "\n--- ADDITIONAL TRUSTED BUSINESS CONTEXT ---\n"
-                            + confluence.lookup("")
-                            + "\n--- END ADDITIONAL TRUSTED BUSINESS CONTEXT ---\n";
-            return (T) responses.requirements(scenario, renderedPrompt.endsWith(policySection));
+            return (T) responses.requirements(scenario, hasApprovedRetailPolicy(renderedPrompt));
         }
 
         if (responseType.equals(CodeChangeSet.class)) {
@@ -48,5 +47,18 @@ public class DemoAgentAiClient implements AgentAiClient {
         }
 
         throw new IllegalArgumentException("No deterministic response for type " + responseType);
+    }
+
+    private static boolean hasApprovedRetailPolicy(String renderedPrompt) {
+        int sectionStart = renderedPrompt.lastIndexOf(ADDITIONAL_CONTEXT_START);
+        if (sectionStart < 0) {
+            return false;
+        }
+
+        int contextStart = sectionStart + ADDITIONAL_CONTEXT_START.length();
+        int sectionEnd = renderedPrompt.indexOf(ADDITIONAL_CONTEXT_END, contextStart);
+        return sectionEnd >= 0
+                && renderedPrompt.substring(contextStart, sectionEnd)
+                        .contains(APPROVED_RETAIL_POLICY_ID);
     }
 }
