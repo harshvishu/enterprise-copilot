@@ -4,7 +4,8 @@
 |----------|--------|-----|
 | OpenAI startup configuration error | Missing/blank key or conflicting provider profiles | Supply OPENAI_API_KEY securely; select exactly one of openai, ollama, demo. Add postgres only with an AI profile. |
 | LIVE pipeline FAILED | Provider/network/credentials or incomplete structured output | Read the provider/stage error, check the service, then start a new run. No DEMO output is substituted. |
-| Need credential-free preview | OpenAI is default | Restart with SPRING_PROFILES_ACTIVE=demo and reload the dashboard. |
+| Need deterministic presentation | LIVE model responses can vary | Select DEMO under Next run near the theme controls, then start a new run; no restart is needed. |
+| LIVE selection is disabled | The server was started without a real provider | Configure OpenAI or Ollama at startup to make both execution modes available. The credential-free demo profile supports DEMO only. |
 | Wrapper permission denied | Wrapper is not executable in this checkout | Use sh ./mvnw from backend/; no system Maven installation is required. |
 | Frontend dependency error | Unsupported Node or stale dependencies | Use Node 22.12+ or a supported newer version, then run npm ci from frontend/. Use the checked-in manifest and lockfile together. |
 | PostCSS says the Tailwind plugin moved to a separate package | Tailwind 4 installed against this application's Tailwind 3 configuration | Restore the checked-in manifest and lockfile, then run npm ci. Do not install @tailwindcss/postcss: the styles and configuration use Tailwind 3. |
@@ -15,14 +16,16 @@
 | Dashboard shows no activity | SSE not connected | Re-click **Run Pipeline**; check the backend is on `:8080` and CORS allows `:5173` |
 | Maven can't resolve artifacts behind a corporate proxy | Stale proxy in `~/.m2/settings.xml` | Use a settings file with the mirror but no broken proxy |
 | LIVE (Ollama) errors | Ollama not running / model not pulled | `ollama pull llama3.1 && ollama serve` |
-| Pipeline seems slow | Step pacing delay | Set `copilot.demo.step-delay-ms=0` (tests already do) |
-| Clarification returns 400 | Missing, blank or wrong number of answers | Provide one nonblank answer for every question. |
+| Pipeline seems slow | Workshop presentation pacing | Tests set both copilot.demo.step-delay-ms and copilot.demo.activity-delay-ms to zero. Runtime DEMO uses the workshop delay values in the existing pacer. |
+| Clarification returns 400 | Missing answers or unsupported DEMO channel | UB-4823 needs one SMS answer; click a hint below the input, then submit. LIVE requires one answer per actual question. |
+| Review feedback returns 400 | Unsupported DEMO correction | Use masked references or remove account numbers from logs; clickable hints fill the input without submitting. |
 | Approve/reject returns 409 | Pipeline is not WAITING_FOR_APPROVAL | Technical blocks cannot be approved; create a clean run instead. |
 
 ## Reset
 
 Local modes use in-memory H2 unless postgres is selected; restart for a clean slate and reload the dashboard.
-The PostgreSQL Compose volume retains snapshots. Provider switching is explicit, not automatic failover.
+The PostgreSQL Compose volume retains snapshots. Execution-mode switching is a next-run frontend control,
+not automatic failover. Selecting a different configured real provider still requires startup configuration.
 
 ## Frontend Dependency Recovery
 

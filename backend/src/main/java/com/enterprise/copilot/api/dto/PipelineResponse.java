@@ -18,6 +18,7 @@ public record PipelineResponse(
         RequirementAnalysis requirementAnalysis,
         CodeChangeSet codeChangeSet,
         ReviewDecision reviewDecision,
+        String reviewFeedback,
         DeploymentDecision deploymentDecision,
         Instant createdAt,
         Instant updatedAt) {
@@ -33,6 +34,7 @@ public record PipelineResponse(
                 ctx.requirementAnalysis(),
                 ctx.codeChangeSet(),
                 ctx.reviewDecision(),
+                ctx.reviewFeedback(),
                 ctx.deploymentDecision(),
                 ctx.createdAt(),
                 ctx.updatedAt());

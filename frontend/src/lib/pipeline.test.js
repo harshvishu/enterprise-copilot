@@ -26,6 +26,19 @@ describe('proposed test signal', () => {
 });
 
 describe('blocked terminal next steps', () => {
+    it('offers same-run feedback without starting Atlas or offering approval', () => {
+        const pipeline = {
+            state: 'WAITING_FOR_REVIEW_FEEDBACK',
+            requirementAnalysis: {}, codeChangeSet: {},
+            reviewDecision: { outcome: 'REQUEST_CHANGES', findings: [] },
+        };
+        const attention = pipelineAttention(pipeline);
+        expect(attention.target).toBe('review-feedback');
+        expect(attention.nextStep).toContain('reviewed again');
+        expect(stageStatuses(pipeline)).toEqual([
+            'completed', 'completed', 'completed', 'waiting', 'pending',
+        ]);
+    });
     it.each(['REQUEST_CHANGES', 'REJECT'])('explains a %s review block', (outcome) => {
         const attention = pipelineAttention({
             state: 'BLOCKED',

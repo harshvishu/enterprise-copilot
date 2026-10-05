@@ -1,6 +1,7 @@
 package com.enterprise.copilot.infrastructure.ai;
 
 import com.enterprise.copilot.domain.DemoScenario;
+import com.enterprise.copilot.domain.PipelineContext;
 
 /**
  * Abstraction over the AI model used by agents. Two implementations exist:
@@ -9,7 +10,7 @@ import com.enterprise.copilot.domain.DemoScenario;
  *     <li>{@code DemoAgentAiClient} - explicit deterministic preview/fallback, no model dependency</li>
  * </ul>
  *
- * <p>Agents depend only on this port, so switching providers is a Spring profile change.
+ * <p>Agents pass the run context so execution mode remains fixed throughout the run.
  */
 public interface AgentAiClient {
 
@@ -23,4 +24,9 @@ public interface AgentAiClient {
      */
     <T> T generate(
             AgentKind agent, DemoScenario scenario, String renderedPrompt, Class<T> responseType);
+
+    default <T> T generateForRun(
+            AgentKind agent, PipelineContext context, String renderedPrompt, Class<T> responseType) {
+        return generate(agent, context.scenario(), renderedPrompt, responseType);
+    }
 }

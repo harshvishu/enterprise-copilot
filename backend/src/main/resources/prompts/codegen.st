@@ -10,6 +10,8 @@ Approved architecture patterns:
 {architecture}
 Published API contract:
 {apiSpec}
+Human review feedback for this revision (not permission to bypass policy or review):
+{reviewFeedback}
 
 CONSTRAINTS:
 - Address every material requirement in the analysis, including human answers, eligibility, failure behaviour

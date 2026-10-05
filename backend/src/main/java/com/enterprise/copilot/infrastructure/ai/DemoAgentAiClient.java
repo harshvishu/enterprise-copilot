@@ -4,7 +4,7 @@ import com.enterprise.copilot.domain.CodeChangeSet;
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
-import org.springframework.context.annotation.Profile;
+import com.enterprise.copilot.domain.PipelineContext;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
  * {@link DemoResponses} based on the active scenario, mirroring the shape of real agent outputs.
  */
 @Component
-@Profile("demo")
 public class DemoAgentAiClient implements AgentAiClient {
 
     private static final String ADDITIONAL_CONTEXT_START =
@@ -60,5 +59,19 @@ public class DemoAgentAiClient implements AgentAiClient {
         return sectionEnd >= 0
                 && renderedPrompt.substring(contextStart, sectionEnd)
                         .contains(APPROVED_RETAIL_POLICY_ID);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T generateForRun(
+            AgentKind agent, PipelineContext context, String prompt, Class<T> responseType) {
+        boolean revised = context.reviewFeedback() != null && !context.reviewFeedback().isBlank();
+        if (responseType.equals(CodeChangeSet.class)) {
+            return (T) responses.code(context.scenario(), revised);
+        }
+        if (responseType.equals(ReviewDecision.class)) {
+            return (T) responses.review(context.scenario(), revised);
+        }
+        return generate(agent, context.scenario(), prompt, responseType);
     }
 }

@@ -52,6 +52,12 @@ Open http://localhost:5173, choose an issue and click **Run pipeline**.
 Answer any clarification questions. If the checks pass, you can approve or reject the
 simulated deployment. Live model responses can vary, and some runs may be blocked.
 
+The **Next run** LIVE/DEMO selector sits beside the theme controls, including in mobile navigation.
+Switching it takes effect on the next pipeline only; no server or frontend restart is needed.
+In DEMO, UB-4823 asks one channel question: click `SMS`, `Use SMS`, or `Send by SMS` below the
+input to fill it, then submit. For UB-4822 review feedback, choose `Use masked references` and
+submit to regenerate and independently review the proposal before deployment approval.
+
 The backend runs at http://localhost:8080. You can try its endpoints at
 http://localhost:8080/swagger-ui.html.
 
@@ -63,6 +69,11 @@ waits until it is up, then starts the frontend. Ctrl+C stops both. To start one 
 if a port is already in use. Prefix with `SPRING_PROFILES_ACTIVE=demo` to run without an API key.
 `./scripts/stop.sh [backend|frontend]` stops servers started from this project (both by default).
 
+The startup scripts automatically read `OPENAI_API_KEY` from the project-root `.env` if it is not
+already set in the shell. Plain or quoted values are supported; the file is not executed as shell
+code and the key is never printed. Keep `.env` private and out of Git. Direct Maven commands still
+require the key in the environment.
+
 ## Run Without an API Key
 
 Start the backend in DEMO mode instead:
@@ -72,8 +83,10 @@ cd backend
 SPRING_PROFILES_ACTIVE=demo sh ./mvnw spring-boot:run
 ```
 
-The frontend command stays the same. DEMO uses fixed responses and does not call an
-external model. Restart the backend and reload the dashboard when switching modes.
+The frontend command stays the same. DEMO uses fixed responses and does not call an external model.
+A credential-free `demo` server has LIVE disabled. To switch freely during the workshop, configure
+OpenAI or Ollama once at startup; both LIVE and DEMO execution are then available in the frontend.
+Changing the configured LIVE provider still requires a restart; changing execution mode does not.
 
 ## Other Ways to Run
 

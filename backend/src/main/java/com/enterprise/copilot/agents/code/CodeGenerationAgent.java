@@ -55,7 +55,7 @@ public class CodeGenerationAgent {
         String analysisSummary =
                 ctx.requirementAnalysis() == null ? "" : ctx.requirementAnalysis().summary();
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -67,7 +67,7 @@ public class CodeGenerationAgent {
 
         String architectureGuidance = architecture.lookup("notification service");
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -77,7 +77,7 @@ public class CodeGenerationAgent {
                         "Reading published API contract",
                         Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
         String contract = apiSpec.lookup(ctx.ticket().description());
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -87,7 +87,7 @@ public class CodeGenerationAgent {
                         "Requesting implementation proposal",
                         Map.of("step", "MODEL_CALL")));
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         String prompt =
                 prompts.render(
@@ -102,10 +102,11 @@ public class CodeGenerationAgent {
                                                         ctx.requirementAnalysis()
                                                                 .acceptanceCriteria()),
                                 "architecture", architectureGuidance,
+                                "reviewFeedback", ctx.reviewFeedback() == null ? "" : ctx.reviewFeedback(),
                                 "apiSpec", contract));
 
         CodeChangeSet changeSet =
-                ai.generate(AgentKind.CODE, ctx.scenario(), prompt, CodeChangeSet.class);
+                ai.generateForRun(AgentKind.CODE, ctx, prompt, CodeChangeSet.class);
 
         int testsProposed = changeSet.tests() == null ? 0 : changeSet.tests().size();
 

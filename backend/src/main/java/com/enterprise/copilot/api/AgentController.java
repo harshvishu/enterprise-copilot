@@ -79,7 +79,10 @@ public class AgentController {
         Ticket ticket =
                 new Ticket(req.ticketKey(), req.title(), req.description(), req.sourceOrDefault());
 
+        DemoState.Selection selection = demoState.snapshot();
         return new PipelineContext(
-                UUID.randomUUID(), ticket, demoState.scenario(), demoState.aiMode());
+            UUID.randomUUID(), ticket,
+            selection.mode() == AiMode.DEMO ? selection.scenario() : DemoScenario.NORMAL,
+            selection.mode());
     }
 }

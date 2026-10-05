@@ -174,6 +174,22 @@ export default function App() {
         }, 'clarify');
     }
 
+    async function changeMode(mode) {
+        await perform(async () => setStatus(await api.setMode(mode)), 'mode');
+    }
+
+    async function submitReviewFeedback(feedback) {
+        await perform(async () => {
+            await api.reviewFeedback(pipeline.id, feedback);
+            await refresh(pipeline.id);
+        }, 'review-feedback');
+    }
+
+    const runStatus = pipeline
+        ? { ...status, aiMode: pipeline.aiMode,
+            provider: pipeline.aiMode === 'DEMO' ? 'DEMO' : status?.liveProvider || status?.provider }
+        : status;
+
     const running =
         ACTIVE_STATES.includes(pipeline?.state) ||
         (pipeline?.state === 'REQUIREMENTS_READY' &&
@@ -183,7 +199,7 @@ export default function App() {
         <TooltipProvider delayDuration={200}>
             <div className="flex min-h-screen bg-background text-foreground">
                 <div className="sticky top-0 hidden h-screen w-[200px] shrink-0 border-r lg:block">
-                    <Sidebar active={nav} onSelect={setNav} />
+                    <Sidebar active={nav} onSelect={setNav} status={status} onMode={changeMode} pending={busy} />
                 </div>
                 <main className="min-w-0 flex-1">
                     <div className="mx-auto w-full max-w-[1360px] px-5 pb-10 sm:px-8 xl:px-10">
@@ -197,6 +213,7 @@ export default function App() {
                             events={events}
                             nav={nav}
                             onNavigate={setNav}
+                            onMode={changeMode}
                         />
                         {loading ? (
                             <div aria-label="Loading pipeline" className="space-y-6 py-8">
@@ -232,16 +249,20 @@ export default function App() {
                                     pending={busy}
                                     onClarify={clarify}
                                     events={events}
-                                    status={status}
+                                    status={runStatus}
                                 />
-                                <CodeProposal pipeline={pipeline} events={events} status={status} />
+                                <CodeProposal pipeline={pipeline} events={events} status={runStatus} />
                                 <div className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-10">
                                     <Findings
                                         review={pipeline?.reviewDecision}
                                         running={pipeline?.state === 'REVIEWING'}
                                         mode={pipeline?.aiMode || status?.aiMode}
+                                        pipeline={pipeline}
+                                        pending={busy}
+                                        onReviewFeedback={submitReviewFeedback}
+                                        feedbackHistory={audit}
                                         events={events}
-                                        status={status}
+                                        status={runStatus}
                                     />
                                     <div className="border-t lg:border-l lg:border-t-0 lg:pl-7">
                                         <ApprovalPanel
@@ -268,7 +289,7 @@ export default function App() {
                                     github={github}
                                     pipeline={pipeline}
                                     audit={audit}
-                                    status={status}
+                                    status={runStatus}
                                 />
                             </>
                         )}

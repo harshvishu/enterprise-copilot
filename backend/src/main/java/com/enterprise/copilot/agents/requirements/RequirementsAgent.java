@@ -95,7 +95,7 @@ public class RequirementsAgent {
                         "Requesting structured requirement analysis",
                         Map.of("step", "MODEL_CALL")));
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         String prompt =
                 prompts.render(
@@ -119,8 +119,8 @@ public class RequirementsAgent {
                                 additionalContext == null ? "" : additionalContext));
 
         RequirementAnalysis analysis =
-                ai.generate(
-                        AgentKind.REQUIREMENTS, ctx.scenario(), prompt, RequirementAnalysis.class);
+                ai.generateForRun(
+                        AgentKind.REQUIREMENTS, ctx, prompt, RequirementAnalysis.class);
 
         String decision = analysis.needsClarification() ? "NEEDS_CLARIFICATION" : "READY";
 
@@ -158,7 +158,7 @@ public class RequirementsAgent {
                         Map.of("tool", toolName, "step", step)));
 
         String result = call.get();
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
         return result;
     }
 }

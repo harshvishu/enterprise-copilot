@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronDown, FileSearch, Loader2, UserRound, ArrowRight } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { agentProgress, modelLabel, splitClarification } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 import AgentProgress from './AgentProgress';
+import InputHints from './InputHints';
 
 export default function RequirementsResult({ pipeline, pending, onClarify, events, status }) {
     const analysis = pipeline?.requirementAnalysis;
@@ -97,6 +98,8 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                                     questions={analysis.clarificationQuestions}
                                     pending={pending}
                                     onSubmit={onClarify}
+                                    suggestions={analysis.clarificationQuestions.some((question) => /channel/i.test(question))
+                                        ? ['SMS', 'Use SMS', 'Send by SMS'] : []}
                                 />
                             )}
                             <div className="mt-5 grid gap-6 md:grid-cols-2">
@@ -145,8 +148,9 @@ function ResultList({ title, items }) {
     );
 }
 
-function ClarificationForm({ questions, pending, onSubmit }) {
+function ClarificationForm({ questions, pending, onSubmit, suggestions }) {
     const [answers, setAnswers] = useState(() => questions.map(() => ''));
+    const inputs = useRef([]);
     return (
         <form
             id="clarification"
@@ -164,6 +168,7 @@ function ClarificationForm({ questions, pending, onSubmit }) {
                             {question}
                         </Label>
                         <Textarea
+                            ref={(element) => { inputs.current[index] = element; }}
                             id={`answer-${index}`}
                             disabled={pending}
                             required
@@ -177,6 +182,17 @@ function ClarificationForm({ questions, pending, onSubmit }) {
                             }
                             className="mt-2 min-h-20 resize-y bg-card"
                         />
+                        {suggestions.length > 0 && /channel/i.test(question) && (
+                            <InputHints
+                                suggestions={suggestions}
+                                disabled={pending}
+                                onSelect={(suggestion) => {
+                                    setAnswers((previous) => previous.map((answer, answerIndex) =>
+                                        answerIndex === index ? suggestion : answer));
+                                    inputs.current[index]?.focus();
+                                }}
+                            />
+                        )}
                     </div>
                 ))}
             </div>

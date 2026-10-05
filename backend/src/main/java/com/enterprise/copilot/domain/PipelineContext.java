@@ -25,6 +25,7 @@ public class PipelineContext {
     private RequirementAnalysis requirementAnalysis;
     private CodeChangeSet codeChangeSet;
     private ReviewDecision reviewDecision;
+    private String reviewFeedback;
     private DeploymentDecision deploymentDecision;
     private ApprovalState approvalState = ApprovalState.NOT_REQUIRED;
     private Instant updatedAt;
@@ -83,6 +84,15 @@ public class PipelineContext {
 
     public ReviewDecision reviewDecision() {
         return reviewDecision;
+    }
+
+    public String reviewFeedback() {
+        return reviewFeedback;
+    }
+
+    public void setReviewFeedback(String feedback) {
+        this.reviewFeedback = feedback;
+        touch();
     }
 
     public DeploymentDecision deploymentDecision() {

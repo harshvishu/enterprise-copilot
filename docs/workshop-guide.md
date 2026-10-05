@@ -5,9 +5,11 @@
 Use `main`; this checkout does not contain the previously documented checkpoint branches.
 Follow [README](../README.md) for JDK 21, Node 22.12+, backend OpenAI credentials and setup.
 OpenAI LIVE is primary. Rehearse one real run and complete any clarification questions.
-Have the explicit `demo` profile ready for participant self-checks or an identified fallback.
+Use the LIVE/DEMO selector next to the theme controls to select the next run's execution mode.
+Configure the LIVE provider before the session so both modes are available without a restart.
 Ollama is optional and explicitly selected; Azure and framework/infrastructure additions are deferred.
-After changing provider, restart the backend and reload the dashboard to refresh its status.
+An existing run keeps its original mode, including after human clarification or review feedback.
+A credential-free `demo` profile remains available, but cannot offer LIVE without a configured provider.
 
 ## Suggested 45-minute flow
 
@@ -53,8 +55,9 @@ not participant work. Without Confluence activity, the stage rail stays Rhea -> 
 participant context call runs, it shows Confluence -> Rhea -> Nova -> Sentinel -> Atlas. Participants never change
 React, event schemas, SSE infrastructure or pipeline state; the UI detects the optional stage from the events.
 
-Use UB-4823 BEFORE to show missing credit eligibility, channel and absent-consent choices. AFTER supplies the
-approved retail launch decision. UB-4825 remains a negative control because that page provides no fraud contract.
+Use UB-4823 BEFORE to show one question: "Which notification channel should we use?" Tap an SMS hint below
+the input to fill it, then submit. AFTER Confluence supplies the approved SMS decision without human input.
+UB-4825 remains a negative control: the policy does not supply a fraud contract and review blocks the unsupported proposal.
 Before the exercise, run `./workshop/scripts/confluence-exercise.sh reset` to restore the participant starter.
 After the exercise or at the eight-minute recovery point, run `./workshop/scripts/confluence-exercise.sh apply`
 to restore the tested reference. Both commands are idempotent. `apply` refuses to replace a modified
@@ -62,7 +65,9 @@ to restore the tested reference. Both commands are idempotent. `apply` refuses t
 
 Do not promise a deterministic live security finding or a 90-second real model response.
 Atlas is intentionally Java: the unused deploy prompt merely repeats its hard gates.
-DEMO security failure ends BLOCKED and cannot be approved. Use a separate clean run for approval.
+UB-4822 in DEMO pauses for review feedback. Tap "Use masked references", submit, then show Nova's revision
+and Sentinel's fresh review before Atlas requests approval. Feedback is not a security-review override.
+UB-4824 blocks on a failing simulated test signal, and UB-4825 blocks on the unsupported API; neither can be approved.
 The UI intentionally presents a production-like deployment workflow; the underlying deployment action is
 simulated, including in LIVE. No production identity/integration is implied.
 

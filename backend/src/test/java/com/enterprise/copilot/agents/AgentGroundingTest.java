@@ -28,6 +28,39 @@ class AgentGroundingTest {
     private final PromptLibrary prompts = new PromptLibrary();
     private final PresentationPacer pacer = new PresentationPacer(0, 0);
 
+    @Test
+    void routingUsesSavedRunModeInsteadOfThePresentersCurrentSelection() {
+        DemoState state = mock(DemoState.class);
+        when(state.aiMode()).thenReturn(AiMode.LIVE);
+        SpringAiAgentAiClient live = mock(SpringAiAgentAiClient.class);
+        org.springframework.beans.factory.ObjectProvider<SpringAiAgentAiClient> available =
+                mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(available.getIfAvailable()).thenReturn(live);
+        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), available, state);
+        var demoRun = new PipelineContext(UUID.randomUUID(), context().ticket(), DemoScenario.NORMAL, AiMode.DEMO);
+        assertThat(router.generateForRun(AgentKind.REVIEW, demoRun, "", ReviewDecision.class).passed())
+                .isTrue();
+        verifyNoInteractions(live);
+
+        var liveRun = context();
+        var review = new DemoResponses().review(DemoScenario.NORMAL);
+        when(state.aiMode()).thenReturn(AiMode.DEMO);
+        when(live.generateForRun(AgentKind.REVIEW, liveRun, "", ReviewDecision.class)).thenReturn(review);
+        assertThat(router.generateForRun(AgentKind.REVIEW, liveRun, "", ReviewDecision.class)).isSameAs(review);
+        verify(live).generateForRun(AgentKind.REVIEW, liveRun, "", ReviewDecision.class);
+    }
+
+    @Test
+    void liveRunWithoutAProviderDoesNotSilentlyUseDemo() {
+        org.springframework.beans.factory.ObjectProvider<SpringAiAgentAiClient> unavailable =
+                mock(org.springframework.beans.factory.ObjectProvider.class);
+        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), unavailable, mock(DemoState.class));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                router.generateForRun(AgentKind.REVIEW, context(), "", ReviewDecision.class))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No DEMO fallback");
+    }
+
     private PipelineContext context() {
         var ctx =
                 new PipelineContext(
@@ -56,7 +89,7 @@ class AgentGroundingTest {
     @Test
     void novaReceivesSummaryHumanAnswersArchitectureAndApiEvidence() {
         var proposal = new DemoResponses().code(DemoScenario.NORMAL);
-        when(ai.generate(eq(AgentKind.CODE), any(), anyString(), eq(CodeChangeSet.class)))
+        when(ai.generateForRun(eq(AgentKind.CODE), any(), anyString(), eq(CodeChangeSet.class)))
                 .thenReturn(proposal);
         var agent =
                 new CodeGenerationAgent(
@@ -73,9 +106,9 @@ class AgentGroundingTest {
 
         var prompt = ArgumentCaptor.forClass(String.class);
         verify(ai)
-                .generate(
+                .generateForRun(
                         eq(AgentKind.CODE),
-                        eq(DemoScenario.NORMAL),
+                        eq(ctx),
                         prompt.capture(),
                         eq(CodeChangeSet.class));
         assertThat(prompt.getValue())
@@ -110,7 +143,7 @@ class AgentGroundingTest {
                         true));
         var decision =
                 new ReviewDecision(ReviewOutcome.REQUEST_CHANGES, "Incomplete proposal", List.of());
-        when(ai.generate(eq(AgentKind.REVIEW), any(), anyString(), eq(ReviewDecision.class)))
+        when(ai.generateForRun(eq(AgentKind.REVIEW), any(), anyString(), eq(ReviewDecision.class)))
                 .thenReturn(decision);
         var agent =
                 new ReviewAgent(
@@ -128,9 +161,9 @@ class AgentGroundingTest {
 
         var prompt = ArgumentCaptor.forClass(String.class);
         verify(ai)
-                .generate(
+                .generateForRun(
                         eq(AgentKind.REVIEW),
-                        eq(DemoScenario.NORMAL),
+                        eq(ctx),
                         prompt.capture(),
                         eq(ReviewDecision.class));
         assertThat(prompt.getValue())

@@ -16,6 +16,7 @@ async function json(res) {
 
 export const api = {
     status: () => fetch(`${BASE}/demo/status`).then(json),
+    setMode: (mode) => fetch(`${BASE}/demo/mode?mode=${mode}`, { method: 'POST' }).then(json),
     setScenario: (scenario) =>
         fetch(`${BASE}/demo/scenario?scenario=${scenario}`, { method: 'POST' }).then(json),
 
@@ -42,6 +43,12 @@ export const api = {
         }).then(json),
 
     audit: (id) => fetch(`${BASE}/audit/pipelines/${id}`).then(json),
+    reviewFeedback: (id, feedback) =>
+        fetch(`${BASE}/pipelines/${id}/review-feedback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feedback }),
+        }).then(json),
 
     github: (id) => fetch(`${BASE}/github/pipelines/${id}`).then(json),
 };

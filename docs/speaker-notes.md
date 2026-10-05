@@ -7,8 +7,8 @@ joined your team. Format per agent: **summary**, **speaker notes (say + click)**
 > Guiding thesis: **AI proposes. Humans dispose.** — _AI accelerates delivery; humans own accountability._
 
 Normal workshop execution is OpenAI LIVE; Ollama is an explicit local alternative.
-DEMO is an explicitly identified deterministic preview/fallback. Restart the backend with its
-profile and reload the dashboard before showing scripted scenarios. Never promise deterministic LIVE findings.
+DEMO is an explicitly identified deterministic preview/fallback. Select it under Next run near the theme
+controls without restarting. An existing run keeps its mode. Never promise deterministic LIVE findings.
 Rhea, Nova and Sentinel use real model calls in LIVE; Atlas is deterministic Java in every mode.
 
 ---
@@ -74,8 +74,8 @@ severity-tagged findings. **This is the moment of the talk.**
 
 > "Now the review boundary." (In explicitly labeled DEMO, select
 > `SECURITY_FAILURE`.) "This scripted example logs the customer's **account number**.
-> A rushed human reviewer misses that at 5pm on a Friday. Sentinel doesn't." (Point at the CRITICAL
-> finding.) "The scripted verdict is REJECT. Atlas blocks this even if someone wants to approve."
+> A rushed human reviewer misses that at 5pm on a Friday. Sentinel doesn't." (Point at the HIGH
+> finding.) "Sentinel requests a correction. Tap Use masked references and submit; Nova revises and Sentinel reviews again."
 
 **Engagement move:** pause. "Show of hands — who's confident that exact bug has never shipped in your
 org?" Let the silence land.
@@ -96,7 +96,7 @@ Generated tests are never executed. Missing/blank test proposals cannot satisfy 
 > "And Atlas controls authorization. Atlas is **not** an LLM; it evaluates hard rules.
 > Because the one decision that touches production shouldn't be a probability." (Point at
 > **DEPLOYMENT BLOCKED — human approval required**.) "The AI can recommend all day. It cannot click
-> this button." (On a separate clean run only, approve -> simulated **DEPLOYED**.)
+> this button." (Once the fresh review and gates pass, approve -> simulated **DEPLOYED**.)
 
 **Engagement move:** the audience vote — "Should the AI just deploy it anyway?" Let them answer, then:
 "No. Accountability stays with us."

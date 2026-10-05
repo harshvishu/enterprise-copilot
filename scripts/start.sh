@@ -11,7 +11,7 @@ BACKEND_PID=""
 
 # Check everything up front so nothing starts if one of the ports is taken.
 problems=0
-require_command java "Install Java 21 (JDK) and make sure 'java' is on your PATH." || problems=1
+configure_java || problems=1
 require_command node "Install Node.js 22.12 or newer from https://nodejs.org." || problems=1
 require_command npm "npm ships with Node.js; reinstall Node.js 22.12 or newer." || problems=1
 check_port "$BACKEND_PORT" "backend" || problems=1

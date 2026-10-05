@@ -90,5 +90,14 @@ public class PipelineController {
         return PipelineResponse.from(orchestrator.reject(id, approver));
     }
 
+    @PostMapping("/{id}/review-feedback")
+    public PipelineResponse reviewFeedback(
+            @PathVariable UUID id, @RequestBody(required = false) ReviewFeedbackRequest request) {
+        return PipelineResponse.from(orchestrator.reviewFeedback(id,
+                request == null ? null : request.feedback()));
+    }
+
+    public record ReviewFeedbackRequest(String feedback) {}
+
     public record ClarifyRequest(List<String> answers) {}
 }

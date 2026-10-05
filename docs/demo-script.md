@@ -19,8 +19,8 @@ Atlas enforces hard gates in Java. Approve only if waiting for approval; otherwi
 Deployment and generated-test outcomes are simulations. Show the significant-action audit.
 If the provider fails, show the failure. Never claim a scripted result came from OpenAI.
 
-To use the fallback, explicitly restart with `SPRING_PROFILES_ACTIVE=demo` and reload the dashboard.
-Confirm **DEMO · DETERMINISTIC** before proceeding below.
+Select DEMO under **Next run** beside the theme controls. No restart is needed.
+The current LIVE run keeps its mode; the next run shows **DEMO · DETERMINISTIC**.
 
 ## Deterministic fallback run (approximately 90s)
 
@@ -35,8 +35,7 @@ Confirm **DEMO · DETERMINISTIC** before proceeding below.
    DEPLOY.
 
 3. **Rhea (15s).** 🔍
-   "Rhea confirms the consent/audit rules and records the clear account-number logging request
-   as a policy conflict, not a missing product decision."
+   "Rhea confirms that delivery logs must use masked references, not account numbers."
    Point at the requirement panel.
 
 4. **Nova (15s).** 💻
@@ -46,28 +45,28 @@ Confirm **DEMO · DETERMINISTIC** before proceeding below.
 
 5. **Sentinel - the moment (20s).** 🛡️
    "This fixture demonstrates the review boundary: the account number is logged in plain
-   text, and the scripted Sentinel response rejects it."
-   Point at the CRITICAL finding.
+   text, and Sentinel requests a correction."
+   Point at the HIGH finding.
 
-6. **Atlas (10s).** 🚀
-   "Atlas blocks deployment because review failed and a critical finding exists.
-   Human approval cannot override this technical block."
+6. **Human feedback (10s).**
+   Click **Use masked references** below the input, then **Revise proposal**.
+   "Nova revises the proposal and Sentinel reviews it again. Feedback is not approval."
 
 7. **Audience vote (10s).**
    "Should the AI deploy anyway?"
    Let them react.
    "No - accountability stays with us."
 
-8. **Clean run (optional).**
-   Switch to `NORMAL`, Run Pipeline, reach approval, click
+8. **Approval.**
+   After the fresh review passes and Atlas reaches approval, click
    **Approve** → simulated **DEPLOYED**.
 
    Show the audit trail: significant actions, ending with
    `Human: APPROVE_DEPLOYMENT`.
 
-For a clarification example, run UB-4823 and answer: outgoing debits only; SMS only; skip/audit without consent.
-UB-4825 now pauses for the missing screening contract and failure behaviour before demonstrating Sentinel's
-unsupported-API block. Follow the scripted answers in `docs/failure-scenarios.md`; DEMO does not adapt to arbitrary answers.
+For clarification, run UB-4823 in RESET and tap an SMS hint below its single channel question, then submit.
+In APPLY, Confluence resolves that question. UB-4825 goes directly to Sentinel's unsupported-API block in DEMO;
+its deliberately defective proposal must not be described as evidence of LIVE model performance.
 
 ## If something misbehaves
 

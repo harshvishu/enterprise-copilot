@@ -7,7 +7,7 @@
 - [ ] Backend up → http://localhost:8080/actuator/health = UP
 - [ ] Frontend up → http://localhost:5173
 - [ ] Banner reads **LIVE · OPENAI** and a real model call has been rehearsed
-- [ ] Explicit DEMO restart command is ready; no automatic fallback
+- [ ] Next-run LIVE/DEMO control is available; no automatic fallback
 
 ---
 
@@ -37,9 +37,9 @@
 ## If something breaks (60s recovery)
 
 - UI stalls → re-click **Run Pipeline** (fresh pipeline id).
-- Live failure -> show it; explicitly restart with `SPRING_PROFILES_ACTIVE=demo` and reload the dashboard.
-- In DEMO choose SECURITY_FAILURE: scripted REJECT -> BLOCKED, no approval bypass.
-- Then choose NORMAL for a separate approval demonstration. Restarting without a profile selects OpenAI, not DEMO.
+- Live failure -> show it; select DEMO for the next run without restarting.
+- In DEMO choose UB-4822: review requests changes; tap Use masked references and submit to revise.
+- Show Nova and Sentinel run again, then Atlas requires human approval. Feedback never bypasses gates.
 - Frontend down → demo via Swagger: http://localhost:8080/swagger-ui.html
 - Port 8080 busy → `--server.port=8081` + update Vite proxy.
 
@@ -48,17 +48,17 @@
 | Scenario | Ends at |
 |-----------|---------|
 | NORMAL | WAITING_FOR_APPROVAL → (approve) → DEPLOYED |
-| SECURITY_FAILURE | REVIEW_FAILED then BLOCKED (CRITICAL) |
+| SECURITY_FAILURE | WAITING_FOR_REVIEW_FEEDBACK -> revision/review -> approval -> DEPLOYED |
 | AMBIGUOUS_REQUIREMENT | REQUIREMENTS_READY (pauses; answer to resume) |
 | TEST_FAILURE | BLOCKED (scripted test signal fails; equality defect) |
 | MISSING_APPROVAL | WAITING_FOR_APPROVAL |
-| HALLUCINATED_API | REQUIREMENTS_READY clarification, then REVIEW_FAILED and BLOCKED (unsupported API) |
+| HALLUCINATED_API | REVIEW_FAILED then BLOCKED (unsupported API; no DEMO clarification detour) |
 | PROMPT_INJECTION | ignored → WAITING_FOR_APPROVAL |
 
-The scenario table applies only to DEMO. Its dropdown is hidden in LIVE.
+The scenario table guarantees apply only to DEMO. LIVE uses the configured real provider.
 Test signals and deployment are simulated; the current deployment prompt is unused gate-reference material.
-UB-4823 rehearsal: outgoing debits, SMS, skip/audit without consent. UB-4825 rehearsal: no supplied screening
-contract; stop/audit without notification if unavailable. Its deliberately unsupported Nova fixture is then blocked.
+UB-4823 RESET rehearsal: tap SMS, Use SMS or Send by SMS below the single channel input; submit.
+UB-4823 APPLY: Confluence selects SMS. UB-4825: unsupported API is blocked, even after Confluence.
 
 **Close:** "Not AI replacing engineers – AI accelerating delivery while humans own accountability."
 

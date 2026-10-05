@@ -25,6 +25,52 @@ require_command() {
     fi
 }
 
+use_java_home() {
+    local home="$1" version major
+    [[ -x "$home/bin/java" && -x "$home/bin/javac" ]] || return 1
+    version="$("$home/bin/java" -version 2>&1)" || return 1
+    major="$(printf '%s\n' "$version" | awk -F'"' '/version/ {split($2, parts, "."); print parts[1]; exit}')"
+    [[ "$major" =~ ^[0-9]+$ ]] && [[ "$major" -ge 21 ]] || return 1
+    "$home/bin/javac" -version >/dev/null 2>&1 || return 1
+    export JAVA_HOME="$home"
+    export PATH="$JAVA_HOME/bin:$PATH"
+}
+
+configure_java() {
+    local home
+    if [[ -n "${JAVA_HOME:-}" ]]; then
+        use_java_home "$JAVA_HOME" && return 0
+        error "JAVA_HOME is not a working JDK 21 or newer: $JAVA_HOME"
+        printf '       Set JAVA_HOME to your JDK installation, or unset it to enable discovery.\n' >&2
+        return 1
+    fi
+
+    if command -v java >/dev/null 2>&1; then
+        home="$(java -XshowSettings:properties -version 2>&1 | awk -F' = ' '/^[[:space:]]*java.home = / {print $2; exit}')"
+        if [[ -n "$home" ]] && use_java_home "$home"; then
+            return 0
+        fi
+    fi
+
+    if [[ "$(uname -s)" == Darwin ]]; then
+        home="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+        if [[ -n "$home" ]] && use_java_home "$home"; then
+            return 0
+        fi
+        for home in \
+            /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+            /usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home \
+            /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home \
+            /usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home; do
+            use_java_home "$home" && return 0
+        done
+    fi
+
+    error "No working JDK 21 or newer was found."
+    printf '       Install a JDK and set JAVA_HOME to its installation directory.\n' >&2
+    return 1
+}
+
 # Prints the PIDs listening on a TCP port, one per line (empty if none or lsof is unavailable).
 port_pids() {
     command -v lsof >/dev/null 2>&1 || return 0
@@ -79,12 +125,41 @@ check_port() {
     return 1
 }
 
+load_openai_key() {
+    local line value
+    if [[ -n "${OPENAI_API_KEY:-}" || ! -f "$REPO_ROOT/.env" ]]; then
+        return 0
+    fi
+    if [[ ! -r "$REPO_ROOT/.env" ]]; then
+        error "The project .env file is not readable."
+        return 1
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%$'\r'}"
+        if [[ "$line" =~ ^[[:space:]]*(export[[:space:]]+)?OPENAI_API_KEY[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+            value="${BASH_REMATCH[2]}"
+            value="${value%%[[:space:]]#*}"
+            value="${value%"${value##*[![:space:]]}"}"
+            case "$value" in
+                \"*\" | \'*\') value="${value:1:${#value}-2}" ;;
+                \"* | \'*)
+                    error "OPENAI_API_KEY in .env has an unmatched quote."
+                    return 1
+                    ;;
+            esac
+            export OPENAI_API_KEY="$value"
+            return 0
+        fi
+    done < "$REPO_ROOT/.env"
+}
+
 warn_if_no_api_key() {
     case ",${SPRING_PROFILES_ACTIVE:-}," in
         *,demo,* | *,ollama,*) return 0 ;;
     esac
     if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        warn "OPENAI_API_KEY is not set, so LIVE (OpenAI) requests will fail."
+        warn "OPENAI_API_KEY is not set; OpenAI LIVE startup requires it."
+        printf '         Add OPENAI_API_KEY to the project-root .env (ignored by Git).\n' >&2
         printf '         Set it with: %sexport OPENAI_API_KEY="your-api-key"%s\n' "$C_BOLD" "$C_RESET" >&2
         printf '         Or run without a key: %sSPRING_PROFILES_ACTIVE=demo %s%s\n\n' "$C_BOLD" "$0" "$C_RESET" >&2
     fi

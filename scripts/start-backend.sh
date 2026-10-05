@@ -4,8 +4,9 @@ set -euo pipefail
 
 source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-require_command java "Install Java 21 (JDK) and make sure 'java' is on your PATH." || exit 1
+configure_java || exit 1
 check_port "$BACKEND_PORT" "backend" || exit 1
+load_openai_key || exit 1
 warn_if_no_api_key
 
 info "Starting backend on http://localhost:$BACKEND_PORT (profiles: ${SPRING_PROFILES_ACTIVE:-default})"

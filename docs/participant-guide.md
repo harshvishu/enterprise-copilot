@@ -15,16 +15,22 @@ Missing credentials produce a configuration error, not an automatic DEMO fallbac
 cd backend && sh ./mvnw spring-boot:run
 
 # Terminal 2 – frontend
-cd frontend && npm install && npm run dev
+cd frontend && npm ci && npm run dev
 ```
 
 Open http://localhost:5173, confirm **LIVE · OPENAI**, and click **Run Pipeline**.
 Answer every clarification question if Rhea pauses. Live review results are not deterministic.
 Atlas remains Java; code/tests/deployment are proposals or simulations, not execution against a repository.
+Select LIVE or DEMO under **Next run** near the theme controls. The selection affects only new runs,
+not a pipeline that is running or waiting for human input. DEMO needs no model calls once the app is running.
+For UB-4823 in RESET, click `SMS`, `Use SMS`, or `Send by SMS` below the input, then submit the answer.
+For UB-4822, click `Use masked references` below the review input, then request a revision.
+Nova and Sentinel run again before Atlas can request human approval.
 
 Credential-free completed-app preview: run the backend with
 `SPRING_PROFILES_ACTIVE=demo sh ./mvnw spring-boot:run` from `backend/`, then reload the dashboard.
 For Ollama LIVE, select `ollama`, run Ollama and pull the model. See [README](../README.md).
+The credential-free `demo` profile has no LIVE provider, so its LIVE control is disabled.
 
 ## What to explore
 

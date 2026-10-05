@@ -28,17 +28,25 @@ public class DemoController {
 
     @GetMapping("/status")
     public Map<String, Object> status() {
-
+        DemoState.Selection selected = demoState.snapshot();
         return Map.of(
-                "aiMode", demoState.aiMode(),
-                "provider", demoState.provider(),
-                "scenario", demoState.scenario(),
+                "aiMode", selected.mode(),
+                "provider", selected.mode() == AiMode.DEMO ? "DEMO" : demoState.liveProvider(),
+                "liveProvider", demoState.liveProvider(),
+                "liveAvailable", demoState.liveAvailable(),
+                "scenario", selected.mode() == AiMode.DEMO ? selected.scenario() : DemoScenario.NORMAL,
                 "scenarios",
-                        demoState.aiMode() == AiMode.DEMO
+                        selected.mode() == AiMode.DEMO
                                 ? List.of(DemoScenario.values())
                                 : List.of(),
-                "live", demoState.aiMode() == AiMode.LIVE);
+                "live", selected.mode() == AiMode.LIVE);
     }
+
+        @PostMapping("/mode")
+        public Map<String, Object> setMode(@RequestParam AiMode mode) {
+                demoState.setMode(mode);
+                return status();
+        }
 
     @PostMapping("/scenario")
     public Map<String, Object> setScenario(@RequestParam DemoScenario scenario) {
@@ -82,10 +90,7 @@ public class DemoController {
                                         new IllegalArgumentException(
                                                 "Unknown demo issue: " + issueKey));
 
-        DemoScenario scenario =
-                demoState.aiMode() == AiMode.DEMO ? issue.scenario() : DemoScenario.NORMAL;
-
-        PipelineContext ctx = orchestrator.createAndRun(issue.ticket(), scenario);
+        PipelineContext ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
 
         return PipelineResponse.from(ctx);
     }

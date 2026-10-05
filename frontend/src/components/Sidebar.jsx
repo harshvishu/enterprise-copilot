@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ThemeToggle from './theme-toggle';
+import ExecutionModeToggle from './ExecutionModeToggle';
 
 const ITEMS = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,7 +22,7 @@ const ITEMS = [
     { key: 'audit', label: 'Audit Trail', icon: History },
 ];
 
-export default function Sidebar({ active, onSelect }) {
+export default function Sidebar({ active, onSelect, status, onMode, pending }) {
     return (
         <aside className="flex h-full min-h-[400px] w-full flex-col bg-card/40">
             <div className="flex items-center gap-2.5 px-5 py-7">
@@ -69,6 +70,7 @@ export default function Sidebar({ active, onSelect }) {
                 })}
             </nav>
             <div className="mt-auto px-5 py-6">
+                <ExecutionModeToggle status={status} onMode={onMode} pending={pending} />
                 <ThemeToggle />
                 <div className="mt-3 text-[10px] leading-5 text-muted-foreground/65">
                     AI accelerates delivery.

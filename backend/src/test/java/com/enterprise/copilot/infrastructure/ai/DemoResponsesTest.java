@@ -15,11 +15,14 @@ class DemoResponsesTest {
     private final DemoResponses responses = new DemoResponses();
 
     @Test
-    void securityFailureIsRejectedWithCriticalFinding() {
+        void securityFeedbackRequiresRevisionBeforeItPasses() {
         var review = responses.review(DemoScenario.SECURITY_FAILURE);
-        assertThat(review.outcome()).isEqualTo(ReviewOutcome.REJECT);
-        assertThat(review.hasCriticalFindings()).isTrue();
-        assertThat(review.findings().get(0).severity()).isEqualTo(Severity.CRITICAL);
+        assertThat(review.outcome()).isEqualTo(ReviewOutcome.REQUEST_CHANGES);
+        assertThat(review.hasCriticalFindings()).isFalse();
+        assertThat(review.findings().get(0).severity()).isEqualTo(Severity.HIGH);
+        assertThat(responses.review(DemoScenario.SECURITY_FAILURE, true).passed()).isTrue();
+        assertThat(responses.code(DemoScenario.SECURITY_FAILURE, true).unifiedDiff())
+                .doesNotContain("account {}");
     }
 
     @Test
@@ -67,26 +70,20 @@ class DemoResponsesTest {
     void fixtureRequirementsMatchCatalogDecisionsWithoutInventedConsent() {
         var normal = responses.requirements(DemoScenario.NORMAL);
         assertThat(normal.summary())
-                .contains("posted ZAR outgoing debits", "60 seconds", "two idempotent retries");
+                .contains("SMS", "R50,000", "consent");
         assertThat(normal.assumptions()).isEmpty();
         var ambiguous = responses.requirements(DemoScenario.AMBIGUOUS_REQUIREMENT);
         assertThat(ambiguous.clarificationQuestions())
-                .hasSize(3)
-                .anyMatch(question -> question.contains("credits"))
-                .anyMatch(question -> question.contains("channel"))
-                .anyMatch(question -> question.contains("no consent"))
-                .noneMatch(
-                        question ->
-                                question.contains("threshold") || question.contains("currency"));
+                .containsExactly("Which notification channel should we use?");
         var unsafe = responses.requirements(DemoScenario.SECURITY_FAILURE);
         assertThat(unsafe.needsClarification()).isFalse();
-        assertThat(unsafe.summary()).contains("conflicts", "data-minimisation");
+        assertThat(unsafe.summary()).contains("masked references", "not account numbers");
         assertThat(responses.requirements(DemoScenario.TEST_FAILURE).summary())
                 .contains("Equality now qualifies");
         assertThat(responses.requirements(DemoScenario.HALLUCINATED_API).needsClarification())
-                .isTrue();
+                .isFalse();
         assertThat(responses.requirements(DemoScenario.HALLUCINATED_API).clarificationQuestions())
-                .hasSize(2);
+                .isEmpty();
         assertThat(responses.requirements(DemoScenario.PROMPT_INJECTION).summary())
                 .contains("business account");
         assertThat(responses.review(DemoScenario.PROMPT_INJECTION).findings().getFirst().file())

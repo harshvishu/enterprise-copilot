@@ -25,69 +25,48 @@ public class DemoResponses {
 
     public RequirementAnalysis requirements(DemoScenario scenario) {
         String baseline =
-                "For posted ZAR outgoing debits strictly above the configurable threshold, initially "
-                        + "R50,000, send one generic SMS within 60 seconds only after ConsentService confirms SMS consent. "
-                        + "Use NotificationClient, two idempotent retries for transient failures within the deadline, "
-                        + "and stop on permanent failure or exhaustion without fallback. Audit attempts and outcomes "
-                        + "with masked references under bank retention policy; do not retain raw message content.";
+                "Send SMS payment alerts strictly above R50,000 using the approved notification service. "
+                        + "Check SMS consent and keep private account details out of messages and logs.";
         List<String> criteria =
                 List.of(
-                        "Verify posted ZAR debit eligibility and threshold boundaries",
-                        "Verify SMS consent and duplicate suppression",
-                        "Verify two retries, deadline and audited failure");
+                        "Send an alert for qualifying payments",
+                        "Check SMS consent before sending",
+                        "Use masked references in delivery logs");
         List<String> policy =
                 List.of(
-                        "Never log account numbers, balances, PANs or customer identifiers",
-                        "Use channel-specific consent and non-sensitive auditing under bank retention policy");
+                        "Keep private account details out of messages and logs",
+                        "Check consent for the notification channel");
         return switch (scenario) {
             case AMBIGUOUS_REQUIREMENT ->
                     new RequirementAnalysis(
-                            "Notify qualifying posted ZAR transactions strictly above configurable R50,000 within 60 seconds, "
-                                    + "with consent, two idempotent transient retries and masked audit outcomes. Product must "
-                                    + "resolve credit eligibility, channel and behaviour when that channel has no consent.",
-                            List.of(
-                                    "Incoming credit eligibility",
-                                    "Selected channel",
-                                    "No-consent behaviour"),
+                            "Notify customers about payments above R50,000. Product must choose the notification channel.",
+                            List.of("Notification channel not chosen"),
                             List.of(),
                             List.of(
-                                    "Threshold and currency are specified; eligibility/channel remain unresolved"),
+                                    "Send through the chosen channel only with consent"),
                             policy,
-                            List.of("Delivery reliability is not guaranteed"),
-                            List.of(
-                                    "Should incoming credits qualify alongside outgoing debits?",
-                                    "Which notification channel should be used: SMS, email or push?",
-                                    "What should happen when the selected channel has no consent?"));
+                            List.of(),
+                            List.of("Which notification channel should we use?"));
             case HALLUCINATED_API ->
                     new RequirementAnalysis(
-                            baseline
-                                    + " Notify only after approved screening clears the transaction. The supplied evidence "
-                                    + "does not provide its owner/contract or unavailable/deadline behaviour; these are blockers.",
-                            List.of(
-                                    "Approved screening contract missing",
-                                    "Screening failure behaviour unresolved"),
+                            "Fraud screening is requested but no approved API is supplied. The proposed integration must be independently reviewed.",
+                            List.of(),
                             List.of(),
                             List.of(
-                                    "Screening must clear before sending; missing contract prevents implementation"),
+                                    "Use only approved APIs for screening"),
                             policy,
                             List.of(
                                     "Screening capability is unsupported by supplied enterprise evidence"),
-                            List.of(
-                                    "Is an approved screening capability available? Provide its owner and contract, or the "
-                                            + "approved scope without screening.",
-                                    "What is the required behaviour when screening is unavailable or exceeds 60 seconds?"));
+                            List.of());
             case SECURITY_FAILURE ->
                     new RequirementAnalysis(
-                            baseline
-                                    + " Support explicitly requests full account numbers in application delivery logs. "
-                                    + "This is clear but conflicts with the supplied data-minimisation policy; use masked "
-                                    + "transaction traces instead. Readiness is not security approval.",
+                            "Record SMS payment-alert delivery results using masked references, not account numbers.",
                             List.of(),
                             List.of(),
                             criteria,
                             List.of(
-                                    "Full account numbers in logs violate compliance-policy.md section 2; no exception approved"),
-                            List.of("Sensitive logging must be independently rejected by Sentinel"),
+                                    "Account numbers must not be logged"),
+                            List.of(),
                             List.of());
             case TEST_FAILURE ->
                     new RequirementAnalysis(
@@ -134,16 +113,12 @@ public class DemoResponses {
             return baseline;
         }
         return new RequirementAnalysis(
-                "Notify qualifying posted ZAR outgoing debits strictly above configurable R50,000 within 60 seconds. "
-                        + "Approved source retail-high-value-alerts resolves earlier launch decisions: exclude credits, "
-                        + "use SMS only and skip/audit without SMS consent, without channel fallback. Preserve the "
-                        + "ticket's two idempotent transient retries and audited stop on exhaustion.",
+                "Approved source retail-high-value-alerts selects SMS for payment alerts. Use SMS only; check consent before sending.",
                 List.of(),
                 baseline.assumptions(),
                 List.of(
-                        "Outgoing debits qualify; incoming credits do not",
-                        "SMS is the approved launch channel; absent SMS consent means skip and audit",
-                        "Preserve ticket threshold, deadline, retries and non-sensitive audit outcomes"),
+                        "SMS is the approved notification channel",
+                        "Check SMS consent and keep private account details out of messages"),
                 baseline.complianceConcerns(),
                 baseline.technicalRisks(),
                 List.of());
@@ -154,30 +129,30 @@ public class DemoResponses {
     // -------------------------------------------------------------------------
 
     public CodeChangeSet code(DemoScenario scenario) {
+                return code(scenario, false);
+        }
+
+        public CodeChangeSet code(DemoScenario scenario, boolean revised) {
         String source =
                 switch (scenario) {
-                    case SECURITY_FAILURE -> insecureServiceSource();
+                    case SECURITY_FAILURE -> revised ? secureServiceSource() : insecureServiceSource();
                     case HALLUCINATED_API -> hallucinatedApiSource();
                     default -> secureServiceSource();
                 };
         String explanation =
-                "Proposes posted ZAR debit eligibility, configurable strict threshold, consented SMS, "
-                        + "duplicate suppression, two transient retries within 60 seconds and masked audit outcomes without fallback. "
-                        + "The nested client/audit interfaces are proposed local adapter contracts, not claims about enterprise "
-                        + "Java signatures. The delivery adapter owns idempotency/deadline handling; these are not new remote API fields. ";
+                "Proposes consented SMS payment alerts with masked audit references. Code and tests are proposals, not executed changes. ";
         explanation +=
                 switch (scenario) {
                     case SECURITY_FAILURE ->
-                            "Deliberate unsafe variant: each delivery attempt logs the full account number.";
+                            revised ? "Revised after human feedback: account numbers are removed from delivery logs."
+                                    : "The initial proposal incorrectly logs account numbers; independent review is required.";
                     case HALLUCINATED_API ->
-                            "Deliberately unsupported screening variant after clarification: Nova claims "
-                                    + "FraudClient.verifyTransaction without supplied enterprise evidence. Sentinel must block it.";
+                            "This scripted proposal incorrectly assumes FraudClient.verifyTransaction exists. The supplied contract does not support it.";
                     case TEST_FAILURE ->
                             "Deliberate boundary defect: equality is still skipped although the ticket requires it. "
                                     + "The failing test signal is scripted; no tests ran.";
                     case AMBIGUOUS_REQUIREMENT ->
-                            "Scripted rehearsal assumes the human selects outgoing debits, SMS and "
-                                    + "skip/audit without consent. Fixtures do not adapt to arbitrary answers.";
+                            "SMS is supplied by the human answer or approved Confluence context.";
                     case PROMPT_INJECTION ->
                             "Business account events use the same rules; no account-type exclusion is introduced. "
                                     + "The legitimate business scope is preserved and the injected instruction is ignored.";
@@ -222,22 +197,28 @@ public class DemoResponses {
     // -------------------------------------------------------------------------
 
     public ReviewDecision review(DemoScenario scenario) {
+                return review(scenario, false);
+        }
+
+        public ReviewDecision review(DemoScenario scenario, boolean revised) {
+                if (scenario == DemoScenario.SECURITY_FAILURE && revised) {
+                        return new ReviewDecision(ReviewOutcome.APPROVE,
+                                        "The revised proposal uses masked references. The account-number logging problem is fixed.", List.of());
+                }
 
         return switch (scenario) {
             case SECURITY_FAILURE ->
                     new ReviewDecision(
-                            ReviewOutcome.REJECT,
-                            "Sensitive customer information is written to logs. This is a POPIA violation and "
-                                    + "data-leakage risk. Changes required before this can proceed.",
+                            ReviewOutcome.REQUEST_CHANGES,
+                            "The proposal logs account numbers. Ask Nova to use masked references instead.",
                             List.of(
                                     new ReviewFinding(
-                                            Severity.CRITICAL,
-                                            "COMPLIANCE",
+                                            Severity.HIGH,
+                                            "SECURITY",
                                             SERVICE_PATH,
                                             "onTransaction: log.info(..., tx.accountNumber())",
-                                            "The proposal logs the full account number on delivery attempts, violating "
-                                                    + "compliance-policy.md section 2 despite Rhea's recorded conflict.",
-                                            "Replace the account number with the masked transaction reference and propose a no-PII logging test.")));
+                                            "Account numbers must not appear in delivery logs.",
+                                            "Use masked references.")));
 
             case HALLUCINATED_API ->
                     new ReviewDecision(

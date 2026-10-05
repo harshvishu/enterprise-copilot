@@ -43,7 +43,7 @@ the deterministic provider returns the same record shape.
 - Supplied orchestration plumbing wraps the context call in existing activity events. The prepared UI displays an
   optional Confluence stage only when those events exist; no participant frontend or SSE changes are required.
 - Participants write roughly 15-20 lines including imports, plus supplied constructor wiring and two handoff statements.
-  The complete active reference is implemented; packaging and participant starter restoration come later.
+  The reset/apply helper owns only marked wiring and reference agent/test files under workshop/.
 
 ## Nova – Code
 
@@ -67,6 +67,8 @@ the deterministic provider returns the same record shape.
 
 In LIVE this is model reasoning over the supplied text, not a deterministic source scanner.
 In DEMO both proposal and findings are scripted per scenario.
+UB-4822 pauses in WAITING_FOR_REVIEW_FEEDBACK. Human feedback is persisted, the proposal is regenerated,
+and Sentinel reviews it again before Atlas evaluates gates. It is not a review-approval override.
 
 ## Atlas – Deploy
 
@@ -87,4 +89,5 @@ OpenAI is the default workshop experience; Ollama is the explicit local LIVE alt
 and a clearly identified presenter fallback. No live failure is silently replaced with a fixture.
 Atlas's `deploy.st` only restates the existing Java gate inputs, so it adds no distinct assessment
 and is not invoked. `testsPass` is a simulated/model-proposed signal, not independently run tests.
-The active Phase A reference adds the local retail business policy; the participant starter is not restored yet.
+The Confluence reference resolves UB-4823's notification channel to SMS; RESET asks one channel question.
+The shared AI router uses each pipeline's saved execution mode, never the presenter's current selection.

@@ -24,20 +24,23 @@ export default function PageHeader({
     events,
     nav,
     onNavigate,
+    onMode,
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const running =
         ACTIVE_STATES.includes(pipeline?.state) ||
         (pipeline?.state === 'REQUIREMENTS_READY' &&
             !pipeline?.requirementAnalysis?.clarificationQuestions?.length);
+    const runMode = pipeline?.aiMode || status?.aiMode;
+    const runProvider = runMode === 'DEMO' ? 'DEMO' : status?.liveProvider || status?.provider;
     const provider =
-        status?.provider === 'OPENAI'
+        runProvider === 'OPENAI'
             ? 'OpenAI'
-            : status?.provider === 'OLLAMA'
+            : runProvider === 'OLLAMA'
               ? 'Ollama'
-              : status?.provider === 'DEMO'
+              : runProvider === 'DEMO'
                 ? 'Deterministic'
-                : status?.provider;
+                : runProvider;
     return (
         <header className="pb-7 pt-6 sm:pt-9">
             <div className="mb-5 flex items-center justify-between gap-3">
@@ -60,6 +63,9 @@ export default function PageHeader({
                             </SheetDescription>
                             <Sidebar
                                 active={nav}
+                                status={status}
+                                onMode={onMode}
+                                pending={pending}
                                 onSelect={(next) => {
                                     onNavigate(next);
                                     setMenuOpen(false);
@@ -86,7 +92,7 @@ export default function PageHeader({
                     >
                         {!status
                             ? 'Connecting'
-                            : `${status.aiMode === 'LIVE' ? 'LIVE' : 'DEMO'} · ${provider}`}
+                            : `${runMode === 'LIVE' ? 'LIVE' : 'DEMO'} · ${provider}`}
                     </Badge>
                     <span className="text-xs text-muted-foreground">Delivery pipeline</span>
                 </div>

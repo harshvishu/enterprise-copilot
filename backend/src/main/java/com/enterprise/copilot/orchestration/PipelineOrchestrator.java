@@ -84,16 +84,21 @@ public class PipelineOrchestrator {
      * Create a pipeline for a ticket using the currently active scenario, then run it asynchronously.
      */
     public PipelineContext createAndRun(Ticket ticket) {
-        return createAndRun(ticket, demoState.scenario());
+        DemoState.Selection selection = demoState.snapshot();
+        return createAndRun(ticket, selection.scenario(), selection.mode());
     }
 
     /**
      * Create and run a pipeline with an explicit scenario; only the DEMO provider reads it.
      */
     public PipelineContext createAndRun(Ticket ticket, DemoScenario scenario) {
+        return createAndRun(ticket, scenario, demoState.snapshot().mode());
+    }
 
+    private PipelineContext createAndRun(Ticket ticket, DemoScenario scenario, AiMode mode) {
         PipelineContext ctx =
-                new PipelineContext(UUID.randomUUID(), ticket, scenario, demoState.aiMode());
+                new PipelineContext(UUID.randomUUID(), ticket,
+                        mode == AiMode.DEMO ? scenario : DemoScenario.NORMAL, mode);
 
         store.save(ctx);
 
@@ -182,7 +187,7 @@ public class PipelineOrchestrator {
                         "Reading the local Confluence business policy",
                         Map.of("tool", "confluence", "step", "CONFLUENCE")));
         String context = gatherContext.get();
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
         events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
@@ -198,7 +203,7 @@ public class PipelineOrchestrator {
      * A human answers Rhea's clarification questions; the pipeline resumes from the code stage.
      * AI can never call this path.
      */
-    public PipelineContext clarify(UUID pipelineId, List<String> answers) {
+        public synchronized PipelineContext clarify(UUID pipelineId, List<String> answers) {
 
         PipelineContext ctx = store.load(pipelineId).orElseThrow();
 
@@ -217,6 +222,15 @@ public class PipelineOrchestrator {
                 || answers.stream().anyMatch(answer -> answer == null || answer.isBlank())) {
             throw new IllegalArgumentException(
                     "Provide one nonblank answer per clarification question.");
+        }
+
+        if (ctx.aiMode() == AiMode.DEMO && ctx.scenario() == DemoScenario.AMBIGUOUS_REQUIREMENT) {
+            String channel = answers.getFirst().trim().toLowerCase(java.util.Locale.ROOT)
+                    .replaceAll("[.!]+$", "").replaceAll("\\s+", " ");
+            if (!channel.matches("(please )?(sms|use sms|send by sms|send via sms|send sms|sms only|use sms only)( please)?")) {
+                throw new IllegalArgumentException("For this workshop notification, choose SMS (for example, Use SMS).");
+            }
+            answers = List.of("SMS");
         }
 
         StringBuilder clarification = new StringBuilder();
@@ -256,6 +270,38 @@ public class PipelineOrchestrator {
 
         self.getObject().continueAfterRequirements(pipelineId);
 
+        return ctx;
+    }
+
+    public synchronized PipelineContext reviewFeedback(UUID pipelineId, String feedback) {
+        PipelineContext ctx = store.load(pipelineId).orElseThrow();
+        if (ctx.state() != PipelineState.WAITING_FOR_REVIEW_FEEDBACK
+                || ctx.reviewDecision() == null
+                || ctx.reviewDecision().outcome() != ReviewOutcome.REQUEST_CHANGES) {
+            throw new IllegalStateException("This pipeline is not waiting for review feedback.");
+        }
+        if (feedback == null || feedback.isBlank()) {
+            throw new IllegalArgumentException("Provide a requested correction.");
+        }
+        if (ctx.aiMode() == AiMode.DEMO) {
+            String correction = feedback.trim().toLowerCase(java.util.Locale.ROOT)
+                    .replaceAll("[.!]+$", "").replaceAll("\\s+", " ");
+            if (!correction.matches("(please )?(use (a )?masked (transaction )?references?( instead)?|mask (the )?account numbers?|remove (the )?account numbers?( from (the )?logs)?|do not log (the )?account numbers?)( please)?")) {
+                throw new IllegalArgumentException("Request: Use masked references.");
+            }
+            feedback = "Use masked references";
+        }
+        ctx.setReviewFeedback(feedback.trim());
+        ctx.setCodeChangeSet(null);
+        ctx.setReviewDecision(null);
+        ctx.setDeploymentDecision(null);
+        ctx.setApprovalState(ApprovalState.NOT_REQUIRED);
+        transition(ctx, PipelineState.GENERATING_CODE);
+        events.publish(PipelineEvent.of(pipelineId, PipelineEventType.AGENT_COMPLETED,
+                "Human", "Review feedback received. Nova will revise the proposal and Sentinel will review it again."));
+        audit.record(pipelineId, "Human", "REVIEW_FEEDBACK", "REVISION_REQUESTED",
+                "HUMAN_ACCOUNTABILITY", ctx.reviewFeedback());
+        self.getObject().continueAfterRequirements(pipelineId);
         return ctx;
     }
 
@@ -300,6 +346,14 @@ public class PipelineOrchestrator {
         ReviewDecision review = reviewAgent.review(ctx);
 
         ctx.setReviewDecision(review);
+
+        if (review.outcome() == ReviewOutcome.REQUEST_CHANGES
+                && (ctx.aiMode() == AiMode.LIVE || ctx.scenario() == DemoScenario.SECURITY_FAILURE)) {
+            transition(ctx, PipelineState.WAITING_FOR_REVIEW_FEEDBACK);
+            events.publish(PipelineEvent.of(pipelineId, PipelineEventType.GATE_BLOCKED,
+                    ReviewAgent.NAME, "Paused: awaiting human feedback before revising the proposal."));
+            return;
+        }
 
         transition(
                 ctx, review.passed() ? PipelineState.REVIEW_PASSED : PipelineState.REVIEW_FAILED);
@@ -443,7 +497,7 @@ public class PipelineOrchestrator {
                         DeployAgent.NAME,
                         "Deploying to production..."));
 
-        pacer.afterTransition();
+        pacer.afterTransition(ctx.aiMode());
 
         transition(ctx, PipelineState.DEPLOYED);
 
@@ -474,6 +528,6 @@ public class PipelineOrchestrator {
 
         ctx.setState(state);
         store.save(ctx);
-        pacer.afterTransition();
+        pacer.afterTransition(ctx.aiMode());
     }
 }

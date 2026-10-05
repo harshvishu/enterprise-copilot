@@ -76,6 +76,11 @@ class EnterpriseCopilotIntegrationTest {
                                                 c -> {
                                                     for (PipelineState s : accepted) {
                                                         if (c.state() == s) {
+                                                                                                                        if (s == PipelineState.REQUIREMENTS_READY
+                                                                                                                                        && (c.requirementAnalysis() == null
+                                                                                                                                        || !c.requirementAnalysis().needsClarification())) {
+                                                                                                                                continue;
+                                                                                                                        }
                                                             return true;
                                                         }
                                                     }
@@ -103,20 +108,29 @@ class EnterpriseCopilotIntegrationTest {
     }
 
     @Test
-    void securityFailureIsBlockedByReview() {
+        void reviewFeedbackRegeneratesAndReviewsBeforeApproval() {
 
         demoState.setScenario(DemoScenario.SECURITY_FAILURE);
 
         PipelineContext ctx = orchestrator.createAndRun(ticket());
 
-        PipelineState state =
-                awaitState(ctx.pipelineId(), PipelineState.REVIEW_FAILED, PipelineState.BLOCKED);
-
-        PipelineContext loaded = store.load(ctx.pipelineId()).orElseThrow();
-
-        assertThat(loaded.reviewDecision().hasCriticalFindings()).isTrue();
-
-        assertThat(state).isIn(PipelineState.REVIEW_FAILED, PipelineState.BLOCKED);
+        awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_REVIEW_FEEDBACK);
+        assertThatThrownBy(() -> orchestrator.approve(ctx.pipelineId(), "presenter"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> orchestrator.reviewFeedback(ctx.pipelineId(), "Keep logging account numbers"))
+                .isInstanceOf(IllegalArgumentException.class);
+        orchestrator.reviewFeedback(ctx.pipelineId(), "Use masked references");
+        assertThatThrownBy(() -> orchestrator.reviewFeedback(ctx.pipelineId(), "Use masked references"))
+                .isInstanceOf(IllegalStateException.class);
+        awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
+        PipelineContext revised = store.load(ctx.pipelineId()).orElseThrow();
+        assertThat(revised.reviewFeedback()).isEqualTo("Use masked references");
+        assertThat(revised.reviewDecision().passed()).isTrue();
+        assertThat(revised.codeChangeSet().unifiedDiff()).doesNotContain("log.info(\"Transaction completed for account");
+        assertThat(events.historyFor(ctx.pipelineId()).stream()
+                .filter(event -> event.agent().equals("Sentinel") && event.type() == PipelineEventType.AGENT_STARTED)
+                .count()).isEqualTo(2);
+        assertThat(orchestrator.approve(ctx.pipelineId(), "presenter").state()).isEqualTo(PipelineState.DEPLOYED);
     }
 
     @Test
@@ -161,18 +175,16 @@ class EnterpriseCopilotIntegrationTest {
                 orchestrator.clarify(
                         ctx.pipelineId(),
                         List.of(
-                                "Outgoing debits only.",
-                                "Use consented SMS only.",
-                                "Skip and audit when there is no SMS consent."));
+                                "Use SMS"));
 
         assertThat(resumed.state()).isEqualTo(PipelineState.GENERATING_CODE);
         assertThat(resumed.requirementAnalysis().needsClarification()).isFalse();
-        assertThat(resumed.requirementAnalysis().summary()).contains("Use consented SMS only.");
+        assertThat(resumed.requirementAnalysis().summary()).contains("Answer: SMS");
         assertThatThrownBy(() -> orchestrator.clarify(ctx.pipelineId(), List.of()))
                 .isInstanceOf(IllegalStateException.class);
         awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
         assertThat(store.load(ctx.pipelineId()).orElseThrow().requirementAnalysis().summary())
-                .contains("Outgoing debits only.", "Skip and audit when there is no SMS consent.");
+                .contains("Answer: SMS");
     }
 
     @Test
@@ -182,7 +194,7 @@ class EnterpriseCopilotIntegrationTest {
         PipelineContext ctx = orchestrator.createAndRun(ticket());
         awaitState(ctx.pipelineId(), PipelineState.REQUIREMENTS_READY);
 
-        assertThatThrownBy(() -> orchestrator.clarify(ctx.pipelineId(), List.of("SMS", " ", "ZAR")))
+        assertThatThrownBy(() -> orchestrator.clarify(ctx.pipelineId(), List.of(" ")))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(store.load(ctx.pipelineId()).orElseThrow().state())
                 .isEqualTo(PipelineState.REQUIREMENTS_READY);
@@ -207,6 +219,23 @@ class EnterpriseCopilotIntegrationTest {
                                 .needsClarification())
                 .isTrue();
     }
+
+        @Test
+        void smsVariantsResolveTheSingleQuestionWithoutInventingOtherChannels() {
+                doReturn("").when(confluenceTool).lookup(anyString());
+                for (String answer : List.of("SMS", "Use SMS", "Send by SMS")) {
+                        var issue = new DemoTickets().find("UB-4823").orElseThrow();
+                        var ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
+                        awaitState(ctx.pipelineId(), PipelineState.REQUIREMENTS_READY);
+                        assertThat(store.load(ctx.pipelineId()).orElseThrow().requirementAnalysis().clarificationQuestions())
+                                        .containsExactly("Which notification channel should we use?");
+                        assertThatThrownBy(() -> orchestrator.clarify(ctx.pipelineId(), List.of("Email")))
+                                        .isInstanceOf(IllegalArgumentException.class);
+                        orchestrator.clarify(ctx.pipelineId(), List.of(answer));
+                        awaitState(ctx.pipelineId(), PipelineState.WAITING_FOR_APPROVAL);
+                        assertThat(store.load(ctx.pipelineId()).orElseThrow().aiMode()).isEqualTo(AiMode.DEMO);
+                }
+        }
 
     @Test
     void confluenceActivityPrecedesRheaUsingExistingEventTypes() {
@@ -315,9 +344,7 @@ class EnterpriseCopilotIntegrationTest {
                         assertThat(resolved.requirementAnalysis().summary())
                                 .contains(
                                         "retail-high-value-alerts",
-                                        "exclude credits",
-                                        "SMS only",
-                                        "skip/audit");
+                                        "SMS only");
                         assertThat(resolved.requirementAnalysis().summary())
                                 .doesNotContain("Human clarification:");
                         assertThat(orchestrator.approve(id, "catalog-presenter").state())
@@ -325,23 +352,26 @@ class EnterpriseCopilotIntegrationTest {
                     }
                 }
                 case HALLUCINATED_API -> {
-                    awaitState(id, PipelineState.REQUIREMENTS_READY);
-                    assertThat(store.load(id).orElseThrow().codeChangeSet()).isNull();
-                    assertThatThrownBy(() -> orchestrator.approve(id, "presenter"))
-                            .isInstanceOf(IllegalStateException.class);
-                    orchestrator.clarify(
-                            id,
-                            List.of(
-                                    "No contract supplied; do not invent screening.",
-                                    "Stop and audit without notification when screening is unavailable."));
                     awaitState(id, PipelineState.BLOCKED);
                     var blocked = store.load(id).orElseThrow();
+                    assertThat(blocked.requirementAnalysis().needsClarification()).isFalse();
+                    assertThatThrownBy(() -> orchestrator.approve(id, "presenter"))
+                            .isInstanceOf(IllegalStateException.class);
+                    assertThatThrownBy(() -> orchestrator.reviewFeedback(id, "Use masked references"))
+                            .isInstanceOf(IllegalStateException.class);
                     assertThat(blocked.reviewDecision().outcome().name())
                             .isEqualTo("REQUEST_CHANGES");
                     assertThat(blocked.reviewDecision().hasCriticalFindings()).isFalse();
                     assertThat(blocked.approvalState()).isEqualTo(ApprovalState.NOT_REQUIRED);
                 }
-                case SECURITY_FAILURE, TEST_FAILURE -> {
+                                case SECURITY_FAILURE -> {
+                                        awaitState(id, PipelineState.WAITING_FOR_REVIEW_FEEDBACK);
+                                        orchestrator.reviewFeedback(id, "Remove account numbers from logs");
+                                        awaitState(id, PipelineState.WAITING_FOR_APPROVAL);
+                                        assertThat(orchestrator.approve(id, "catalog-presenter").state())
+                                                        .isEqualTo(PipelineState.DEPLOYED);
+                                }
+                                case TEST_FAILURE -> {
                     awaitState(id, PipelineState.BLOCKED);
                     var blocked = store.load(id).orElseThrow();
                     assertThat(blocked.deploymentDecision().requiresApproval()).isFalse();

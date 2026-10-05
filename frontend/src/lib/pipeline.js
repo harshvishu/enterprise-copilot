@@ -143,6 +143,7 @@ export function stageStatuses(pipeline, events = []) {
         stages[1] = 'waiting';
     if (state === 'GENERATING_CODE') stages[2] = 'running';
     if (state === 'REVIEWING') stages[3] = 'running';
+    if (state === 'WAITING_FOR_REVIEW_FEEDBACK') stages[3] = 'waiting';
     if (['REVIEW_PASSED', 'REVIEW_FAILED', 'DEPLOYING'].includes(state)) stages[4] = 'running';
     if (state === 'WAITING_FOR_APPROVAL') stages[4] = 'waiting';
     if (state === 'BLOCKED') stages[4] = 'blocked';
@@ -192,6 +193,14 @@ export function pipelineAttention(pipeline, events = []) {
                 'Implementation is paused. Your answers will supply the missing context before Nova continues.',
             target: 'clarification',
             action: 'Answer questions',
+        };
+    }
+    if (pipeline.state === 'WAITING_FOR_REVIEW_FEEDBACK') {
+        return {
+            tone: 'warning', icon: 'review', title: 'Sentinel needs a correction',
+            description: 'The proposal needs changes before release gates can pass.',
+            nextStep: 'Send feedback to Nova. The revised proposal will be reviewed again.',
+            counts, target: 'review-feedback', action: 'Provide feedback',
         };
     }
     if (review && review.outcome !== 'APPROVE') {

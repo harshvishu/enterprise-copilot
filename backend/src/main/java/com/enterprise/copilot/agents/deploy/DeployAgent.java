@@ -218,6 +218,6 @@ public class DeployAgent {
                         gate + (waiting ? ": waiting" : passed ? ": passed" : ": failed"),
                         Map.of("gate", gate, "passed", passed, "waiting", waiting)));
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
     }
 }

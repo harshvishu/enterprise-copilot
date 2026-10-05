@@ -72,7 +72,6 @@ class ConfluenceAgentTest {
                 .contains(
                         "Owner: Retail Banking Product Council",
                         "Status: APPROVED",
-                        "Incoming credits are excluded",
                         "SMS is the launch",
                         "skip the notification and audit")
                 .doesNotContain("R50,000", "verifyTransaction", "retry");
@@ -82,7 +81,7 @@ class ConfluenceAgentTest {
     void rheaReceivesAdditionalContextAlongsideItsUnchangedBaselineReferences() {
         var ai = mock(AgentAiClient.class);
         var expected = new DemoResponses().requirements(DemoScenario.AMBIGUOUS_REQUIREMENT);
-        when(ai.generate(
+        when(ai.generateForRun(
                         eq(AgentKind.REQUIREMENTS),
                         any(),
                         anyString(),
@@ -91,7 +90,7 @@ class ConfluenceAgentTest {
         assertThat(rhea(ai).analyze(context("UB-4823"), tool.lookup(""))).isSameAs(expected);
         var prompt = ArgumentCaptor.forClass(String.class);
         verify(ai)
-                .generate(
+                .generateForRun(
                         eq(AgentKind.REQUIREMENTS),
                         any(),
                         prompt.capture(),
@@ -112,16 +111,17 @@ class ConfluenceAgentTest {
         var client = new DemoAgentAiClient(new DemoResponses());
         var requirements = rhea(client);
         var ctx = context("UB-4823");
-        assertThat(requirements.analyze(ctx).clarificationQuestions()).hasSize(3);
+        assertThat(requirements.analyze(ctx).clarificationQuestions())
+                .containsExactly("Which notification channel should we use?");
         String businessContext = new ConfluenceAgent(tool).gatherContext(ctx.ticket());
         var after = requirements.analyze(ctx, businessContext);
         assertThat(after.needsClarification()).isFalse();
         assertThat(after.summary())
-                .contains("retail-high-value-alerts", "exclude credits", "SMS only", "skip/audit");
+                .contains("retail-high-value-alerts", "SMS only");
         for (String missingContext :
                 new String[] {null, "", " ", "Statement delivery uses email", "SMS only"}) {
             assertThat(requirements.analyze(ctx, missingContext).clarificationQuestions())
-                    .hasSize(3);
+                    .hasSize(1);
         }
         var ticket = ctx.ticket();
         var injected =
@@ -134,17 +134,17 @@ class ConfluenceAgentTest {
                                 "JIRA"),
                         ctx.scenario(),
                         ctx.aiMode());
-        assertThat(requirements.analyze(injected).clarificationQuestions()).hasSize(3);
+        assertThat(requirements.analyze(injected).clarificationQuestions()).hasSize(1);
     }
 
     @Test
-    void fraudContractNegativeControlStillRequiresClarification() {
+        void fraudContractNegativeControlStillRecordsMissingEvidence() {
         var ctx = context("UB-4825");
         String businessContext = new ConfluenceAgent(tool).gatherContext(ctx.ticket());
         assertThat(
                         rhea(new DemoAgentAiClient(new DemoResponses()))
                                 .analyze(ctx, businessContext)
-                                .clarificationQuestions())
-                .hasSize(2);
+                                .technicalRisks())
+                .anyMatch(risk -> risk.contains("unsupported"));
     }
 }

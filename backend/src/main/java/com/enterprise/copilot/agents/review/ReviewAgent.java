@@ -63,7 +63,7 @@ public class ReviewAgent {
         String proposal = evidence(ctx.codeChangeSet());
         String analysis = evidence(ctx.requirementAnalysis());
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -75,7 +75,7 @@ public class ReviewAgent {
 
         String contract = apiSpec.lookup(ctx.ticket().description());
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -85,7 +85,7 @@ public class ReviewAgent {
                         "Reading compliance guidance",
                         Map.of("tool", compliance.name(), "step", "COMPLIANCE")));
         String complianceGuidance = compliance.lookup(ctx.ticket().description());
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -95,7 +95,7 @@ public class ReviewAgent {
                         "Reading architecture guidance",
                         Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
         String architectureGuidance = architecture.lookup(ctx.ticket().description());
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         events.publish(
                 PipelineEvent.of(
@@ -105,7 +105,7 @@ public class ReviewAgent {
                         "Requesting security, compliance, quality and architecture review",
                         Map.of("step", "MODEL_CALL")));
 
-        pacer.afterActivity();
+        pacer.afterActivity(ctx.aiMode());
 
         String prompt =
                 prompts.render(
@@ -119,7 +119,7 @@ public class ReviewAgent {
                                 "architecture", architectureGuidance));
 
         ReviewDecision decision =
-                ai.generate(AgentKind.REVIEW, ctx.scenario(), prompt, ReviewDecision.class);
+                ai.generateForRun(AgentKind.REVIEW, ctx, prompt, ReviewDecision.class);
 
         if (!decision.findings().isEmpty()) {
             events.publish(
@@ -132,7 +132,7 @@ public class ReviewAgent {
                                     + " finding(s) from the review",
                             Map.of("step", "FINDINGS")));
 
-            pacer.afterActivity();
+            pacer.afterActivity(ctx.aiMode());
         }
 
         for (ReviewFinding finding : decision.findings()) {
@@ -154,7 +154,7 @@ public class ReviewAgent {
                                     "file", finding.file(),
                                     "location", finding.location())));
 
-            pacer.afterActivity();
+            pacer.afterActivity(ctx.aiMode());
         }
 
         events.publish(

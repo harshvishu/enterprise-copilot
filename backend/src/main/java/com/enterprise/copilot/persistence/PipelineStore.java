@@ -64,6 +64,7 @@ public class PipelineStore {
         e.setCodeJson(toJson(ctx.codeChangeSet()));
 
         e.setReviewJson(toJson(ctx.reviewDecision()));
+        e.setReviewFeedback(ctx.reviewFeedback());
 
         e.setDeploymentJson(toJson(ctx.deploymentDecision()));
 
@@ -100,6 +101,7 @@ public class PipelineStore {
         ctx.setCodeChangeSet(fromJson(e.getCodeJson(), CodeChangeSet.class));
 
         ctx.setReviewDecision(fromJson(e.getReviewJson(), ReviewDecision.class));
+        ctx.setReviewFeedback(e.getReviewFeedback());
 
         ctx.setDeploymentDecision(fromJson(e.getDeploymentJson(), DeploymentDecision.class));
 

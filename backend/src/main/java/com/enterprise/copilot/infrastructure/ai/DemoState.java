@@ -9,41 +9,64 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Holds the selected provider and presenter-controlled deterministic scenario.
- * Scenarios can change at runtime only in DEMO; provider changes require restart.
+ * Holds presenter selections for the next run. Each pipeline captures an immutable selection.
  */
 @Service
 public class DemoState {
 
-    private final AtomicReference<DemoScenario> scenario;
-    private final AiMode aiMode;
+    public record Selection(AiMode mode, DemoScenario scenario) {}
+
+    private final AtomicReference<Selection> selection;
     private final String provider;
 
     public DemoState(CopilotProperties properties, Environment environment) {
-        this.scenario = new AtomicReference<>(properties.demo().scenario());
         this.provider =
                 environment.matchesProfiles("openai")
                         ? "OPENAI"
                         : environment.matchesProfiles("ollama") ? "OLLAMA" : "DEMO";
-        this.aiMode = provider.equals("DEMO") ? AiMode.DEMO : AiMode.LIVE;
+        this.selection = new AtomicReference<>(
+            new Selection(provider.equals("DEMO") ? AiMode.DEMO : AiMode.LIVE,
+                properties.demo().scenario()));
     }
 
     public DemoScenario scenario() {
-        return aiMode == AiMode.DEMO ? scenario.get() : DemoScenario.NORMAL;
+        Selection current = snapshot();
+        return current.mode() == AiMode.DEMO ? current.scenario() : DemoScenario.NORMAL;
     }
 
     public void setScenario(DemoScenario scenario) {
-        if (aiMode != AiMode.DEMO) {
-            throw new IllegalStateException("Deterministic scenarios require the demo profile.");
-        }
-        this.scenario.set(scenario);
+        selection.updateAndGet(current -> {
+            if (current.mode() != AiMode.DEMO) {
+                throw new IllegalStateException("Scenario selection requires DEMO mode.");
+            }
+            return new Selection(current.mode(), scenario);
+        });
     }
 
     public AiMode aiMode() {
-        return aiMode;
+        return snapshot().mode();
     }
 
     public String provider() {
+        return aiMode() == AiMode.DEMO ? "DEMO" : provider;
+    }
+
+    public Selection snapshot() {
+        return selection.get();
+    }
+
+    public boolean liveAvailable() {
+        return !provider.equals("DEMO");
+    }
+
+    public String liveProvider() {
         return provider;
+    }
+
+    public void setMode(AiMode mode) {
+        if (mode == null || (mode == AiMode.LIVE && !liveAvailable())) {
+            throw new IllegalArgumentException("LIVE requires a configured OpenAI or Ollama provider.");
+        }
+        selection.updateAndGet(current -> new Selection(mode, current.scenario()));
     }
 }
