@@ -55,6 +55,14 @@ simulated deployment. Live model responses can vary, and some runs may be blocke
 The backend runs at http://localhost:8080. You can try its endpoints at
 http://localhost:8080/swagger-ui.html.
 
+### Start scripts
+
+From the project folder, `./scripts/start.sh` checks ports 8080 and 5173, starts the backend,
+waits until it is up, then starts the frontend. Ctrl+C stops both. To start one at a time, use
+`./scripts/start-backend.sh` or `./scripts/start-frontend.sh`. All scripts explain what to do
+if a port is already in use. Prefix with `SPRING_PROFILES_ACTIVE=demo` to run without an API key.
+`./scripts/stop.sh [backend|frontend]` stops servers started from this project (both by default).
+
 ## Run Without an API Key
 
 Start the backend in DEMO mode instead:
