@@ -44,7 +44,7 @@ Open a second terminal from the project folder:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
