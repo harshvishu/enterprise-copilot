@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/theme-toggle';
 import { pages } from './pages';
 import { enterpriseCopilotUrl } from '@/lib/config';
 import nagarroLogo from '@/assets/nagarro-logo.png';
+import { WelcomeBackdrop } from './Welcome';
 
 export default function Presentation() {
     const viewport = useRef(null);
@@ -104,7 +105,8 @@ export default function Presentation() {
             setPanel('help');
         }
     };
-    return <div className="presentation">
+    return <div className={`presentation ${pages[active].id === 'welcome' ? 'on-welcome' : ''}`}>
+        <WelcomeBackdrop viewport={viewport} />
         <header className="presenter-header">
             <div className="presentation-brand">
                 <img className="brand-logo" src={nagarroLogo} alt="Nagarro" />
@@ -128,7 +130,7 @@ export default function Presentation() {
             <div className="presentation-progress" role="progressbar" aria-label="Presentation progress" aria-valuemin={1} aria-valuemax={pages.length} aria-valuenow={active + 1}><span style={{ width: `${((active + 1) / pages.length) * 100}%` }} /></div>
         </footer>
         <Sheet open={Boolean(panel)} onOpenChange={open => { if (!open) setPanel(null); }}><SheetContent className="presenter-panel">
-            <SheetHeader><SheetTitle>{panel === 'overview' ? 'Presentation' : panel === 'notes' ? 'Speaker notes' : 'Keyboard shortcuts'}</SheetTitle><SheetDescription>{panel === 'overview' ? '20 pages · a 45-minute workshop.' : panel === 'notes' ? 'These notes are visible in this window. Close before projecting.' : 'One keypress. One presentation page.'}</SheetDescription></SheetHeader>
+            <SheetHeader><SheetTitle>{panel === 'overview' ? 'Presentation' : panel === 'notes' ? 'Speaker notes' : 'Keyboard shortcuts'}</SheetTitle><SheetDescription>{panel === 'overview' ? `${pages.length} pages · a 45-minute workshop.` : panel === 'notes' ? 'These notes are visible in this window. Close before projecting.' : 'One keypress. One presentation page.'}</SheetDescription></SheetHeader>
             <ScrollArea className="panel-scroll">
                 {panel === 'overview' && <nav className="overview-list" aria-label="Presentation pages">{pages.map((page, i) => <Button key={page.id} variant={active === i ? 'secondary' : 'ghost'} aria-current={active === i ? 'page' : undefined} onClick={() => { navigate(i); setPanel(null); }}><span className="font-mono text-muted-foreground">{String(i + 1).padStart(2, '0')}</span>{page.title}<ArrowRight size={16} /></Button>)}</nav>}
                 {panel === 'help' && <div className="shortcut-list">{[['Next page', '↓ → PgDn Space'], ['Previous page', '↑ ← PgUp'], ['First / last', 'Home / End'], ['This help', '?'], ['Close panel', 'Esc']].map(([label, key]) => <div key={label}><span>{label}</span><kbd>{key}</kbd></div>)}<p>Scroll or swipe to snap between pages. Focused controls and code panels keep their normal keyboard behavior.</p>{fullscreenError && <p role="status">{fullscreenError}</p>}</div>}

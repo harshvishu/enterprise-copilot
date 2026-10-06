@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import CodeSlide from './CodeSlide';
 import { ProblemPage, DeliveryPage, AgenticPage, SpringPage, SpringFlowPage, OrchestrationPage, RequirementsPage, EnterpriseToolsPage, GatesPage, ApprovalPage, LiveDemoPage, MissingContextPage, AssignmentPage, HandsOnPage, SolutionPage, BeforeAfterPage, FinishPage } from './workshop-pages';
 import aiSource from '../content/SpringAiAgentAiClient.java.txt?raw';
+import WelcomePage from './Welcome';
 
 export const pages = [
+    { id: 'welcome', title: 'Welcome', act: 'FLO 2026 / WELCOME', component: WelcomePage, notes: 'Leave this welcome screen running while participants join. Harsh Vishwakarma, Sr. Staff Engineer, and Dhruv Gupta, Principal Engineer. Advance when ready; the background dissolves with the existing scroll into the workshop introduction.' },
     { id: 'intro', title: 'Introduction', act: '01 / THE STORY', component: HeroPage, notes: 'Introduce yourself and your co-presenter. Set the promise: build, run, then extend a multi-agent SDLC pipeline. Names remain omitted until supplied. Target: 2 minutes.' },
     { id: 'problem', title: 'Beyond code completion', act: '01 / THE STORY', component: ProblemPage, notes: 'AI helps write code; software delivery also involves requirements, review, policy and authorization. Target: 2 minutes.' },
     { id: 'delivery', title: 'Software delivery', act: '01 / THE STORY', component: DeliveryPage, notes: 'Use Reveal next to introduce each responsibility. Page keys always navigate pages. Target: 1 minute.' },

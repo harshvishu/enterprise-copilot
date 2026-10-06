@@ -18,6 +18,8 @@ function settleAt(index) {
 }
 
 beforeEach(() => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     localStorage.clear();
     window.history.replaceState(null, '', '/#intro');
     document.documentElement.className = '';
@@ -37,6 +39,7 @@ afterEach(() => {
     act(() => root.unmount());
     host.remove();
     vi.useRealTimers();
+    vi.restoreAllMocks();
 });
 
 describe('standalone presentation navigation', () => {
@@ -47,7 +50,7 @@ describe('standalone presentation navigation', () => {
     });
     it.each(['ArrowUp', 'ArrowLeft', 'PageUp'])('%s scrolls back smoothly', name => {
         click(arrow('Next page'));
-        settleAt(1);
+        settleAt(2);
         Element.prototype.scrollIntoView.mockClear();
         key(name);
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: 'smooth', block: 'start' });
@@ -59,7 +62,7 @@ describe('standalone presentation navigation', () => {
         click(arrow('Next page'));
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
         expect(window.location.hash).toBe('#problem');
-        settleAt(1);
+        settleAt(2);
         key('ArrowRight', { repeat: true });
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
         key('ArrowRight');
@@ -72,18 +75,18 @@ describe('standalone presentation navigation', () => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: 'instant', block: 'start' });
     });
     it('allows scrolling to update page state and restores semantic hash navigation', () => {
-        container.scrollTop = 6 * 900;
+        container.scrollTop = 7 * 900;
         act(() => container.dispatchEvent(new Event('scroll')));
         expect(window.location.hash).toBe('#architecture');
         window.history.replaceState(null, '', '/#hands-on');
         act(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
         expect(Element.prototype.scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'instant', block: 'start' });
-        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('17');
+        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('18');
     });
     it('unlocks via the scroll-idle fallback when scrollend is unavailable', () => {
         vi.useFakeTimers();
         key('ArrowRight');
-        container.scrollTop = 900;
+        container.scrollTop = 1800;
         act(() => container.dispatchEvent(new Event('scroll')));
         act(() => vi.advanceTimersByTime(161));
         key('ArrowRight');
@@ -99,9 +102,9 @@ describe('standalone presentation navigation', () => {
 
 describe('preserved workshop content', () => {
     it('renders the complete existing manifest with unique semantic IDs and source excerpts', () => {
-        expect(pages).toHaveLength(20);
-        expect(new Set(pages.map(page => page.id)).size).toBe(20);
-        expect(host.querySelectorAll('section')).toHaveLength(20);
+        expect(pages).toHaveLength(21);
+        expect(new Set(pages.map(page => page.id)).size).toBe(21);
+        expect(host.querySelectorAll('section')).toHaveLength(21);
         expect(host.querySelector('#code').textContent).toContain('.entity(responseType)');
         expect(host.querySelector('#solution').textContent).not.toContain('return confluenceTool.lookup');
     });
@@ -127,5 +130,50 @@ describe('preserved workshop content', () => {
         expect(solution.textContent).toContain('return confluenceTool.lookup(ticket.description());');
         click([...solution.querySelectorAll('button')].find(button => button.textContent === 'Orchestrator integration'));
         expect(solution.textContent).toContain('requirementsAgent.analyze(ctx, businessContext)');
+    });
+});
+
+describe('welcome screen', () => {
+    it('dissolves with actual scroll and pauses/resumes the loop on leaving/returning', () => {
+        const backdrop = host.querySelector('.welcome-backdrop');
+        const video = backdrop.querySelector('video');
+        expect(video.muted).toBe(true);
+        expect(video.loop).toBe(true);
+        expect(video.hasAttribute('playsinline')).toBe(true);
+        container.scrollTop = 450;
+        act(() => container.dispatchEvent(new Event('scroll')));
+        expect(backdrop.style.opacity).toBe('0.5');
+        container.scrollTop = 900;
+        act(() => container.dispatchEvent(new Event('scroll')));
+        expect(backdrop.style.opacity).toBe('0');
+        expect(video.pause).toHaveBeenCalled();
+        video.play.mockClear();
+        container.scrollTop = 0;
+        act(() => container.dispatchEvent(new Event('scroll')));
+        expect(backdrop.style.opacity).toBe('1');
+        expect(video.play).toHaveBeenCalledOnce();
+    });
+    it('stops video when reduced motion is enabled and resumes when disabled', () => {
+        const preference = window.matchMedia.mock.results.find(result => result.value.media === '(prefers-reduced-motion: reduce)').value;
+        const update = preference.addEventListener.mock.calls.find(([event]) => event === 'change')[1];
+        const video = host.querySelector('video');
+        video.pause.mockClear();
+        preference.matches = true;
+        act(() => update());
+        expect(video.pause).toHaveBeenCalledOnce();
+        video.play.mockClear();
+        preference.matches = false;
+        act(() => update());
+        expect(video.play).toHaveBeenCalledOnce();
+    });
+    it('navigates from the welcome screen into the unchanged introduction', () => {
+        key('Home');
+        settleAt(0);
+        expect(window.location.hash).toBe('#welcome');
+        click(arrow('Next page'));
+        expect(window.location.hash).toBe('#intro');
+        expect(Element.prototype.scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'smooth', block: 'start' });
+        expect(host.querySelector('#welcome').textContent).toContain('Harsh Vishwakarma');
+        expect(host.querySelector('#welcome').textContent).toContain('Dhruv Gupta');
     });
 });

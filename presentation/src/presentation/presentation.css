@@ -990,3 +990,56 @@ to {
  .statement-page h2 { font-size: clamp(39px, 8vw, 59px); }.workshop-flow { flex-direction: column; }.workshop-flow > li { flex-direction: column; gap: 8px; }.workshop-flow > li > div { min-height: 80px; gap: 10px; padding: 15px 20px; }.workshop-flow > li > svg { transform: rotate(90deg); }.workshop-flow strong { font-size: 22px; }.unrevealed { display: none; }.spring-concepts > div { grid-template-columns: 1fr; gap: 10px; }.demo-scenarios { flex-wrap: wrap; font-size: 18px; gap: 13px; }.missing-context blockquote { font-size: 23px; align-items: flex-start; }.missing-context blockquote svg { flex-shrink: 0; }.assignment-layout,.hands-on-layout { grid-template-columns: 1fr; gap: 35px; }.assignment-list li { font-size: 22px; padding: 19px 0; }.assignment-diagram { margin-top: 10px; }.exercise-timer > [role=timer] { font-size: 88px; }.solution-page .code-step-tabs { flex-wrap: wrap; gap: 7px; }.solution-page .code-workspace pre { max-height: 50dvh; }.comparison-layout { grid-template-columns: 1fr; gap: 35px; }.vertical-flow > li > div { min-height: 0; }.finish-principles { flex-direction: column; align-items: flex-start; gap: 13px; }.finish-principles > svg { transform: rotate(90deg); margin-left: 30px; }
 }
 .source-walkthrough .code-workspace pre { max-height: 35dvh; overflow-y: auto; }
+
+/* Welcome video dissolves under the existing scroll container. */
+.presentation { position: relative; }
+.presentation-viewport { z-index: 1; }
+.welcome-backdrop { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-color: #1400c1; background-size: cover; background-position: center; }
+.welcome-backdrop video { width: 100%; height: 100%; object-fit: cover; }
+#welcome.is-active > div { animation: none; }
+.welcome-layout { display: grid; grid-template-columns: 1.4fr 1fr; align-items: center; gap: 5vw; color: white; }
+.welcome-kicker { color: #47d7ac; font-size: clamp(18px, 1.8vw, 30px); font-weight: 650; margin-bottom: 24px; }
+.welcome-copy { text-shadow: 0 1px 12px #1400c150; }
+.welcome-copy h1 { margin: 0; font-size: clamp(38px, 3.6vw, 64px); font-weight: 600; line-height: 1.18; letter-spacing: -.035em; }
+.welcome-event { margin-top: 45px; font-size: clamp(16px, 1.45vw, 24px); line-height: 1.6; }
+.welcome-event p { margin: 0 0 10px; }
+.welcome-event p:first-child { font-weight: 600; }
+.welcome-event p:first-child span { color: #47d7ac; padding: 0 6px; }
+.welcome-event > span { font-size: 15px; color: #ddd8ff; }
+.welcome-waiting { display: flex; gap: 10px; align-items: center; margin-top: 35px; font-size: 15px; color: #e0dcff; }
+.welcome-waiting > span { width: 7px; height: 7px; background: #47d7ac; border-radius: 50%; }
+.welcome-speakers { display: flex; align-items: center; gap: 24px; }
+.welcome-speakers figure { margin: 0; flex: 1; min-width: 0; }
+.welcome-speakers figure:last-child { margin-top: 150px; }
+.welcome-portrait { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 50%; background: #1400c1; }
+.welcome-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.on-welcome > .presenter-header, .on-welcome > .presenter-footer {
+    background: transparent;
+    --foreground: 0 0% 100%;
+    --muted-foreground: 0 0% 85%;
+    --border: 0 0% 100%;
+    --accent: 0 0% 100% / .15;
+    --accent-foreground: 0 0% 100%;
+    color: white;
+}
+.welcome-speakers figcaption { margin-top: 20px; font-size: clamp(16px, 1.25vw, 22px); line-height: 1.4; }
+.welcome-speakers figcaption span { display: block; font-size: 14px; color: #ded9ff; margin-top: 4px; }
+@media (min-width: 761px) and (max-height: 800px) {
+    .welcome-copy h1 { font-size: clamp(36px, 3.8vw, 58px); }
+    .welcome-event { margin-top: 25px; }
+    .welcome-waiting { margin-top: 22px; }
+    .welcome-speakers figure:last-child { margin-top: 90px; }
+}
+@media (max-width: 760px) {
+    .welcome-layout { grid-template-columns: 1fr; gap: 30px; }
+    .welcome-copy h1 { font-size: clamp(31px, 7vw, 46px); }
+    .welcome-kicker { margin-bottom: 15px; }
+    .welcome-event { margin-top: 23px; font-size: 16px; }
+    .welcome-waiting { margin-top: 18px; }
+    .welcome-speakers { max-width: 420px; gap: 24px; }
+    .welcome-speakers figure:last-child { margin-top: 0; }
+    .welcome-portrait { max-width: 140px; }
+    .welcome-speakers figcaption { margin-top: 12px; font-size: 15px; }
+    .welcome-speakers figcaption span { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .welcome-backdrop video { display: none; } }
