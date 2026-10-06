@@ -1127,3 +1127,6 @@ to {
     .welcome-speakers figcaption span { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .welcome-backdrop video { display: none; } }
+
+.slide-state-indicator { min-width: 38px; text-align: center; color: hsl(var(--muted-foreground)); font: 11px 'Geist Mono Variable', monospace; }
+.presenter-navigation > button[aria-label="Prev"], .presenter-navigation > button[aria-label="Next"] { gap: 8px; }

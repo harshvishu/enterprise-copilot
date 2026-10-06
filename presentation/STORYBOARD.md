@@ -1,49 +1,46 @@
 # Workshop narrative
 
 The presenter app retains its theme, fonts, code viewer, native scrolling,
-keyboard navigation, overview, notes and fullscreen controls. There are 20 slides.
+keyboard navigation, overview, notes and fullscreen controls. There are 19 slides.
 
 ## Final order
 
 1. Animated welcome — Your SDLC, Now Agentic - with Spring AI
 2. Traditional → Agentic SDLC — coding assistance versus participation across delivery
 3. Meet the four agents — Rhea, Nova, Sentinel, Atlas
-4. Animated agent data flow — structured state, coordinated by the orchestrator
-5. Architecture — workflow ownership, typed state and governance boundaries
-6. Spring AI — the four concepts used by this application
-7. From prompt to Java — ChatModel → ChatClient → Prompt → .entity(...)
-8. Requirements analysis — enterprise context, prompt and clarification
-9. Enterprise tools — policy, architecture and API contracts
-10. Pipeline orchestration — sequencing and state transitions
-11. Structured output — real Spring AI source and validation
-12. Deterministic gates — Reasoning informs. Java enforces.
-13. Human authorization — Humans authorize. The system checks again.
-14. Live demo — UB-4823 before Confluence context
-15. Missing business context — Rhea needs the approved business decision
-16. ConfluenceAgent assignment — the existing four participant tasks
-17. Hands-on — manually controlled five-minute timer
-18. Solution — agent class, constructor wiring, call before Rhea
-19. UB-4823 Before/After — approved SMS policy resolves the channel clarification
-20. Takeaway — Agents advise. Systems enforce. Humans authorize.
+4. What makes this agentic? — context, specialization, control and accountability
+5. Spring AI — the four concepts used by this application
+6. From prompt to Java — ChatModel → ChatClient → Prompt → .entity(...)
+7. Requirements analysis — enterprise context, prompt and clarification
+8. Enterprise tools — policy, architecture and API contracts
+9. Pipeline orchestration — sequencing and state transitions
+10. Structured output — real Spring AI source and validation
+11. Deterministic gates — Reasoning informs. Java enforces.
+12. Human authorization — Humans authorize. The system checks again.
+13. Live demo — UB-4823 before Confluence context
+14. Missing business context — Rhea needs the approved business decision
+15. ConfluenceAgent assignment — the existing four participant tasks
+16. Hands-on — manually controlled five-minute timer
+17. Solution — agent class, constructor wiring, call before Rhea
+18. UB-4823 Before/After — approved SMS policy resolves the channel clarification
+19. Takeaway — Agents advise. Systems enforce. Humans authorize.
 
 ## Reveal and motion behavior
 
-- Agent roles reveal one at a time, beginning with Rhea. Reset returns to Rhea.
-- The data-flow slide begins with Issue. Each Reveal next advances one stage:
-  Issue → Rhea → Nova → Sentinel → Atlas → Gates → Human → Release.
-- A small SVG packet travels along the corresponding connector for 850 ms;
-  the current stage is highlighted. Its motion starts when the reveal occurs,
-  independent of how long the slide has been mounted. It fades after arrival.
-- Analysis, Proposal, Review and Decision appear with their respective agents.
-  PipelineContext carries RequirementAnalysis, CodeChangeSet, ReviewDecision
-  and DeploymentDecision; PipelineOrchestrator owns sequencing.
-- The Gates reveal expands the deterministic checks evaluated by Atlas. It does
-  not introduce a fifth agent or a separate runtime stage. Failed gates cannot
-  be bypassed by human approval. The diagram illustrates the successful path;
-  clarification and failed checks can pause/block the real pipeline.
-- Reduced motion retains reveal and highlighting, without the animated packet.
-- Reset clears the flow. Page keys continue navigating slides; they do not
-  silently advance reveals. Source tabs and the three solution tabs remain manual.
+- Agent roles reveal one at a time, beginning with Rhea. Prev reverses reveals.
+- “What makes this agentic?” opens with only its title. Next cumulatively
+  shows Context, Specialization, Control and Accountability in four sparse panels.
+  Small secondary text explains each concept. The final reveal adds “Agents advise.
+  Systems enforce. Humans authorize.” Prev reverses concepts and the takeaway.
+- This slide contains no repeated pipeline or implementation annotations. Reduced
+  motion preserves reveals with immediate visibility changes.
+- The footer has one consistent ← Prev / Next → pair on every slide. Next and
+  Right advance the current reveal or code state; Prev and Left reverse it.
+  At the initial/final state they cross to the previous/next slide. Every entry
+  through controls, scrolling, hash or overview begins in the initial state.
+  PageUp/PageDown, Up/Down and Space remain direct slide navigation. Code tabs
+  remain available for explicit selection. Reveal next, Reset and Hide are removed.
+  The timer retains manual Start/Pause/Resume and restarts on slide re-entry.
 - The timer never starts automatically. Presenter notes suggest revealing the
   reference at approximately four minutes if participants are stuck, without
   automatically changing slides or participant files.
@@ -51,10 +48,19 @@ keyboard navigation, overview, notes and fullscreen controls. There are 20 slide
 ## Changes and intentional omissions
 
 - The old “AI can write code” and “More than implementation” slides are merged
-  into the visual comparison. Traditional delivery is not described as merely slow.
+  into the visual comparison. Traditional delivery uses Requirement → Build →
+  Verify → Release to describe sequential human handoffs. Stage 3 hides the hero
+  title and shows the workshop pipeline in two balanced rows: Issue → Rhea → Nova
+  → Sentinel, then down to Atlas and left through gates, approval and Release.
+  Explicit role subtitles distinguish agents from system enforcement and human
+  authority. The subtitle and a separate “+ More agents” cue explain extensibility
+  without inventing agents or omitting testing responsibilities. All arrows loop
+  continuously; reduced motion keeps static connectors. The concrete architecture
+  is followed by “What makes this agentic?” explaining the four principles.
 - The generic agentic-role slide becomes the named four-agent introduction.
-- The animated data-flow slide is added; architecture moves immediately after it.
-  The deck stays at 20 slides because the separate delivery slide is removed.
+- The former “Reasoning meets control.” pipeline slide is replaced by
+  “What makes this agentic?” at the existing `#agent-data-flow` URL. The manifest
+  supplies all 19 page numbers, overview entries and navigation bounds.
 - The broad live demo is replaced by the UB-4823 clarification story, creating a
   direct setup and payoff for the Confluence exercise. UB-4822 feedback/revision
   and UB-4825 negative-control walkthroughs are omitted from the main delivery

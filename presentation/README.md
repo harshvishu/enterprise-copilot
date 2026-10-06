@@ -1,6 +1,6 @@
 # Enterprise Copilot presentation
 
-Standalone presenter app. The 20-page workshop follows problem → agents → animated data flow → architecture → Spring AI → implementation → UB-4823 demo → Confluence exercise → payoff. Themes, native scroll snapping, smooth keyboard navigation, code walkthroughs, notes, timer, and solution reveal are preserved. See [STORYBOARD.md](STORYBOARD.md) for the slide order and reveal behavior. The participant application remains in `../frontend` and is opened only through a URL.
+Standalone presenter app. The 19-page workshop follows problem → agents → What makes this agentic? → Spring AI → implementation → UB-4823 demo → Confluence exercise → payoff. The delivery comparison shows the pipeline; the following conceptual slide progressively reveals context, specialization, control and accountability. A shared footer Prev/Next pair and Left/Right keys reverse or advance reveals and code states, then cross slide boundaries. Slide entry restores the initial state. Themes, native scroll snapping, smooth page navigation, code walkthroughs, notes, timer, and solution reveal are preserved. See [STORYBOARD.md](STORYBOARD.md) for the slide order and reveal behavior. The participant application remains in `../frontend` and is opened only through a URL.
 
 ## Run
 

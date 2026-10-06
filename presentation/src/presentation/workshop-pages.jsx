@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, BookOpen, Check, CircleHelp, Pause, Play, RotateCcw, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, CircleHelp, Pause, Play, ShieldCheck, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSlideState } from './slide-navigation';
 import CodeSlide from './CodeSlide';
 import DeliveryComparison from './DeliveryComparison';
 import orchestrator from '../content/PipelineOrchestrator.java.txt?raw';
@@ -24,8 +25,8 @@ function Flow({ labels, visible = labels.length, vertical = false }) {
 }
 
 function RevealFlow({ eyebrow, title, labels, lead }) {
-    const [visible, setVisible] = useState(1);
-    return <Frame eyebrow={eyebrow} title={title} lead={lead}><Flow labels={labels} visible={visible} /><div className="reveal-controls"><Button variant="outline" disabled={visible === labels.length} onClick={() => setVisible(value => value + 1)}>Reveal next <ArrowRight size={15} /></Button><Button variant="ghost" onClick={() => setVisible(1)}>Reset</Button><span>{visible} / {labels.length}</span></div></Frame>;
+    const [visible] = useSlideState(1, labels.length);
+    return <Frame eyebrow={eyebrow} title={title} lead={lead}><Flow labels={labels} visible={visible} /></Frame>;
 }
 
 const agentRoles = [
@@ -35,10 +36,9 @@ const agentRoles = [
     ['Atlas', 'Release Manager', 'Release'],
 ];
 export function AgenticPage() {
-    const [visible, setVisible] = useState(1);
+    const [visible] = useSlideState(1, 4);
     return <Frame eyebrow="THE AGENTS / BOUNDED RESPONSIBILITIES" title={<>Four specialists. <span>One pipeline.</span></>} className="diagram-page">
         <ol className="agent-introductions" aria-label="Four specialized agents">{agentRoles.map(([name, role, verb], index) => <li key={name} className={index >= visible ? 'unrevealed' : ''} aria-hidden={index >= visible}><span className="diagram-label">0{index + 1} / {verb.toUpperCase()}</span><strong>{name}</strong><span className="agent-role">{role}</span>{name === 'Atlas' && <span className="agent-implementation">Deterministic Java gates</span>}</li>)}</ol>
-        <div className="reveal-controls"><Button variant="outline" disabled={visible === 4} onClick={() => setVisible(value => value + 1)}>Reveal next <ArrowRight size={15} /></Button><Button variant="ghost" onClick={() => setVisible(1)}>Reset</Button><span>{visible} / 4</span></div>
         <p className="diagram-note">Coordinated by an orchestrator. Each stage reads context and returns a typed result.</p>
     </Frame>;
 }
@@ -59,7 +59,7 @@ function excerpt(source, anchor, count) {
 }
 
 function SourceWalkthrough({ title, file, source, windows, lead }) {
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useSlideState(0, windows.length - 1);
     const current = windows[step];
     const snippet = excerpt(source, current.anchor, current.count ?? 9);
     const highlight = (current.highlight ?? [0]).map(offset => snippet.startLine + offset);
@@ -138,8 +138,7 @@ export function HandsOnPage() {
             setRunning(true);
         }
     };
-    const reset = () => { deadline.current = null; setRunning(false); setRemaining(300); };
-    return <Frame eyebrow="YOUR TURN / HANDS-ON" title={<>Add enterprise <span>knowledge.</span></>}><div className="hands-on-layout"><TaskList /><div className="exercise-timer"><span className="diagram-label">FIVE-MINUTE EXERCISE</span><div role="timer" aria-label="Exercise time remaining" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, '0')}<span>:</span>{String(remaining % 60).padStart(2, '0')}</div><div className="timer-controls"><Button variant="outline" disabled={remaining === 0} onClick={toggle}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pause' : remaining < 300 ? 'Resume' : 'Start'}</Button><Button variant="ghost" onClick={reset}><RotateCcw size={16} />Reset</Button></div><p role="status">{remaining === 0 ? 'Time is up. Let’s look at the solution.' : running ? 'Time to build.' : 'Start when everyone is ready.'}</p></div></div></Frame>;
+    return <Frame eyebrow="YOUR TURN / HANDS-ON" title={<>Add enterprise <span>knowledge.</span></>}><div className="hands-on-layout"><TaskList /><div className="exercise-timer"><span className="diagram-label">FIVE-MINUTE EXERCISE</span><div role="timer" aria-label="Exercise time remaining" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, '0')}<span>:</span>{String(remaining % 60).padStart(2, '0')}</div><div className="timer-controls"><Button variant="outline" disabled={remaining === 0} onClick={toggle}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pause' : remaining < 300 ? 'Resume' : 'Start'}</Button></div><p role="status">{remaining === 0 ? 'Time is up. Let’s look at the solution.' : running ? 'Time to build.' : 'Start when everyone is ready.'}</p></div></div></Frame>;
 }
 const solutionClass = sourceRows(confluence, [[6, confluence.trimEnd().split('\n').length]]);
 const completedLines = solutionOrchestrator.split('\n');
@@ -168,7 +167,7 @@ const contextRows = sourceRows(solutionOrchestrator, [
     [solutionLine('ctx.setRequirementAnalysis(analysis);'), solutionLine('transition(ctx, PipelineState.REQUIREMENTS_READY);') + 1],
 ]);
 export function SolutionPage() {
-    const [reveal, setReveal] = useState(0);
+    const [reveal, setReveal] = useSlideState(0, 3);
     const views = [null,
         { file: 'ConfluenceAgent.java', rows: solutionClass, highlight: [15, 16], annotation: 'A complete class: Spring injects the tool; gatherContext retrieves trusted context.' },
         { file: 'PipelineOrchestrator.java', rows: wiringRows, highlight: [fieldLine + 1, parameterLine + 1, assignmentLine + 1], annotation: 'Add the field, constructor parameter and assignment. The existing dependencies stay in place.' },
@@ -179,7 +178,6 @@ export function SolutionPage() {
             <Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1} aria-label="Reveal ConfluenceAgent">01 ConfluenceAgent</Button>
             <Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>02 Constructor wiring</Button>
             <Button variant={reveal === 3 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(3)} aria-pressed={reveal === 3}>03 Call before Rhea</Button>
-            <Button variant="ghost" onClick={() => setReveal(0)}>Hide</Button>
         </div>
         {reveal === 0 ? <div className="solution-cover"><BookOpen size={32} /><p>One small agent.<br />Approved business context.</p></div> : <CodeSlide {...views[reveal]} />}
         <p className="source-reference">{reveal ? 'WORKSHOP SOLUTION SNAPSHOT' : 'EXPLICIT REVEAL / NO AUTOMATIC SOLUTION'}{reveal === 1 && <span>Complete class · package and imports (lines 1–6) omitted.</span>}{reveal > 1 && <span>Real source lines · omitted sections marked inline.</span>}</p>
