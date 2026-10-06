@@ -6,6 +6,7 @@ import com.enterprise.copilot.domain.AiMode;
 import com.enterprise.copilot.domain.DemoScenario;
 import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.infrastructure.ai.DemoState;
+import com.enterprise.copilot.infrastructure.ai.OpenAiKeyResolver;
 import com.enterprise.copilot.orchestration.PipelineOrchestrator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ public class DemoController {
     private final DemoState demoState;
     private final DemoTickets demoTickets;
     private final PipelineOrchestrator orchestrator;
+    private final OpenAiKeyResolver openAiKeys;
 
     @GetMapping("/status")
     public Map<String, Object> status() {
@@ -34,6 +36,9 @@ public class DemoController {
                 "provider", selected.mode() == AiMode.DEMO ? "DEMO" : demoState.liveProvider(),
                 "liveProvider", demoState.liveProvider(),
                 "liveAvailable", demoState.liveAvailable(),
+                "liveConfigured",
+                        !"OPENAI".equals(demoState.liveProvider())
+                                || openAiKeys.resolve().isPresent(),
                 "scenario", selected.mode() == AiMode.DEMO ? selected.scenario() : DemoScenario.NORMAL,
                 "scenarios",
                         selected.mode() == AiMode.DEMO

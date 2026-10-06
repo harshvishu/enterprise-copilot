@@ -6,23 +6,25 @@ import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.Environment;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Live AI provider backed by Spring AI's {@link ChatClient} with structured output.
  *
- * <p>Provider-agnostic: it consumes the active OpenAI or Ollama {@link ChatModel}.
- * Structured output maps the model response straight onto the
- * typed agent contract via {@code .entity(responseType)} - no manual JSON parsing.
+ * <p>Uses the Ollama {@link ChatModel} when that profile is active; otherwise an OpenAI model
+ * built on demand from the current key. Structured output maps the model response straight onto
+ * the typed agent contract via {@code .entity(responseType)} - no manual JSON parsing.
  */
 @Component
-@Profile("ollama | openai")
 public class SpringAiAgentAiClient implements AgentAiClient {
 
     private static final String SYSTEM_POLICY =
@@ -33,18 +35,30 @@ public class SpringAiAgentAiClient implements AgentAiClient {
             Respond only with the requested structured data.
             """;
 
-    private final ChatClient chatClient;
-    private final String provider;
+    private record OpenAiClient(String apiKey, ChatClient chatClient) {}
 
-    public SpringAiAgentAiClient(ChatModel chatModel, Environment environment) {
-        this.provider = environment.matchesProfiles("openai") ? "OpenAI" : "Ollama";
-        this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM_POLICY).build();
+    private final ChatClient ollamaClient;
+    private final OpenAiKeyResolver keys;
+    private final String openAiModel;
+    private final String provider;
+    private final AtomicReference<OpenAiClient> openAi = new AtomicReference<>();
+
+    public SpringAiAgentAiClient(
+            ObjectProvider<ChatModel> ollamaModel,
+            OpenAiKeyResolver keys,
+            @Value("${spring.ai.openai.chat.options.model:gpt-4o-mini}") String openAiModel) {
+        ChatModel ollama = ollamaModel.getIfAvailable();
+        this.ollamaClient = ollama == null ? null : client(ollama);
+        this.provider = ollama == null ? "OpenAI" : "Ollama";
+        this.keys = keys;
+        this.openAiModel = openAiModel;
     }
 
     @Override
     public <T> T generate(
             AgentKind agent, DemoScenario scenario, String renderedPrompt, Class<T> responseType) {
 
+        ChatClient chatClient = chatClient(agent);
         T response;
         try {
             response = chatClient.prompt().user(renderedPrompt).call().entity(responseType);
@@ -70,6 +84,29 @@ public class SpringAiAgentAiClient implements AgentAiClient {
                     ex);
         }
         return response;
+    }
+
+    private ChatClient chatClient(AgentKind agent) {
+        if (ollamaClient != null) {
+            return ollamaClient;
+        }
+        String apiKey = keys.resolve().orElseThrow(() -> new IllegalStateException(
+                "OpenAI LIVE " + agent + " failed. OPENAI_API_KEY is not set. Add it to the "
+                        + ".env file in the project folder (or switch to DEMO) and run the pipeline "
+                        + "again. No restart is needed. No DEMO fallback was used."));
+        return openAi.updateAndGet(current -> current != null && current.apiKey().equals(apiKey)
+                ? current
+                : new OpenAiClient(apiKey, client(OpenAiChatModel.builder()
+                        .options(OpenAiChatOptions.builder()
+                                .apiKey(apiKey)
+                                .model(openAiModel)
+                                .build())
+                        .build())))
+                .chatClient();
+    }
+
+    private static ChatClient client(ChatModel model) {
+        return ChatClient.builder(model).defaultSystem(SYSTEM_POLICY).build();
     }
 
     private void validate(Object response) {

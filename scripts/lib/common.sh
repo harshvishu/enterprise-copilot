@@ -158,9 +158,8 @@ warn_if_no_api_key() {
         *,demo,* | *,ollama,*) return 0 ;;
     esac
     if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        warn "OPENAI_API_KEY is not set; OpenAI LIVE startup requires it."
-        printf '         Add OPENAI_API_KEY to the project-root .env (ignored by Git).\n' >&2
-        printf '         Set it with: %sexport OPENAI_API_KEY="your-api-key"%s\n' "$C_BOLD" "$C_RESET" >&2
-        printf '         Or run without a key: %sSPRING_PROFILES_ACTIVE=demo %s%s\n\n' "$C_BOLD" "$0" "$C_RESET" >&2
+        warn "OPENAI_API_KEY is not set. The app starts in DEMO mode; LIVE runs will report a missing key."
+        printf '         To use LIVE, add OPENAI_API_KEY=your-api-key to %s/.env (ignored by Git).\n' "$REPO_ROOT" >&2
+        printf '         The key is read on each run, so no restart is needed.\n\n' >&2
     fi
 }

@@ -142,6 +142,7 @@ export default function App() {
             clearInterval(pollRef.current);
             setEvents([]);
             const p = await api.runDemo(key);
+            api.status().then(setStatus).catch(() => {});
 
             setSelectedIssue(key);
             setNav('dashboard');

@@ -19,14 +19,13 @@ public class DemoState {
     private final AtomicReference<Selection> selection;
     private final String provider;
 
-    public DemoState(CopilotProperties properties, Environment environment) {
-        this.provider =
-                environment.matchesProfiles("openai")
-                        ? "OPENAI"
-                        : environment.matchesProfiles("ollama") ? "OLLAMA" : "DEMO";
+    public DemoState(
+            CopilotProperties properties, Environment environment, OpenAiKeyResolver keys) {
+        this.provider = environment.matchesProfiles("ollama") ? "OLLAMA" : "OPENAI";
+        boolean startLive = environment.matchesProfiles("ollama")
+                || (environment.matchesProfiles("openai") && keys.resolve().isPresent());
         this.selection = new AtomicReference<>(
-            new Selection(provider.equals("DEMO") ? AiMode.DEMO : AiMode.LIVE,
-                properties.demo().scenario()));
+            new Selection(startLive ? AiMode.LIVE : AiMode.DEMO, properties.demo().scenario()));
     }
 
     public DemoScenario scenario() {
@@ -56,7 +55,7 @@ public class DemoState {
     }
 
     public boolean liveAvailable() {
-        return !provider.equals("DEMO");
+        return true;
     }
 
     public String liveProvider() {
@@ -64,8 +63,8 @@ public class DemoState {
     }
 
     public void setMode(AiMode mode) {
-        if (mode == null || (mode == AiMode.LIVE && !liveAvailable())) {
-            throw new IllegalArgumentException("LIVE requires a configured OpenAI or Ollama provider.");
+        if (mode == null) {
+            throw new IllegalArgumentException("Select DEMO or LIVE.");
         }
         selection.updateAndGet(current -> new Selection(mode, current.scenario()));
     }

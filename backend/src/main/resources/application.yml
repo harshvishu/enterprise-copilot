@@ -30,6 +30,12 @@ spring:
       audio:
         speech: none
         transcription: none
+    # The OpenAI chat model is built on demand so LIVE can be enabled without a restart.
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:gpt-4o-mini}
 
 server:
   port: 8080

@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-import org.springframework.util.StringUtils;
 
 /**
  * Validates provider selection before model creation and builds the local Ollama model.
@@ -30,12 +29,6 @@ public class AiConfig {
                 throw new IllegalStateException(
                         "Select exactly one AI profile: openai, ollama or demo. "
                                 + "Combine it with postgres when needed.");
-            }
-            if (environment.matchesProfiles("openai")
-                    && !StringUtils.hasText(environment.getProperty("spring.ai.openai.api-key"))) {
-                throw new IllegalStateException(
-                        "OpenAI LIVE requires OPENAI_API_KEY (spring.ai.openai.api-key). "
-                                + "Set the credential or explicitly select the demo or ollama profile.");
             }
         };
     }

@@ -66,7 +66,9 @@ http://localhost:8080/swagger-ui.html.
 From the project folder, `./scripts/start.sh` checks ports 8080 and 5173, starts the backend,
 waits until it is up, then starts the frontend. Ctrl+C stops both. To start one at a time, use
 `./scripts/start-backend.sh` or `./scripts/start-frontend.sh`. All scripts explain what to do
-if a port is already in use. Prefix with `SPRING_PROFILES_ACTIVE=demo` to run without an API key.
+if a port is already in use. Without an API key the app starts in DEMO mode. To use LIVE, add
+`OPENAI_API_KEY=your-api-key` to a `.env` file in the project folder, choose **LIVE** and run the
+pipeline again. The key is read on each run, so no restart is needed.
 `./scripts/stop.sh [backend|frontend]` stops servers started from this project (both by default).
 
 The startup scripts automatically read `OPENAI_API_KEY` from the project-root `.env` if it is not

@@ -171,6 +171,16 @@ export function pipelineAttention(pipeline, events = []) {
         const provider = message.match(/(OpenAI|Ollama) LIVE/i)?.[1];
         const failedAgent = message.match(/LIVE (REQUIREMENTS|CODE|REVIEW)/i)?.[1]?.toUpperCase();
         const agent = { REQUIREMENTS: 'Rhea', CODE: 'Nova', REVIEW: 'Sentinel' }[failedAgent];
+        if (/OPENAI_API_KEY is not set/.test(message)) {
+            return {
+                tone: 'destructive',
+                icon: 'failure',
+                title: 'OpenAI API key missing',
+                description:
+                    'Add OPENAI_API_KEY to the .env file in the project folder and run the pipeline again, or switch to DEMO. No restart is needed.',
+                detail: message,
+            };
+        }
         return {
             tone: 'destructive',
             icon: 'failure',
