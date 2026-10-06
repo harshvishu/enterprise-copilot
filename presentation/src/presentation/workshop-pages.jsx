@@ -2,19 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, BookOpen, Check, CircleHelp, Pause, Play, RotateCcw, ShieldCheck, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CodeSlide from './CodeSlide';
+import DeliveryComparison from './DeliveryComparison';
 import orchestrator from '../content/PipelineOrchestrator.java.txt?raw';
 import requirements from '../content/RequirementsAgent.java.txt?raw';
 import deployment from '../content/DeployAgent.java.txt?raw';
 import confluence from '../content/ConfluenceAgent.java.txt?raw';
 import solutionOrchestrator from '../content/PipelineOrchestrator.solution.java.txt?raw';
 import { enclosingMethod, sourceRows } from './source-excerpts';
+import { enterpriseCopilotUrl } from '@/lib/config';
 
 function Frame({ eyebrow, title, lead, children, className = '' }) {
     return <div className={`technical-page workshop-page ${className}`}><p className="eyebrow">{eyebrow}</p><h2>{title}</h2>{lead && <p className="page-lead">{lead}</p>}{children}</div>;
 }
 
 export function ProblemPage() {
-    return <div className="statement-page"><p className="eyebrow">BEYOND CODE COMPLETION</p><h2>AI can write code.<br /><span>But software delivery<br />is more than writing code.</span></h2></div>;
+    return <DeliveryComparison />;
 }
 
 function Flow({ labels, visible = labels.length, vertical = false }) {
@@ -26,17 +28,25 @@ function RevealFlow({ eyebrow, title, labels, lead }) {
     return <Frame eyebrow={eyebrow} title={title} lead={lead}><Flow labels={labels} visible={visible} /><div className="reveal-controls"><Button variant="outline" disabled={visible === labels.length} onClick={() => setVisible(value => value + 1)}>Reveal next <ArrowRight size={15} /></Button><Button variant="ghost" onClick={() => setVisible(1)}>Reset</Button><span>{visible} / {labels.length}</span></div></Frame>;
 }
 
-export function DeliveryPage() {
-    return <RevealFlow eyebrow="THE DELIVERY LIFECYCLE" title={<>More than <span>implementation.</span></>} labels={['Requirement', 'Implementation', 'Review', 'Release']} />;
-}
+const agentRoles = [
+    ['Rhea', 'Requirements Analyst', 'Understand'],
+    ['Nova', 'Senior Java Engineer', 'Build'],
+    ['Sentinel', 'Security & Compliance', 'Challenge'],
+    ['Atlas', 'Release Manager', 'Release'],
+];
 export function AgenticPage() {
-    return <RevealFlow eyebrow="WHAT WE ARE BUILDING" title={<>Your sprint has <span>agents now.</span></>} lead="One pipeline. Clear responsibilities. Human authorization." labels={['Requirements Agent', 'Coding Agent', 'Review Agent', 'Deployment Agent', 'Human authorization']} />;
+    const [visible, setVisible] = useState(1);
+    return <Frame eyebrow="THE AGENTS / BOUNDED RESPONSIBILITIES" title={<>Four specialists. <span>One pipeline.</span></>} className="diagram-page">
+        <ol className="agent-introductions" aria-label="Four specialized agents">{agentRoles.map(([name, role, verb], index) => <li key={name} className={index >= visible ? 'unrevealed' : ''} aria-hidden={index >= visible}><span className="diagram-label">0{index + 1} / {verb.toUpperCase()}</span><strong>{name}</strong><span className="agent-role">{role}</span>{name === 'Atlas' && <span className="agent-implementation">Deterministic Java gates</span>}</li>)}</ol>
+        <div className="reveal-controls"><Button variant="outline" disabled={visible === 4} onClick={() => setVisible(value => value + 1)}>Reveal next <ArrowRight size={15} /></Button><Button variant="ghost" onClick={() => setVisible(1)}>Reset</Button><span>{visible} / 4</span></div>
+        <p className="diagram-note">Coordinated by an orchestrator. Each stage reads context and returns a typed result.</p>
+    </Frame>;
 }
 export function SpringPage() {
-    return <Frame eyebrow="THE FRAMEWORK" title={<>Spring AI<span>.</span></>} lead="The pieces we use in this application."><div className="spring-concepts">{[['ChatModel', 'Model abstraction'], ['ChatClient', 'Interaction API'], ['Prompt', 'Instructions + enterprise context'], ['.entity(…)', 'Structured Java output']].map(([name, explanation]) => <div key={name}><code>{name}</code><span>{explanation}</span></div>)}</div></Frame>;
+    return <Frame eyebrow="THE FRAMEWORK" title={<>Spring AI<span>.</span></>} lead="The pieces we use in this application."><div className="spring-concepts">{[['ChatModel', 'Model / provider abstraction'], ['ChatClient', 'Interaction API'], ['Prompt', 'Instructions + enterprise context'], ['.entity(…)', 'Structured Java output']].map(([name, explanation]) => <div key={name}><code>{name}</code><span>{explanation}</span></div>)}</div></Frame>;
 }
 export function SpringFlowPage() {
-    return <RevealFlow eyebrow="SPRING AI / FROM MODEL TO APPLICATION" title={<>From a prompt to <span>Java objects.</span></>} labels={['ChatModel', 'ChatClient', 'Prompt', 'Structured output', 'Java object']} lead="OpenAI / Ollama behind the model abstraction." />;
+    return <RevealFlow eyebrow="SPRING AI / FROM MODEL TO APPLICATION" title={<>From a prompt to <span>Java objects.</span></>} labels={['ChatModel', 'ChatClient', 'Prompt', '.entity(...)']} lead="OpenAI / Ollama behind the model abstraction." />;
 }
 
 function excerpt(source, anchor, count) {
@@ -91,7 +101,7 @@ export function ApprovalPage() {
     ]} />;
 }
 export function LiveDemoPage() {
-    return <div className="statement-page"><p className="eyebrow"><span className="signal-dot" />LIVE DEMO</p><h2>Let's run<br /><span>the pipeline.</span></h2><p className="page-lead">Enterprise Copilot</p><div className="demo-scenarios"><span>Requirements</span><ArrowRight /><span>Review</span><ArrowRight /><span>Human approval</span></div></div>;
+    return <Frame eyebrow="LIVE DEMO / UB-4823 BEFORE CONFLUENCE" title={<>Let’s run <span>UB-4823.</span></>} lead="Which notification channel should we use?" className="diagram-page"><div className="narrative-demo"><Flow labels={['UB-4823', 'Rhea', 'Human clarification']} /></div><Button className="demo-launch" variant="outline" asChild><a href={enterpriseCopilotUrl} target="_blank" rel="noopener noreferrer">Open Enterprise Copilot <ArrowRight size={16} /></a></Button><p className="diagram-note">BEFORE: reasoning needs an approved business decision.</p></Frame>;
 }
 export function MissingContextPage() {
     return <Frame eyebrow="YOUR TURN / SOMETHING IS MISSING" title={<>Rhea knows how to reason.<br /><span>But it needs the business decision.</span></>}><div className="missing-context"><Flow labels={['Issue', 'Requirements Agent', 'Human clarification']} /><blockquote><CircleHelp size={25} />Which notification channel should we use?</blockquote><span className="diagram-label">UB-4823 / BEFORE</span></div></Frame>;
@@ -166,7 +176,7 @@ export function SolutionPage() {
     ];
     return <Frame eyebrow="THE SOLUTION" title={<>Gather context. <span>Let Rhea use it.</span></>} className="solution-page code-page">
         <div className="code-step-tabs" role="group" aria-label="Confluence solution walkthrough">
-            <Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1}>Reveal ConfluenceAgent</Button>
+            <Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1} aria-label="Reveal ConfluenceAgent">01 ConfluenceAgent</Button>
             <Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>02 Constructor wiring</Button>
             <Button variant={reveal === 3 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(3)} aria-pressed={reveal === 3}>03 Call before Rhea</Button>
             <Button variant="ghost" onClick={() => setReveal(0)}>Hide</Button>
@@ -176,7 +186,7 @@ export function SolutionPage() {
     </Frame>;
 }
 export function BeforeAfterPage() {
-    return <Frame eyebrow="UB-4823 / BEFORE AND AFTER" title={<>The same issue.<br /><span>Better business context.</span></>}><div className="comparison-layout"><div><span className="comparison-label">BEFORE</span><Flow vertical labels={['Issue', 'Requirements Agent', 'Human clarification']} /></div><div><span className="comparison-label after-label">AFTER</span><Flow vertical labels={['Issue', 'Confluence Agent', 'Approved SMS policy', 'Requirements Agent', 'Pipeline continues']} /></div></div></Frame>;
+    return <Frame eyebrow="UB-4823 / BEFORE AND AFTER" title={<>The same issue.<br /><span>Better business context.</span></>} className="payoff-page"><p className="page-lead">UB-4823: approved SMS policy resolves the channel clarification.</p><div className="comparison-layout"><div><span className="comparison-label">BEFORE</span><Flow vertical labels={['Issue', 'Requirements Agent', 'Human clarification']} /></div><div><span className="comparison-label after-label">AFTER</span><Flow vertical labels={['Issue', 'ConfluenceAgent', 'Approved business policy', 'Requirements Agent', 'Pipeline continues']} /></div></div></Frame>;
 }
 export function FinishPage() {
     return <div className="statement-page finish-page"><p className="eyebrow">THE TAKEAWAY</p><h2>Agents advise.<br />Systems enforce.<br /><span>Humans authorize.</span></h2><div className="finish-principles"><span><BookOpen />Enterprise knowledge</span><ArrowRight /><span>AI agents</span><ArrowRight /><span><ShieldCheck />Deterministic gates</span><ArrowRight /><span><UserRound />Human accountability</span></div><a className="resource-link" href="https://docs.spring.io/spring-ai/reference/" target="_blank" rel="noopener noreferrer">Spring AI reference <ArrowRight size={15} /></a></div>;

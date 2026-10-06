@@ -1,0 +1,71 @@
+.delivery-comparison { container-type: inline-size; }
+.delivery-comparison .eyebrow { margin-bottom: 16px; }
+.delivery-comparison .delivery-canvas { position: relative; height: clamp(390px, 60dvh, 620px); }
+.delivery-comparison .delivery-canvas h2 {
+    position: absolute; top: 0; left: 0; margin: 0;
+    font-size: clamp(44px, 5vw, 78px); line-height: 1.08;
+    transform: translateY(55px); transform-origin: left top;
+    transition: font-size 700ms cubic-bezier(.22, 1, .36, 1), transform 700ms cubic-bezier(.22, 1, .36, 1);
+}
+.delivery-comparison[data-delivery-stage="2"] h2,
+.delivery-comparison[data-delivery-stage="3"] h2 { font-size: clamp(30px, 3vw, 44px); transform: translateY(0); }
+.delivery-opening {
+    position: absolute; top: 59%; left: 0; max-width: 850px; margin: 0;
+    font-size: clamp(20px, 2vw, 30px); line-height: 1.5; color: hsl(var(--muted-foreground));
+    transition: opacity 350ms, transform 500ms, visibility 350ms;
+}
+.delivery-opening[aria-hidden="true"] { opacity: 0; visibility: hidden; transform: translateY(-16px); }
+.delivery-traditional, .delivery-agentic { position: absolute; left: 0; width: 100%; transform-origin: left top; }
+.delivery-traditional {
+    top: 43%; opacity: 1; transform: translateY(0) scale(1);
+    transition: top 700ms cubic-bezier(.22, 1, .36, 1), transform 700ms cubic-bezier(.22, 1, .36, 1), opacity 550ms, visibility 550ms;
+}
+.delivery-traditional[aria-hidden="true"] { opacity: 0; visibility: hidden; transform: translateY(24px) scale(.97); }
+.delivery-comparison[data-delivery-stage="3"] .delivery-traditional { top: 24%; transform: scale(.68); opacity: .5; }
+.delivery-agentic { top: 44%; transition: opacity 650ms 180ms, transform 650ms 180ms, visibility 650ms; }
+.delivery-agentic[aria-hidden="true"] { opacity: 0; visibility: hidden; transform: translateY(28px); transition-delay: 0ms; }
+.delivery-comparison .comparison-label { margin-bottom: 12px; }
+.delivery-comparison .delivery-canvas svg { display: block; width: 100%; overflow: visible; }
+.delivery-comparison .delivery-node rect { fill: hsl(var(--card)); stroke: hsl(var(--border)); }
+.delivery-agentic .delivery-node rect { stroke: hsl(var(--primary) / .4); }
+.delivery-comparison .delivery-node text { fill: hsl(var(--foreground)); text-anchor: middle; font-size: 22px; font-weight: 500; }
+.delivery-comparison .delivery-code rect { stroke: hsl(var(--primary) / .65); fill: hsl(var(--primary) / .06); }
+.delivery-comparison .delivery-node .delivery-code-caption { font: 12px 'Geist Mono Variable', monospace; fill: hsl(var(--primary)); }
+.delivery-comparison .delivery-edge { fill: none; stroke: hsl(var(--primary) / .45); stroke-width: 1.5; }
+.delivery-comparison marker path { fill: hsl(var(--primary) / .65); }
+.delivery-comparison .delivery-pulse {
+    fill: none; stroke: hsl(var(--primary)); stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 12 112; stroke-dashoffset: 12; opacity: 0;
+    animation: delivery-forward-pulse 750ms linear both;
+}
+@keyframes delivery-forward-pulse {
+    0% { stroke-dashoffset: 12; opacity: 0; }
+    12% { opacity: .9; }
+    88% { opacity: .9; }
+    100% { stroke-dashoffset: -100; opacity: 0; }
+}
+.delivery-horizontal { display: none; }
+.delivery-horizontal .delivery-governance-node text { font-size: 18px; }
+.delivery-comparison .reveal-controls { margin-top: 16px; }
+@container (min-width: 1450px) {
+    .delivery-wrapped { display: none; }
+    .delivery-horizontal { display: block; }
+    .delivery-agentic { top: 57%; }
+}
+@media (max-width: 760px) {
+    .delivery-comparison .delivery-canvas { height: 490px; }
+    .delivery-comparison .delivery-canvas h2 { font-size: clamp(36px, 8vw, 54px); transform: translateY(35px); }
+    .delivery-comparison[data-delivery-stage="2"] h2,
+    .delivery-comparison[data-delivery-stage="3"] h2 { font-size: clamp(27px, 5.8vw, 38px); }
+    .delivery-opening { top: 45%; font-size: 22px; }
+    .delivery-traditional, .delivery-agentic { overflow-x: auto; padding-bottom: 12px; }
+    .delivery-comparison .delivery-traditional svg { min-width: 760px; }
+    .delivery-comparison .delivery-agentic svg { min-width: 760px; }
+    .delivery-comparison[data-delivery-stage="3"] .delivery-traditional { top: 23%; transform: scale(1); opacity: .4; }
+    .delivery-comparison[data-delivery-stage="3"] .delivery-traditional svg { min-width: 610px; }
+    .delivery-agentic { top: 48%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .delivery-comparison h2, .delivery-opening, .delivery-traditional, .delivery-agentic { transition: none; }
+    .delivery-comparison .delivery-pulse { display: none; animation: none; }
+}

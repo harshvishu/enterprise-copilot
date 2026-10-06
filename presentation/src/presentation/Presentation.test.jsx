@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Presentation from './Presentation';
 import { pages } from './pages';
+import AgentDataFlowPage from './AgentDataFlow';
 import { ThemeProvider } from '@/components/theme-provider';
 import { enterpriseCopilotUrl } from '@/lib/config';
 
@@ -67,7 +68,7 @@ describe('standalone presentation navigation', () => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
         key('ArrowRight');
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(2);
-        expect(window.location.hash).toBe('#delivery');
+        expect(window.location.hash).toBe('#agentic-sdlc');
     });
     it('honors reduced motion', () => {
         window.matchMedia.mockImplementation(query => ({ matches: query === '(prefers-reduced-motion: reduce)' }));
@@ -75,7 +76,7 @@ describe('standalone presentation navigation', () => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: 'instant', block: 'start' });
     });
     it('allows scrolling to update page state and restores semantic hash navigation', () => {
-        container.scrollTop = 6 * 900;
+        container.scrollTop = 4 * 900;
         act(() => container.dispatchEvent(new Event('scroll')));
         expect(window.location.hash).toBe('#architecture');
         window.history.replaceState(null, '', '/#hands-on');
@@ -90,7 +91,7 @@ describe('standalone presentation navigation', () => {
         act(() => container.dispatchEvent(new Event('scroll')));
         act(() => vi.advanceTimersByTime(161));
         key('ArrowRight');
-        expect(window.location.hash).toBe('#delivery');
+        expect(window.location.hash).toBe('#agentic-sdlc');
     });
     it('tracks scrolling and subsequent arrows after a slide is removed from a mounted deck', () => {
         // Reproduce the live-preview removal: React clears the removed section's
@@ -105,13 +106,13 @@ describe('standalone presentation navigation', () => {
         }
         container.scrollTop = 1800;
         act(() => container.dispatchEvent(new Event('scroll')));
-        expect(window.location.hash).toBe('#delivery');
+        expect(window.location.hash).toBe('#agentic-sdlc');
         expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
         key('ArrowRight');
-        expect(window.location.hash).toBe('#agentic-sdlc');
+        expect(window.location.hash).toBe('#agent-data-flow');
         settleAt(3);
         click(arrow('Previous page'));
-        expect(window.location.hash).toBe('#delivery');
+        expect(window.location.hash).toBe('#agentic-sdlc');
         settleAt(2);
         expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
     });
@@ -133,6 +134,44 @@ describe('preserved workshop content', () => {
         expect(host.querySelector('#welcome').textContent).not.toContain('Join us at');
         expect(host.querySelector('#code').textContent).toContain('.entity(responseType)');
         expect(host.querySelector('#solution').textContent).not.toContain('return confluenceTool.lookup');
+    });
+    it('places the named agents, animated flow and architecture before Spring AI', () => {
+        expect(pages.slice(0, 7).map(page => page.id)).toEqual(['welcome', 'problem', 'agentic-sdlc', 'agent-data-flow', 'architecture', 'spring-ai', 'spring-ai-flow']);
+        expect(pages.some(page => page.id === 'delivery')).toBe(false);
+        const agents = host.querySelector('#agentic-sdlc');
+        expect(agents.querySelectorAll('li:not([aria-hidden="true"])')).toHaveLength(1);
+        const reveal = [...agents.querySelectorAll('button')].find(button => button.textContent.includes('Reveal next'));
+        click(reveal); click(reveal); click(reveal);
+        expect(agents.querySelectorAll('li:not([aria-hidden="true"])')).toHaveLength(4);
+        expect(agents.textContent).toContain('Deterministic Java gates');
+        expect(host.querySelector('#live-demo').textContent).toContain('UB-4823');
+        expect(host.querySelector('#before-after').textContent).toContain('Approved business policy');
+    });
+    it('reveals and pulses one flow stage at a time, resets, and keeps page keys independent', () => {
+        const flow = host.querySelector('#agent-data-flow');
+        const reveal = [...flow.querySelectorAll('button')].find(button => button.textContent.includes('Reveal next'));
+        expect(flow.querySelectorAll('[data-flow-stage][aria-hidden="false"]')).toHaveLength(1);
+        for (let index = 1; index <= 7; index++) {
+            click(reveal);
+            expect(flow.querySelectorAll('[data-flow-stage][aria-hidden="false"]')).toHaveLength(index + 1);
+            expect(flow.querySelector('[data-current="true"]').getAttribute('data-flow-stage')).toBe(String(index));
+            expect(flow.querySelector('animateMotion')).not.toBeNull();
+        }
+        expect(reveal.disabled).toBe(true);
+        click([...flow.querySelectorAll('button')].find(button => button.textContent === 'Reset'));
+        expect(flow.querySelectorAll('[data-flow-stage][aria-hidden="false"]')).toHaveLength(1);
+        expect(flow.querySelector('animateMotion')).toBeNull();
+        window.history.replaceState(null, '', '/#agent-data-flow');
+        act(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
+        key('PageDown');
+        expect(window.location.hash).toBe('#architecture');
+    });
+    it('keeps progressive flow usable with reduced motion and no animated packet', () => {
+        window.matchMedia.mockImplementation(query => ({ matches: query === '(prefers-reduced-motion: reduce)', addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+        act(() => root.render(<AgentDataFlowPage />));
+        click([...host.querySelectorAll('button')].find(button => button.textContent.includes('Reveal next')));
+        expect(host.querySelector('[data-current="true"]').textContent).toContain('Rhea');
+        expect(host.querySelector('animateMotion')).toBeNull();
     });
     it('keeps the exercise timer manual and supports pause/reset', () => {
         vi.useFakeTimers();
@@ -164,7 +203,7 @@ describe('preserved workshop content', () => {
     });
     it('reveals the existing reference solution explicitly', () => {
         const solution = host.querySelector('#solution');
-        click([...solution.querySelectorAll('button')].find(button => button.textContent === 'Reveal ConfluenceAgent'));
+        click([...solution.querySelectorAll('button')].find(button => button.textContent === '01 ConfluenceAgent'));
         expect(solution.textContent).toContain('return confluenceTool.lookup(ticket.description());');
         click([...solution.querySelectorAll('button')].find(button => button.textContent === '02 Constructor wiring'));
         expect(solution.textContent).toContain('private final ConfluenceAgent confluenceAgent;');
@@ -199,7 +238,7 @@ describe('welcome screen', () => {
         expect(video.play).toHaveBeenCalledOnce();
     });
     it('stops video when reduced motion is enabled and resumes when disabled', () => {
-        const preference = window.matchMedia.mock.results.find(result => result.value.media === '(prefers-reduced-motion: reduce)').value;
+        const preference = window.matchMedia.mock.results.find(result => result.value.media === '(prefers-reduced-motion: reduce)' && result.value.addEventListener.mock.calls.some(([event]) => event === 'change')).value;
         const update = preference.addEventListener.mock.calls.find(([event]) => event === 'change')[1];
         const video = host.querySelector('video');
         video.pause.mockClear();

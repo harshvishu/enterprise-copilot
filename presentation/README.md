@@ -1,6 +1,6 @@
 # Enterprise Copilot presentation
 
-Standalone presenter app. The existing 20-page presentation, themes, native scroll snapping, smooth keyboard navigation, code walkthroughs, notes, timer, and solution reveal are preserved. The participant application remains in `../frontend` and is opened only through a URL.
+Standalone presenter app. The 20-page workshop follows problem → agents → animated data flow → architecture → Spring AI → implementation → UB-4823 demo → Confluence exercise → payoff. Themes, native scroll snapping, smooth keyboard navigation, code walkthroughs, notes, timer, and solution reveal are preserved. See [STORYBOARD.md](STORYBOARD.md) for the slide order and reveal behavior. The participant application remains in `../frontend` and is opened only through a URL.
 
 ## Run
 
@@ -28,7 +28,7 @@ Copy `.env.example` to `.env` and set:
 VITE_ENTERPRISE_COPILOT_URL=http://localhost:5173
 ```
 
-This defaults to `http://localhost:5173`. It is a build-time Vite setting; restart the dev server or rebuild after changing it. The launch link in speaker notes opens that URL in another tab. No app embedding or source imports.
+This defaults to `http://localhost:5173`. It is a build-time Vite setting; restart the dev server or rebuild after changing it. Launch links on the live-demo slide and in speaker notes open that URL in another tab. No app embedding or source imports.
 
 ## Independence
 
@@ -43,4 +43,4 @@ This directory owns its package manifest and lockfile, Vite/React build, Tailwin
 - `ConfluenceAgent.java.txt`: `workshop/reference/ConfluenceAgent.java`
 - `workshop-guide.md`: `docs/workshop-guide.md`
 
-Refresh these deliberately when workshop source changes. They are display assets, not executable Java. Presenter/contact details still await supplied content; no new pages were added during separation.
+Refresh these deliberately when workshop source changes. They are display assets, not executable Java. Presenter delivery notes live in the slide manifest and are available through Speaker notes. Contact and repository QR links remain omitted until destinations are supplied.
