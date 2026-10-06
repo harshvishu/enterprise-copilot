@@ -6,7 +6,8 @@ import orchestrator from '../content/PipelineOrchestrator.java.txt?raw';
 import requirements from '../content/RequirementsAgent.java.txt?raw';
 import deployment from '../content/DeployAgent.java.txt?raw';
 import confluence from '../content/ConfluenceAgent.java.txt?raw';
-import workshopGuide from '../content/workshop-guide.md?raw';
+import solutionOrchestrator from '../content/PipelineOrchestrator.solution.java.txt?raw';
+import { enclosingMethod, sourceRows } from './source-excerpts';
 
 function Frame({ eyebrow, title, lead, children, className = '' }) {
     return <div className={`technical-page workshop-page ${className}`}><p className="eyebrow">{eyebrow}</p><h2>{title}</h2>{lead && <p className="page-lead">{lead}</p>}{children}</div>;
@@ -42,9 +43,9 @@ function excerpt(source, anchor, count) {
     const lines = source.split('\n');
     const start = lines.findIndex(line => line.includes(anchor));
     if (start < 0) throw new Error(`Presentation source anchor not found: ${anchor}`);
-    const selected = lines.slice(start, start + count);
-    const indent = Math.min(...selected.filter(line => line.trim()).map(line => line.match(/^ */)[0].length));
-    return { lines: selected.map(line => line.slice(indent)), startLine: start + 1 };
+    const [header, headerEnd] = enclosingMethod(source, start);
+    const ranges = headerEnd < start ? [[header, headerEnd], [start, start + count]] : [[header, start + count]];
+    return { rows: sourceRows(source, ranges), startLine: start + 1 };
 }
 
 function SourceWalkthrough({ title, file, source, windows, lead }) {
@@ -130,11 +131,49 @@ export function HandsOnPage() {
     const reset = () => { deadline.current = null; setRunning(false); setRemaining(300); };
     return <Frame eyebrow="YOUR TURN / HANDS-ON" title={<>Add enterprise <span>knowledge.</span></>}><div className="hands-on-layout"><TaskList /><div className="exercise-timer"><span className="diagram-label">FIVE-MINUTE EXERCISE</span><div role="timer" aria-label="Exercise time remaining" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, '0')}<span>:</span>{String(remaining % 60).padStart(2, '0')}</div><div className="timer-controls"><Button variant="outline" disabled={remaining === 0} onClick={toggle}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pause' : remaining < 300 ? 'Resume' : 'Start'}</Button><Button variant="ghost" onClick={reset}><RotateCcw size={16} />Reset</Button></div><p role="status">{remaining === 0 ? 'Time is up. Let’s look at the solution.' : running ? 'Time to build.' : 'Start when everyone is ready.'}</p></div></div></Frame>;
 }
-const solutionSource = confluence.trimEnd().split('\n');
-const integration = workshopGuide.match(/```java\n(String businessContext[\s\S]*?)\n```/)[1].split('\n');
+const solutionClass = sourceRows(confluence, [[6, confluence.trimEnd().split('\n').length]]);
+const completedLines = solutionOrchestrator.split('\n');
+const solutionLine = text => {
+    const index = completedLines.findIndex(line => line.includes(text));
+    if (index < 0) throw new Error(`Solution source anchor not found: ${text}`);
+    return index;
+};
+const fieldLine = solutionLine('private final ConfluenceAgent');
+const constructorLine = solutionLine('public PipelineOrchestrator(');
+const parameterLine = solutionLine('ConfluenceAgent confluenceAgent,');
+const assignmentLine = solutionLine('this.confluenceAgent =');
+const runLine = solutionLine('public void run(UUID pipelineId)');
+const contextLine = solutionLine('String businessContext =');
+const wiringRows = sourceRows(solutionOrchestrator, [
+    [solutionLine('private final RequirementsAgent'), solutionLine('private final RequirementsAgent') + 1],
+    [fieldLine, fieldLine + 1],
+    [constructorLine, constructorLine + 2],
+    [parameterLine, parameterLine + 1],
+    [solutionLine('PresentationPacer pacer) {'), solutionLine('this.requirementsAgent =') + 1],
+    [assignmentLine, assignmentLine + 1],
+]);
+const contextRows = sourceRows(solutionOrchestrator, [
+    [runLine, runLine + 5],
+    [contextLine, contextLine + 3],
+    [solutionLine('ctx.setRequirementAnalysis(analysis);'), solutionLine('transition(ctx, PipelineState.REQUIREMENTS_READY);') + 1],
+]);
 export function SolutionPage() {
     const [reveal, setReveal] = useState(0);
-    return <Frame eyebrow="THE SOLUTION" title={<>Gather context.<br /><span>Let Rhea use it.</span></>} className="solution-page code-page"><div className="code-step-tabs"><Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1}>Reveal ConfluenceAgent</Button><Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>Orchestrator integration</Button><Button variant="ghost" onClick={() => setReveal(0)}>Hide</Button></div>{reveal === 0 ? <div className="solution-cover"><BookOpen size={32} /><p>One small agent.<br />Approved business context.</p></div> : <CodeSlide file={reveal === 1 ? 'ConfluenceAgent.java' : 'PipelineOrchestrator.java · workshop integration'} lines={reveal === 1 ? solutionSource : integration} startLine={1} highlight={reveal === 1 ? [15, 16] : [1, 2, 3]} annotation={reveal === 1 ? 'The agent gathers context. It does not make another model call.' : 'The supplied wrapper records activity; Rhea receives the additional context.'} />}<p className="source-reference">{reveal === 1 ? 'WORKSHOP REFERENCE SOURCE' : reveal === 2 ? 'SUPPLIED WORKSHOP GUIDE SNIPPET · NUMBERING RELATIVE TO SNIPPET' : 'EXPLICIT REVEAL / NO AUTOMATIC SOLUTION'}</p></Frame>;
+    const views = [null,
+        { file: 'ConfluenceAgent.java', rows: solutionClass, highlight: [15, 16], annotation: 'A complete class: Spring injects the tool; gatherContext retrieves trusted context.' },
+        { file: 'PipelineOrchestrator.java', rows: wiringRows, highlight: [fieldLine + 1, parameterLine + 1, assignmentLine + 1], annotation: 'Add the field, constructor parameter and assignment. The existing dependencies stay in place.' },
+        { file: 'PipelineOrchestrator.java', rows: contextRows, highlight: [contextLine + 1, contextLine + 2, contextLine + 3], annotation: 'Inside run(...), gather context before Rhea. Store the analysis and continue the existing pipeline.' },
+    ];
+    return <Frame eyebrow="THE SOLUTION" title={<>Gather context. <span>Let Rhea use it.</span></>} className="solution-page code-page">
+        <div className="code-step-tabs" role="group" aria-label="Confluence solution walkthrough">
+            <Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1}>Reveal ConfluenceAgent</Button>
+            <Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>02 Constructor wiring</Button>
+            <Button variant={reveal === 3 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(3)} aria-pressed={reveal === 3}>03 Call before Rhea</Button>
+            <Button variant="ghost" onClick={() => setReveal(0)}>Hide</Button>
+        </div>
+        {reveal === 0 ? <div className="solution-cover"><BookOpen size={32} /><p>One small agent.<br />Approved business context.</p></div> : <CodeSlide {...views[reveal]} />}
+        <p className="source-reference">{reveal ? 'WORKSHOP SOLUTION SNAPSHOT' : 'EXPLICIT REVEAL / NO AUTOMATIC SOLUTION'}{reveal === 1 && <span>Complete class · package and imports (lines 1–6) omitted.</span>}{reveal > 1 && <span>Real source lines · omitted sections marked inline.</span>}</p>
+    </Frame>;
 }
 export function BeforeAfterPage() {
     return <Frame eyebrow="UB-4823 / BEFORE AND AFTER" title={<>The same issue.<br /><span>Better business context.</span></>}><div className="comparison-layout"><div><span className="comparison-label">BEFORE</span><Flow vertical labels={['Issue', 'Requirements Agent', 'Human clarification']} /></div><div><span className="comparison-label after-label">AFTER</span><Flow vertical labels={['Issue', 'Confluence Agent', 'Approved SMS policy', 'Requirements Agent', 'Pipeline continues']} /></div></div></Frame>;

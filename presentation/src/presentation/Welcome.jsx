@@ -44,8 +44,8 @@ export function WelcomeBackdrop({ viewport }) {
 export default function WelcomePage() {
     return <div className="welcome-layout">
         <div className="welcome-copy">
-            <p className="welcome-kicker">Join us at FLO 2026!</p>
-            <h1>Your Sprint Has Agents Now:<br />Build a Multi-Agent SDLC Pipeline with Spring AI</h1>
+            <h1>Your SDLC, Now Agentic - with Spring AI</h1>
+            <p className="welcome-subtitle">Build, Review &amp; Ship with AI Agents</p>
             <div className="welcome-event"><p>10 Oct, 2026 <span> / </span> 3pm – 3:45pm</p><p>Bubble Coral Stage · Level 8 · North</p><span>Hands-on workshop</span></div>
             <p className="welcome-waiting"><span />Welcome. We’ll begin shortly.</p>
         </div>

@@ -21,7 +21,7 @@ beforeEach(() => {
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
     localStorage.clear();
-    window.history.replaceState(null, '', '/#intro');
+    window.history.replaceState(null, '', '/#welcome');
     document.documentElement.className = '';
     window.matchMedia.mockImplementation(query => ({ media: query, matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
     host = document.createElement('div');
@@ -50,11 +50,11 @@ describe('standalone presentation navigation', () => {
     });
     it.each(['ArrowUp', 'ArrowLeft', 'PageUp'])('%s scrolls back smoothly', name => {
         click(arrow('Next page'));
-        settleAt(2);
+        settleAt(1);
         Element.prototype.scrollIntoView.mockClear();
         key(name);
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: 'smooth', block: 'start' });
-        expect(window.location.hash).toBe('#intro');
+        expect(window.location.hash).toBe('#welcome');
     });
     it('ignores rapid presses and button clicks until the native scroll settles', () => {
         key('ArrowRight');
@@ -62,7 +62,7 @@ describe('standalone presentation navigation', () => {
         click(arrow('Next page'));
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
         expect(window.location.hash).toBe('#problem');
-        settleAt(2);
+        settleAt(1);
         key('ArrowRight', { repeat: true });
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
         key('ArrowRight');
@@ -75,22 +75,45 @@ describe('standalone presentation navigation', () => {
         expect(Element.prototype.scrollIntoView).toHaveBeenCalledExactlyOnceWith({ behavior: 'instant', block: 'start' });
     });
     it('allows scrolling to update page state and restores semantic hash navigation', () => {
-        container.scrollTop = 7 * 900;
+        container.scrollTop = 6 * 900;
         act(() => container.dispatchEvent(new Event('scroll')));
         expect(window.location.hash).toBe('#architecture');
         window.history.replaceState(null, '', '/#hands-on');
         act(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
         expect(Element.prototype.scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'instant', block: 'start' });
-        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('18');
+        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('17');
     });
     it('unlocks via the scroll-idle fallback when scrollend is unavailable', () => {
         vi.useFakeTimers();
         key('ArrowRight');
-        container.scrollTop = 1800;
+        container.scrollTop = 900;
         act(() => container.dispatchEvent(new Event('scroll')));
         act(() => vi.advanceTimersByTime(161));
         key('ArrowRight');
         expect(window.location.hash).toBe('#delivery');
+    });
+    it('tracks scrolling and subsequent arrows after a slide is removed from a mounted deck', () => {
+        // Reproduce the live-preview removal: React clears the removed section's
+        // ref, but the existing ref array retains that trailing null slot.
+        const renderDeck = () => act(() => root.render(<ThemeProvider defaultTheme="system" storageKey="copilot-presentation-theme"><Presentation /></ThemeProvider>));
+        pages.push({ id: 'temporary', title: 'Temporary', act: '', component: () => <div>Temporary slide</div> });
+        try {
+            renderDeck();
+        } finally {
+            pages.pop();
+            renderDeck();
+        }
+        container.scrollTop = 1800;
+        act(() => container.dispatchEvent(new Event('scroll')));
+        expect(window.location.hash).toBe('#delivery');
+        expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
+        key('ArrowRight');
+        expect(window.location.hash).toBe('#agentic-sdlc');
+        settleAt(3);
+        click(arrow('Previous page'));
+        expect(window.location.hash).toBe('#delivery');
+        settleAt(2);
+        expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
     });
     it('launches the participant app using the configured URL in a separate tab', () => {
         click(arrow('Speaker notes'));
@@ -102,9 +125,12 @@ describe('standalone presentation navigation', () => {
 
 describe('preserved workshop content', () => {
     it('renders the complete existing manifest with unique semantic IDs and source excerpts', () => {
-        expect(pages).toHaveLength(21);
-        expect(new Set(pages.map(page => page.id)).size).toBe(21);
-        expect(host.querySelectorAll('section')).toHaveLength(21);
+        expect(pages).toHaveLength(20);
+        expect(new Set(pages.map(page => page.id)).size).toBe(20);
+        expect(host.querySelectorAll('section')).toHaveLength(20);
+        expect(host.querySelector('#intro')).toBeNull();
+        expect(host.querySelector('#welcome h1').textContent).toBe('Your SDLC, Now Agentic - with Spring AI');
+        expect(host.querySelector('#welcome').textContent).not.toContain('Join us at');
         expect(host.querySelector('#code').textContent).toContain('.entity(responseType)');
         expect(host.querySelector('#solution').textContent).not.toContain('return confluenceTool.lookup');
     });
@@ -124,12 +150,31 @@ describe('preserved workshop content', () => {
         click([...exercise.querySelectorAll('button')].find(button => button.textContent === 'Reset'));
         expect(timer.textContent).toBe('05:00');
     });
+    it('keeps method context and real line numbers visible during code highlights', () => {
+        const code = host.querySelector('#code');
+        expect(code.textContent).toContain('public <T> T generate(');
+        click([...code.querySelectorAll('button')].find(button => button.textContent === '03  Validate'));
+        expect(code.textContent).toContain('return response;');
+        const validation = [...code.querySelectorAll('.source-line')].find(row => row.textContent.includes('validate(response);'));
+        expect(validation.querySelector('.line-number').textContent).toBe('75');
+        expect(validation.classList.contains('highlighted')).toBe(true);
+        expect(code.querySelector('.source-omission').textContent).toContain('omitted');
+        const requirements = host.querySelector('#requirements-code');
+        expect(requirements.textContent).toContain('public RequirementAnalysis analyze(PipelineContext ctx, String additionalContext)');
+    });
     it('reveals the existing reference solution explicitly', () => {
         const solution = host.querySelector('#solution');
         click([...solution.querySelectorAll('button')].find(button => button.textContent === 'Reveal ConfluenceAgent'));
         expect(solution.textContent).toContain('return confluenceTool.lookup(ticket.description());');
-        click([...solution.querySelectorAll('button')].find(button => button.textContent === 'Orchestrator integration'));
+        click([...solution.querySelectorAll('button')].find(button => button.textContent === '02 Constructor wiring'));
+        expect(solution.textContent).toContain('private final ConfluenceAgent confluenceAgent;');
+        expect(solution.textContent).toContain('public PipelineOrchestrator(');
+        expect(solution.textContent).toContain('this.confluenceAgent = confluenceAgent;');
+        click([...solution.querySelectorAll('button')].find(button => button.textContent === '03 Call before Rhea'));
+        expect(solution.textContent).toContain('public void run(UUID pipelineId)');
         expect(solution.textContent).toContain('requirementsAgent.analyze(ctx, businessContext)');
+        click([...solution.querySelectorAll('button')].find(button => button.textContent === 'Hide'));
+        expect(solution.querySelector('.code-workspace')).toBeNull();
     });
 });
 
@@ -166,12 +211,12 @@ describe('welcome screen', () => {
         act(() => update());
         expect(video.play).toHaveBeenCalledOnce();
     });
-    it('navigates from the welcome screen into the unchanged introduction', () => {
+    it('navigates from the animated introduction directly to the problem statement', () => {
         key('Home');
         settleAt(0);
         expect(window.location.hash).toBe('#welcome');
         click(arrow('Next page'));
-        expect(window.location.hash).toBe('#intro');
+        expect(window.location.hash).toBe('#problem');
         expect(Element.prototype.scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'smooth', block: 'start' });
         expect(host.querySelector('#welcome').textContent).toContain('Harsh Vishwakarma');
         expect(host.querySelector('#welcome').textContent).toContain('Dhruv Gupta');

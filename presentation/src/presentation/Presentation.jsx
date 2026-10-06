@@ -40,7 +40,7 @@ export default function Presentation() {
             clearTimeout(settleTimer.current);
             scrolling.current = false;
             const position = container.scrollTop + container.clientHeight * 0.3;
-            const next = sections.current.reduce((found, section, i) => section.offsetTop <= position ? i : found, 0);
+            const next = sections.current.slice(0, pages.length).reduce((found, section, i) => section && section.offsetTop <= position ? i : found, 0);
             activeRef.current = next;
             setActive(next);
             window.history.replaceState(null, '', `#${pages[next].id}`);
@@ -88,7 +88,7 @@ export default function Presentation() {
             return;
         }
         const position = viewport.current.scrollTop + viewport.current.clientHeight * 0.3;
-        const next = sections.current.reduce((found, section, i) => section.offsetTop <= position ? i : found, 0);
+        const next = sections.current.slice(0, pages.length).reduce((found, section, i) => section && section.offsetTop <= position ? i : found, 0);
         if (next !== activeRef.current) {
             activeRef.current = next;
             setActive(next);
