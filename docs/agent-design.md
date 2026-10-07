@@ -86,7 +86,7 @@ slot, the central "AI catches the
 vulnerability" moment must be 100% reproducible.
 OpenAI is the default workshop experience; Ollama is the explicit local LIVE alternative.
 `DemoResponses` encodes canonical backlog scenario outcomes for credential-free participant self-checks
-and a clearly identified presenter fallback. No live failure is silently replaced with a fixture.
+and a clearly identified presenter fallback. A live failure is replaced with a fixture only when `COPILOT_AI_FALLBACK=demo` is set, and the substitution is always shown.
 Atlas's `deploy.st` only restates the existing Java gate inputs, so it adds no distinct assessment
 and is not invoked. `testsPass` is a simulated/model-proposed signal, not independently run tests.
 The Confluence reference resolves UB-4823's notification channel to SMS; RESET asks one channel question.

@@ -69,7 +69,7 @@ Azure configuration is deferred; there is no supported Azure profile in this rep
 Rhea, Nova and Sentinel call the model. Atlas does not: `deploy.st` only repeats the
 same gate inputs as Java and is retained as unused reference material, not an active AI stage.
 Tools are resolved directly by Java before prompting; no AI tool callbacks or memory are registered.
-The live adapter checks required result fields and surfaces provider-specific failures without DEMO substitution.
+The live adapter checks required result fields and surfaces provider-specific failures. `RoutingAgentAiClient` retries failed LIVE calls (`COPILOT_AI_RETRY_ATTEMPTS`, `COPILOT_AI_RETRY_BACKOFF_MS`) and, with `COPILOT_AI_FALLBACK=demo`, finishes the run with DEMO output and emits an `AI_FALLBACK` event; the default `none` never substitutes DEMO.
 LIVE scenario outcomes are not guaranteed; `testsPass` is proposed/simulated evidence, not real CI.
 
 ## Prompts

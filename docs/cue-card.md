@@ -7,7 +7,7 @@
 - [ ] Backend up → http://localhost:8080/actuator/health = UP
 - [ ] Frontend up → http://localhost:5173
 - [ ] Banner reads **LIVE · OPENAI** and a real model call has been rehearsed
-- [ ] Next-run LIVE/DEMO control is available; no automatic fallback
+- [ ] Next-run LIVE/DEMO control is available; set `COPILOT_AI_FALLBACK=demo` for a visible retry-then-DEMO safety net
 
 ---
 

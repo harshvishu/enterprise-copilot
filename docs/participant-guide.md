@@ -8,7 +8,7 @@
 ## Normal workshop: OpenAI LIVE
 
 Supply `OPENAI_API_KEY` in your backend terminal environment; never commit its value.
-Missing credentials produce a configuration error, not an automatic DEMO fallback.
+Missing credentials produce a configuration error unless `COPILOT_AI_FALLBACK=demo` is set, which switches the run to visible DEMO output.
 
 ```bash
 # Terminal 1 – backend

@@ -4,7 +4,16 @@ import {
     hasPassingTestSignal,
     pipelineAttention,
     stageStatuses,
+    usedFallback,
 } from './pipeline';
+
+describe('AI fallback signal', () => {
+    it('detects a LIVE to DEMO fallback event', () => {
+        expect(usedFallback([{ type: 'AGENT_STARTED' }])).toBe(false);
+        expect(usedFallback([{ type: 'AI_FALLBACK' }])).toBe(true);
+        expect(usedFallback()).toBe(false);
+    });
+});
 
 describe('proposed test signal', () => {
     it.each(

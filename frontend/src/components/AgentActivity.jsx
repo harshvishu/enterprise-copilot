@@ -48,6 +48,7 @@ const LABELS = {
     DEPLOYMENT_COMPLETED: 'Deployment complete',
     PIPELINE_COMPLETED: 'Pipeline complete',
     PIPELINE_FAILED: 'Execution stopped',
+    AI_FALLBACK: 'Fell back to DEMO',
 };
 
 export default function AgentActivity({ events = [] }) {
@@ -105,7 +106,8 @@ export default function AgentActivity({ events = [] }) {
                                                         ].includes(event.type) ||
                                                             event.data?.severity === 'CRITICAL'
                                                             ? 'bg-destructive'
-                                                            : event.type === 'APPROVAL_REQUIRED'
+                                                            : event.type === 'APPROVAL_REQUIRED' ||
+                                                                event.type === 'AI_FALLBACK'
                                                               ? 'bg-warning'
                                                               : 'bg-muted-foreground/50',
                                                     )}

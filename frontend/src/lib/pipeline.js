@@ -31,6 +31,10 @@ export function hasPassingTestSignal(proposal) {
     return hasProposedTests(proposal) && proposal.testsPass === true;
 }
 
+export function usedFallback(events = []) {
+    return events.some((event) => event.type === 'AI_FALLBACK');
+}
+
 export function modelLabel(status) {
     if (status?.aiMode === 'DEMO') return 'Deterministic fixture';
     if (status?.provider === 'OPENAI') return 'Model call · OpenAI';

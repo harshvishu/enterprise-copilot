@@ -10,7 +10,7 @@ import {
     SheetDescription,
 } from '@/components/ui/sheet';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { ACTIVE_STATES } from '@/lib/pipeline';
+import { ACTIVE_STATES, usedFallback } from '@/lib/pipeline';
 import Sidebar from './Sidebar';
 import AgentActivity from './AgentActivity';
 
@@ -94,6 +94,14 @@ export default function PageHeader({
                             ? 'Connecting'
                             : `${runMode === 'LIVE' ? 'LIVE' : 'DEMO'} · ${provider}`}
                     </Badge>
+                    {usedFallback(events) && (
+                        <Badge
+                            variant="outline"
+                            className="rounded-md border-warning px-2 py-1 text-[10px] font-normal text-warning"
+                        >
+                            Fallback to DEMO
+                        </Badge>
+                    )}
                     <span className="text-xs text-muted-foreground">Delivery pipeline</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

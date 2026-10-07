@@ -36,7 +36,8 @@ class AgentGroundingTest {
         org.springframework.beans.factory.ObjectProvider<SpringAiAgentAiClient> available =
                 mock(org.springframework.beans.factory.ObjectProvider.class);
         when(available.getIfAvailable()).thenReturn(live);
-        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), available, state);
+        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), available, state,
+                events, audit, "none", 0, 0);
         var demoRun = new PipelineContext(UUID.randomUUID(), context().ticket(), DemoScenario.NORMAL, AiMode.DEMO);
         assertThat(router.generateForRun(AgentKind.REVIEW, demoRun, "", ReviewDecision.class).passed())
                 .isTrue();
@@ -54,7 +55,8 @@ class AgentGroundingTest {
     void liveRunWithoutAProviderDoesNotSilentlyUseDemo() {
         org.springframework.beans.factory.ObjectProvider<SpringAiAgentAiClient> unavailable =
                 mock(org.springframework.beans.factory.ObjectProvider.class);
-        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), unavailable, mock(DemoState.class));
+        var router = new RoutingAgentAiClient(new DemoAgentAiClient(new DemoResponses()), unavailable,
+                mock(DemoState.class), events, audit, "none", 0, 0);
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                 router.generateForRun(AgentKind.REVIEW, context(), "", ReviewDecision.class))
                 .isInstanceOf(IllegalStateException.class)

@@ -72,6 +72,7 @@ export function streamEvents(id, onEvent) {
         'DEPLOYMENT_COMPLETED',
         'PIPELINE_COMPLETED',
         'PIPELINE_FAILED',
+        'AI_FALLBACK',
     ];
 
     types.forEach((t) => source.addEventListener(t, (e) => onEvent(JSON.parse(e.data))));

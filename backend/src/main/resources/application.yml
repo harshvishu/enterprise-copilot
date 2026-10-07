@@ -56,6 +56,10 @@ springdoc:
 copilot:
   ai:
     mode: DEMO # Legacy property; effective mode/banner is derived from the selected profile.
+    # LIVE failures are retried; fallback=demo then finishes the run with visible DEMO output.
+    fallback: ${COPILOT_AI_FALLBACK:none} # none | demo
+    retry-attempts: ${COPILOT_AI_RETRY_ATTEMPTS:2}
+    retry-backoff-ms: ${COPILOT_AI_RETRY_BACKOFF_MS:1000}
   demo:
     scenario: NORMAL # NORMAL | SECURITY_FAILURE | AMBIGUOUS_REQUIREMENT | TEST_FAILURE | MISSING_APPROVAL | HALLUCINATED_API | PROMPT_INJECTION
     # Presentation pacing for workshops; set both to 0 to disable.

@@ -20,7 +20,9 @@ for the next run from the frontend; `RoutingAgentAiClient` dispatches using that
 OpenAI/Ollama profiles configure the real provider, not exclusive execution paths. The `demo`
 profile remains the credential-free option, with LIVE unavailable unless a real provider is configured.
 The same first three agent/orchestrator paths run in LIVE; Atlas is always deterministic Java.
-The UI identifies the provider. Live failure never silently substitutes DEMO output. Azure is deferred.
+The UI identifies the provider. LIVE failures are retried; DEMO output is substituted only when
+`COPILOT_AI_FALLBACK=demo` is set, and then visibly (fallback event, header badge, audit record) for
+the rest of that run. Azure is deferred.
 
 ## Consequences
 

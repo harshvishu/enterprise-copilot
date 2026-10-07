@@ -3,7 +3,7 @@
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 BACKEND_DIR="$REPO_ROOT/backend"
 FRONTEND_DIR="$REPO_ROOT/frontend"
-BACKEND_PORT=8080
+BACKEND_PORT=8081
 FRONTEND_PORT=5173
 
 if [[ -t 1 ]]; then
