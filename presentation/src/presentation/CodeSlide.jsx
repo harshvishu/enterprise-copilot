@@ -10,15 +10,16 @@ function JavaLine({ text }) {
     });
 }
 
-export default function CodeSlide({ file, lines, startLine = 1, highlight = [], annotation }) {
+export default function CodeSlide({ file, lines = [], rows, startLine = 1, highlight = [], annotation }) {
+    const sourceRows = rows ?? lines.map((text, index) => ({ text, number: startLine + index }));
     return (
         <figure className="code-workspace">
             <figcaption className="code-file"><FileCode2 size={18} /><span>{file}</span><span className="code-language">JAVA</span></figcaption>
             <pre tabIndex={0} aria-label={`${file} source excerpt`}><code>
-                {lines.map((line, index) => {
-                    const number = startLine + index;
+                {sourceRows.map(({ text: line, number, omitted }, index) => {
+                    if (omitted) return <span key={`gap-${index}`} className="source-line source-omission"><span className="line-number" aria-hidden="true">···</span><span>{omitted}</span></span>;
                     const selected = highlight.includes(number);
-                    return <span key={number} className={`source-line ${selected ? 'highlighted' : highlight.length ? 'dimmed' : ''}`}><span className="line-number" aria-hidden="true">{number}</span><span><JavaLine text={line} /></span></span>;
+                    return <span key={number} className={`source-line ${!line.trim() ? 'source-blank' : ''} ${selected ? 'highlighted' : highlight.length ? 'dimmed' : ''}`}><span className="line-number" aria-hidden="true">{number}</span><span><JavaLine text={line} /></span></span>;
                 })}
             </code></pre>
             {annotation && <div className="code-annotation"><span className="signal-dot" />{annotation}</div>}

@@ -1,19 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, BookOpen, Check, CircleHelp, Pause, Play, RotateCcw, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, CircleHelp, Pause, Play, ShieldCheck, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useSlideState } from './slide-navigation';
 import CodeSlide from './CodeSlide';
+import DeliveryComparison from './DeliveryComparison';
 import orchestrator from '../content/PipelineOrchestrator.java.txt?raw';
 import requirements from '../content/RequirementsAgent.java.txt?raw';
 import deployment from '../content/DeployAgent.java.txt?raw';
 import confluence from '../content/ConfluenceAgent.java.txt?raw';
-import workshopGuide from '../content/workshop-guide.md?raw';
+import solutionOrchestrator from '../content/PipelineOrchestrator.solution.java.txt?raw';
+import { enclosingMethod, sourceRows } from './source-excerpts';
+import { enterpriseCopilotUrl } from '@/lib/config';
 
 function Frame({ eyebrow, title, lead, children, className = '' }) {
     return <div className={`technical-page workshop-page ${className}`}><p className="eyebrow">{eyebrow}</p><h2>{title}</h2>{lead && <p className="page-lead">{lead}</p>}{children}</div>;
 }
 
 export function ProblemPage() {
-    return <div className="statement-page"><p className="eyebrow">BEYOND CODE COMPLETION</p><h2>AI can write code.<br /><span>But software delivery<br />is more than writing code.</span></h2></div>;
+    return <DeliveryComparison />;
 }
 
 function Flow({ labels, visible = labels.length, vertical = false }) {
@@ -21,34 +25,41 @@ function Flow({ labels, visible = labels.length, vertical = false }) {
 }
 
 function RevealFlow({ eyebrow, title, labels, lead }) {
-    const [visible, setVisible] = useState(1);
-    return <Frame eyebrow={eyebrow} title={title} lead={lead}><Flow labels={labels} visible={visible} /><div className="reveal-controls"><Button variant="outline" disabled={visible === labels.length} onClick={() => setVisible(value => value + 1)}>Reveal next <ArrowRight size={15} /></Button><Button variant="ghost" onClick={() => setVisible(1)}>Reset</Button><span>{visible} / {labels.length}</span></div></Frame>;
+    const [visible] = useSlideState(1, labels.length);
+    return <Frame eyebrow={eyebrow} title={title} lead={lead}><Flow labels={labels} visible={visible} /></Frame>;
 }
 
-export function DeliveryPage() {
-    return <RevealFlow eyebrow="THE DELIVERY LIFECYCLE" title={<>More than <span>implementation.</span></>} labels={['Requirement', 'Implementation', 'Review', 'Release']} />;
-}
+const agentRoles = [
+    ['Rhea', 'Requirements Analyst', 'Understand'],
+    ['Nova', 'Senior Java Engineer', 'Build'],
+    ['Sentinel', 'Security & Compliance', 'Challenge'],
+    ['Atlas', 'Release Manager', 'Release'],
+];
 export function AgenticPage() {
-    return <RevealFlow eyebrow="WHAT WE ARE BUILDING" title={<>Your sprint has <span>agents now.</span></>} lead="One pipeline. Clear responsibilities. Human authorization." labels={['Requirements Agent', 'Coding Agent', 'Review Agent', 'Deployment Agent', 'Human authorization']} />;
+    const [visible] = useSlideState(1, 4);
+    return <Frame eyebrow="THE AGENTS / BOUNDED RESPONSIBILITIES" title={<>Four specialists. <span>One pipeline.</span></>} className="diagram-page">
+        <ol className="agent-introductions" aria-label="Four specialized agents">{agentRoles.map(([name, role, verb], index) => <li key={name} className={index >= visible ? 'unrevealed' : ''} aria-hidden={index >= visible}><span className="diagram-label">0{index + 1} / {verb.toUpperCase()}</span><strong>{name}</strong><span className="agent-role">{role}</span>{name === 'Atlas' && <span className="agent-implementation">Deterministic Java gates</span>}</li>)}</ol>
+        <p className="diagram-note">Coordinated by an orchestrator. Each stage reads context and returns a typed result.</p>
+    </Frame>;
 }
 export function SpringPage() {
-    return <Frame eyebrow="THE FRAMEWORK" title={<>Spring AI<span>.</span></>} lead="The pieces we use in this application."><div className="spring-concepts">{[['ChatModel', 'Model abstraction'], ['ChatClient', 'Interaction API'], ['Prompt', 'Instructions + enterprise context'], ['.entity(…)', 'Structured Java output']].map(([name, explanation]) => <div key={name}><code>{name}</code><span>{explanation}</span></div>)}</div></Frame>;
+    return <Frame eyebrow="THE FRAMEWORK" title={<>Spring AI<span>.</span></>} lead="The pieces we use in this application."><div className="spring-concepts">{[['ChatModel', 'Model / provider abstraction'], ['ChatClient', 'Interaction API'], ['Prompt', 'Instructions + enterprise context'], ['.entity(…)', 'Structured Java output']].map(([name, explanation]) => <div key={name}><code>{name}</code><span>{explanation}</span></div>)}</div></Frame>;
 }
 export function SpringFlowPage() {
-    return <RevealFlow eyebrow="SPRING AI / FROM MODEL TO APPLICATION" title={<>From a prompt to <span>Java objects.</span></>} labels={['ChatModel', 'ChatClient', 'Prompt', 'Structured output', 'Java object']} lead="OpenAI / Ollama behind the model abstraction." />;
+    return <RevealFlow eyebrow="SPRING AI / FROM MODEL TO APPLICATION" title={<>From a prompt to <span>Java objects.</span></>} labels={['ChatModel', 'ChatClient', 'Prompt', '.entity(...)']} lead="OpenAI / Ollama behind the model abstraction." />;
 }
 
 function excerpt(source, anchor, count) {
     const lines = source.split('\n');
     const start = lines.findIndex(line => line.includes(anchor));
     if (start < 0) throw new Error(`Presentation source anchor not found: ${anchor}`);
-    const selected = lines.slice(start, start + count);
-    const indent = Math.min(...selected.filter(line => line.trim()).map(line => line.match(/^ */)[0].length));
-    return { lines: selected.map(line => line.slice(indent)), startLine: start + 1 };
+    const [header, headerEnd] = enclosingMethod(source, start);
+    const ranges = headerEnd < start ? [[header, headerEnd], [start, start + count]] : [[header, start + count]];
+    return { rows: sourceRows(source, ranges), startLine: start + 1 };
 }
 
 function SourceWalkthrough({ title, file, source, windows, lead }) {
-    const [step, setStep] = useState(0);
+    const [step, setStep] = useSlideState(0, windows.length - 1);
     const current = windows[step];
     const snippet = excerpt(source, current.anchor, current.count ?? 9);
     const highlight = (current.highlight ?? [0]).map(offset => snippet.startLine + offset);
@@ -90,7 +101,7 @@ export function ApprovalPage() {
     ]} />;
 }
 export function LiveDemoPage() {
-    return <div className="statement-page"><p className="eyebrow"><span className="signal-dot" />LIVE DEMO</p><h2>Let's run<br /><span>the pipeline.</span></h2><p className="page-lead">Enterprise Copilot</p><div className="demo-scenarios"><span>Requirements</span><ArrowRight /><span>Review</span><ArrowRight /><span>Human approval</span></div></div>;
+    return <Frame eyebrow="LIVE DEMO / UB-4823 BEFORE CONFLUENCE" title={<>Let’s run <span>UB-4823.</span></>} lead="Which notification channel should we use?" className="diagram-page"><div className="narrative-demo"><Flow labels={['UB-4823', 'Rhea', 'Human clarification']} /></div><Button className="demo-launch" variant="outline" asChild><a href={enterpriseCopilotUrl} target="_blank" rel="noopener noreferrer">Open Enterprise Copilot <ArrowRight size={16} /></a></Button><p className="diagram-note">BEFORE: reasoning needs an approved business decision.</p></Frame>;
 }
 export function MissingContextPage() {
     return <Frame eyebrow="YOUR TURN / SOMETHING IS MISSING" title={<>Rhea knows how to reason.<br /><span>But it needs the business decision.</span></>}><div className="missing-context"><Flow labels={['Issue', 'Requirements Agent', 'Human clarification']} /><blockquote><CircleHelp size={25} />Which notification channel should we use?</blockquote><span className="diagram-label">UB-4823 / BEFORE</span></div></Frame>;
@@ -127,17 +138,53 @@ export function HandsOnPage() {
             setRunning(true);
         }
     };
-    const reset = () => { deadline.current = null; setRunning(false); setRemaining(300); };
-    return <Frame eyebrow="YOUR TURN / HANDS-ON" title={<>Add enterprise <span>knowledge.</span></>}><div className="hands-on-layout"><TaskList /><div className="exercise-timer"><span className="diagram-label">FIVE-MINUTE EXERCISE</span><div role="timer" aria-label="Exercise time remaining" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, '0')}<span>:</span>{String(remaining % 60).padStart(2, '0')}</div><div className="timer-controls"><Button variant="outline" disabled={remaining === 0} onClick={toggle}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pause' : remaining < 300 ? 'Resume' : 'Start'}</Button><Button variant="ghost" onClick={reset}><RotateCcw size={16} />Reset</Button></div><p role="status">{remaining === 0 ? 'Time is up. Let’s look at the solution.' : running ? 'Time to build.' : 'Start when everyone is ready.'}</p></div></div></Frame>;
+    return <Frame eyebrow="YOUR TURN / HANDS-ON" title={<>Add enterprise <span>knowledge.</span></>}><div className="hands-on-layout"><TaskList /><div className="exercise-timer"><span className="diagram-label">FIVE-MINUTE EXERCISE</span><div role="timer" aria-label="Exercise time remaining" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, '0')}<span>:</span>{String(remaining % 60).padStart(2, '0')}</div><div className="timer-controls"><Button variant="outline" disabled={remaining === 0} onClick={toggle}>{running ? <Pause size={16} /> : <Play size={16} />}{running ? 'Pause' : remaining < 300 ? 'Resume' : 'Start'}</Button></div><p role="status">{remaining === 0 ? 'Time is up. Let’s look at the solution.' : running ? 'Time to build.' : 'Start when everyone is ready.'}</p></div></div></Frame>;
 }
-const solutionSource = confluence.trimEnd().split('\n');
-const integration = workshopGuide.match(/```java\n(String businessContext[\s\S]*?)\n```/)[1].split('\n');
+const solutionClass = sourceRows(confluence, [[6, confluence.trimEnd().split('\n').length]]);
+const completedLines = solutionOrchestrator.split('\n');
+const solutionLine = text => {
+    const index = completedLines.findIndex(line => line.includes(text));
+    if (index < 0) throw new Error(`Solution source anchor not found: ${text}`);
+    return index;
+};
+const fieldLine = solutionLine('private final ConfluenceAgent');
+const constructorLine = solutionLine('public PipelineOrchestrator(');
+const parameterLine = solutionLine('ConfluenceAgent confluenceAgent,');
+const assignmentLine = solutionLine('this.confluenceAgent =');
+const runLine = solutionLine('public void run(UUID pipelineId)');
+const contextLine = solutionLine('String businessContext =');
+const wiringRows = sourceRows(solutionOrchestrator, [
+    [solutionLine('private final RequirementsAgent'), solutionLine('private final RequirementsAgent') + 1],
+    [fieldLine, fieldLine + 1],
+    [constructorLine, constructorLine + 2],
+    [parameterLine, parameterLine + 1],
+    [solutionLine('PresentationPacer pacer) {'), solutionLine('this.requirementsAgent =') + 1],
+    [assignmentLine, assignmentLine + 1],
+]);
+const contextRows = sourceRows(solutionOrchestrator, [
+    [runLine, runLine + 5],
+    [contextLine, contextLine + 3],
+    [solutionLine('ctx.setRequirementAnalysis(analysis);'), solutionLine('transition(ctx, PipelineState.REQUIREMENTS_READY);') + 1],
+]);
 export function SolutionPage() {
-    const [reveal, setReveal] = useState(0);
-    return <Frame eyebrow="THE SOLUTION" title={<>Gather context.<br /><span>Let Rhea use it.</span></>} className="solution-page code-page"><div className="code-step-tabs"><Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1}>Reveal ConfluenceAgent</Button><Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>Orchestrator integration</Button><Button variant="ghost" onClick={() => setReveal(0)}>Hide</Button></div>{reveal === 0 ? <div className="solution-cover"><BookOpen size={32} /><p>One small agent.<br />Approved business context.</p></div> : <CodeSlide file={reveal === 1 ? 'ConfluenceAgent.java' : 'PipelineOrchestrator.java · workshop integration'} lines={reveal === 1 ? solutionSource : integration} startLine={1} highlight={reveal === 1 ? [15, 16] : [1, 2, 3]} annotation={reveal === 1 ? 'The agent gathers context. It does not make another model call.' : 'The supplied wrapper records activity; Rhea receives the additional context.'} />}<p className="source-reference">{reveal === 1 ? 'WORKSHOP REFERENCE SOURCE' : reveal === 2 ? 'SUPPLIED WORKSHOP GUIDE SNIPPET · NUMBERING RELATIVE TO SNIPPET' : 'EXPLICIT REVEAL / NO AUTOMATIC SOLUTION'}</p></Frame>;
+    const [reveal, setReveal] = useSlideState(0, 3);
+    const views = [null,
+        { file: 'ConfluenceAgent.java', rows: solutionClass, highlight: [15, 16], annotation: 'A complete class: Spring injects the tool; gatherContext retrieves trusted context.' },
+        { file: 'PipelineOrchestrator.java', rows: wiringRows, highlight: [fieldLine + 1, parameterLine + 1, assignmentLine + 1], annotation: 'Add the field, constructor parameter and assignment. The existing dependencies stay in place.' },
+        { file: 'PipelineOrchestrator.java', rows: contextRows, highlight: [contextLine + 1, contextLine + 2, contextLine + 3], annotation: 'Inside run(...), gather context before Rhea. Store the analysis and continue the existing pipeline.' },
+    ];
+    return <Frame eyebrow="THE SOLUTION" title={<>Gather context. <span>Let Rhea use it.</span></>} className="solution-page code-page">
+        <div className="code-step-tabs" role="group" aria-label="Confluence solution walkthrough">
+            <Button variant={reveal === 1 ? 'secondary' : 'outline'} onClick={() => setReveal(1)} aria-pressed={reveal === 1} aria-label="Reveal ConfluenceAgent">01 ConfluenceAgent</Button>
+            <Button variant={reveal === 2 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(2)} aria-pressed={reveal === 2}>02 Constructor wiring</Button>
+            <Button variant={reveal === 3 ? 'secondary' : 'outline'} disabled={reveal === 0} onClick={() => setReveal(3)} aria-pressed={reveal === 3}>03 Call before Rhea</Button>
+        </div>
+        {reveal === 0 ? <div className="solution-cover"><BookOpen size={32} /><p>One small agent.<br />Approved business context.</p></div> : <CodeSlide {...views[reveal]} />}
+        <p className="source-reference">{reveal ? 'WORKSHOP SOLUTION SNAPSHOT' : 'EXPLICIT REVEAL / NO AUTOMATIC SOLUTION'}{reveal === 1 && <span>Complete class · package and imports (lines 1–6) omitted.</span>}{reveal > 1 && <span>Real source lines · omitted sections marked inline.</span>}</p>
+    </Frame>;
 }
 export function BeforeAfterPage() {
-    return <Frame eyebrow="UB-4823 / BEFORE AND AFTER" title={<>The same issue.<br /><span>Better business context.</span></>}><div className="comparison-layout"><div><span className="comparison-label">BEFORE</span><Flow vertical labels={['Issue', 'Requirements Agent', 'Human clarification']} /></div><div><span className="comparison-label after-label">AFTER</span><Flow vertical labels={['Issue', 'Confluence Agent', 'Approved SMS policy', 'Requirements Agent', 'Pipeline continues']} /></div></div></Frame>;
+    return <Frame eyebrow="UB-4823 / BEFORE AND AFTER" title={<>The same issue.<br /><span>Better business context.</span></>} className="payoff-page"><p className="page-lead">UB-4823: approved SMS policy resolves the channel clarification.</p><div className="comparison-layout"><div><span className="comparison-label">BEFORE</span><Flow vertical labels={['Issue', 'Requirements Agent', 'Human clarification']} /></div><div><span className="comparison-label after-label">AFTER</span><Flow vertical labels={['Issue', 'ConfluenceAgent', 'Approved business policy', 'Requirements Agent', 'Pipeline continues']} /></div></div></Frame>;
 }
 export function FinishPage() {
     return <div className="statement-page finish-page"><p className="eyebrow">THE TAKEAWAY</p><h2>Agents advise.<br />Systems enforce.<br /><span>Humans authorize.</span></h2><div className="finish-principles"><span><BookOpen />Enterprise knowledge</span><ArrowRight /><span>AI agents</span><ArrowRight /><span><ShieldCheck />Deterministic gates</span><ArrowRight /><span><UserRound />Human accountability</span></div><a className="resource-link" href="https://docs.spring.io/spring-ai/reference/" target="_blank" rel="noopener noreferrer">Spring AI reference <ArrowRight size={15} /></a></div>;
