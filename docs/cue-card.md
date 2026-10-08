@@ -41,7 +41,7 @@
 - In DEMO choose UB-4822: review requests changes; tap Use masked references and submit to revise.
 - Show Nova and Sentinel run again, then Atlas requires human approval. Feedback never bypasses gates.
 - Frontend down → demo via Swagger: http://localhost:8080/swagger-ui.html
-- Port 8080 busy → `--server.port=8081` + update Vite proxy.
+- Port 8080 busy → stop the conflicting process; `scripts/start.sh` requires port 8080. To run services separately on 8081, use `--server.port=8081` and update the Vite proxy.
 
 ## Scenario → outcome (quick reference)
 
