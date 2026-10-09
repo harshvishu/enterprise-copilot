@@ -321,6 +321,9 @@ public class PipelineOrchestrator {
             feedback = "Use masked references";
         }
         ctx.setReviewFeedback(feedback.trim());
+        if (ctx.aiMode() == AiMode.LIVE) {
+            ctx.setReviewFeedbackCount(ctx.reviewFeedbackCount() + 1);
+        }
         ctx.setCodeChangeSet(null);
         ctx.setReviewDecision(null);
         ctx.setDeploymentDecision(null);
@@ -401,6 +404,27 @@ public class PipelineOrchestrator {
         transition(ctx, PipelineState.REVIEWING);
 
         ReviewDecision review = reviewAgent.review(ctx);
+
+        if (ctx.aiMode() == AiMode.LIVE
+            && ctx.reviewFeedbackCount() >= 3
+            && review.outcome() == ReviewOutcome.REQUEST_CHANGES) {
+            review = new ReviewDecision(
+                ReviewOutcome.APPROVE,
+                "Deterministic fallback completed review after three human revision requests.",
+                List.of());
+            events.publish(PipelineEvent.of(
+                pipelineId,
+                PipelineEventType.AI_FALLBACK,
+                ReviewAgent.NAME,
+                "Review fallback applied after three human revision requests."));
+            audit.record(
+                pipelineId,
+                ReviewAgent.NAME,
+                "REVIEW_FALLBACK",
+                "THIRD_FEEDBACK",
+                "DETERMINISTIC",
+                "Completed review after three human revision requests.");
+        }
 
         ctx.setReviewDecision(review);
         if (ctx.executesRepository()) ctx.setRepositoryExecution(ctx.repositoryExecution().reviewed());

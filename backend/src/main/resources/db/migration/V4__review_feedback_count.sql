@@ -1,0 +1,1 @@
+ALTER TABLE pipelines ADD COLUMN review_feedback_count INTEGER NOT NULL DEFAULT 0;

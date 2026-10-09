@@ -39,7 +39,9 @@ export default function PageHeader({
         (pipeline?.state === 'REQUIREMENTS_READY' &&
             !pipeline?.requirementAnalysis?.clarificationQuestions?.length);
     const runMode = pipeline?.aiMode || status?.aiMode;
+    const nextRunMode = status?.aiMode;
     const runProvider = runMode === 'DEMO' ? 'DEMO' : status?.liveProvider || status?.provider;
+    const nextRunProvider = nextRunMode === 'DEMO' ? 'DEMO' : status?.liveProvider || status?.provider;
     const provider =
         runProvider === 'OPENAI'
             ? 'OpenAI'
@@ -48,6 +50,14 @@ export default function PageHeader({
               : runProvider === 'DEMO'
                 ? 'Deterministic'
                 : runProvider;
+        const nextProvider =
+                nextRunProvider === 'OPENAI'
+                        ? 'OpenAI'
+                        : nextRunProvider === 'OLLAMA'
+                            ? 'Ollama'
+                            : nextRunProvider === 'DEMO'
+                                ? 'Deterministic'
+                                : nextRunProvider;
     return (
         <header className="pb-7 pt-6 sm:pt-9">
             <div className="mb-5 flex items-center justify-between gap-3">
@@ -143,6 +153,14 @@ export default function PageHeader({
                             ? 'Connecting'
                             : `${runMode === 'LIVE' ? 'LIVE' : 'DEMO'} · ${provider}`}
                     </Badge>
+                    {pipeline && nextRunMode && nextRunMode !== pipeline.aiMode && (
+                        <Badge
+                            variant="outline"
+                            className="rounded-md border-primary/40 px-2 py-1 text-[10px] font-normal text-primary"
+                        >
+                            Next run: {nextRunMode} · {nextProvider}
+                        </Badge>
+                    )}
                     {usedFallback(events) && (
                         <Badge
                             variant="outline"

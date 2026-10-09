@@ -26,6 +26,7 @@ public class PipelineContext {
     private CodeChangeSet codeChangeSet;
     private ReviewDecision reviewDecision;
     private String reviewFeedback;
+    private int reviewFeedbackCount;
     private DeploymentDecision deploymentDecision;
     private ApprovalState approvalState = ApprovalState.NOT_REQUIRED;
     private Instant updatedAt;
@@ -102,6 +103,15 @@ public class PipelineContext {
 
     public void setReviewFeedback(String feedback) {
         this.reviewFeedback = feedback;
+        touch();
+    }
+
+    public int reviewFeedbackCount() {
+        return reviewFeedbackCount;
+    }
+
+    public void setReviewFeedbackCount(int reviewFeedbackCount) {
+        this.reviewFeedbackCount = reviewFeedbackCount;
         touch();
     }
 

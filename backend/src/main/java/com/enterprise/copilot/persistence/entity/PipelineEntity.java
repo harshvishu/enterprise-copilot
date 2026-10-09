@@ -59,6 +59,9 @@ public class PipelineEntity {
     @Column(name = "review_feedback", columnDefinition = "text")
     private String reviewFeedback;
 
+    @Column(name = "review_feedback_count", nullable = false)
+    private int reviewFeedbackCount;
+
     @Column(name = "deployment_json", columnDefinition = "text")
     private String deploymentJson;
 
@@ -182,6 +185,14 @@ public class PipelineEntity {
 
     public void setReviewFeedback(String feedback) {
         this.reviewFeedback = feedback;
+    }
+
+    public int getReviewFeedbackCount() {
+        return reviewFeedbackCount;
+    }
+
+    public void setReviewFeedbackCount(int count) {
+        this.reviewFeedbackCount = count;
     }
 
     public void setDeploymentJson(String v) {

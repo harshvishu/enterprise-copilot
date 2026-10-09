@@ -1,19 +1,22 @@
 import React from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function InputHints({ suggestions, onSelect, disabled }) {
     return (
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2" aria-label="Suggested answers">
+        <div className="mt-3 flex flex-wrap gap-2" aria-label="Suggested answers">
             {suggestions.map((suggestion) => (
-                <button
+                <Button
                     key={suggestion}
                     type="button"
+                    variant="outline"
+                    size="sm"
                     disabled={disabled}
-                    className="max-w-full break-anywhere text-left text-xs text-primary underline underline-offset-4 disabled:opacity-50"
+                    className="h-auto min-h-8 max-w-full whitespace-normal text-left text-xs"
                     onClick={() => onSelect(suggestion)}
                     aria-label={`Use suggestion: ${suggestion}`}
                 >
                     {suggestion}
-                </button>
+                </Button>
             ))}
         </div>
     );
