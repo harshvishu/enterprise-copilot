@@ -69,6 +69,9 @@ export default function App() {
 
     useEffect(() => {
         let cancelled = false;
+        const refreshStatus = () => api.status().then((current) => {
+            if (!cancelled) setStatus(current);
+        }).catch(() => {});
         async function initialize() {
             try {
                 const current = await api.status();
@@ -95,9 +98,11 @@ export default function App() {
             }
         }
         initialize();
+        const statusPoll = setInterval(refreshStatus, 5000);
 
         return () => {
             cancelled = true;
+            clearInterval(statusPoll);
             selectedRef.current = null;
             sourceRef.current?.close();
             clearInterval(pollRef.current);

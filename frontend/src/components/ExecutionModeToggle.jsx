@@ -33,6 +33,9 @@ export default function ExecutionModeToggle({ status, onMode, pending }) {
                     pipeline. No restart needed.
                 </p>
             )}
+            <p className="mt-2 text-[10px] text-muted-foreground">
+                ConfluenceAgent: {status?.confluenceActive ? 'active' : 'inactive'}
+            </p>
         </div>
     );
 }

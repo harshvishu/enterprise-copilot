@@ -9,6 +9,7 @@ import com.enterprise.copilot.infrastructure.ai.DemoState;
 import com.enterprise.copilot.infrastructure.ai.OpenAiKeyResolver;
 import com.enterprise.copilot.orchestration.PipelineOrchestrator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class DemoController {
     private final DemoTickets demoTickets;
     private final PipelineOrchestrator orchestrator;
     private final OpenAiKeyResolver openAiKeys;
+        private final ApplicationContext applicationContext;
 
     @GetMapping("/status")
     public Map<String, Object> status() {
@@ -44,6 +46,7 @@ public class DemoController {
                         selected.mode() == AiMode.DEMO
                                 ? List.of(DemoScenario.values())
                                 : List.of(),
+                "confluenceActive", applicationContext.containsBean("confluenceAgent"),
                 "live", selected.mode() == AiMode.LIVE);
     }
 

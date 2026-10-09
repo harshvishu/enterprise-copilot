@@ -24,7 +24,7 @@ const ITEMS = [
 
 export default function Sidebar({ active, onSelect, status, onMode, pending }) {
     return (
-        <aside className="flex h-full min-h-[400px] w-full flex-col bg-card/40">
+        <aside className="flex h-full min-h-0 w-full flex-col overflow-y-auto bg-card/40">
             <div className="flex items-center gap-2.5 px-5 py-7">
                 <Layers2 className="h-5 w-5 shrink-0 text-foreground/80" />
                 <span className="text-sm font-semibold">Enterprise Copilot</span>
