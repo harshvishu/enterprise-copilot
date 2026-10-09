@@ -31,163 +31,166 @@ export default function Findings({ review, running = false, mode, events, status
         submittedFeedback.push({ id: 'latest', text: pipeline.reviewFeedback, createdAt: pipeline.updatedAt });
     }
     return (
-        <section id="review" className="scroll-mt-6 min-w-0 py-6">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-base font-semibold">
-                    Review{' '}
-                    <span
-                        className={cn(
-                            'ml-2 text-xs font-normal',
-                            running ? 'text-primary' : 'text-muted-foreground',
-                        )}
-                    >
-                        Sentinel
-                    </span>
-                </h2>
-                <span className="text-xs text-muted-foreground">
-                    {mode === 'DEMO' ? 'Deterministic preview' : 'Model assessment'}
-                </span>
-            </div>
-            {activity && <AgentActivity {...activity} />}
-            {!review ? (
-                activity?.entries.length ? null : (running || failed) && progress.steps.length ? (
-                    <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
-                ) : running ? (
-                    <div className="space-y-3">
-                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Sentinel is starting...
-                        </p>
-                        <Skeleton className="h-4 w-4/5" />
-                        <Skeleton className="h-4 w-3/5" />
+        <section id="review" className="scroll-mt-6 min-w-0 border-b">
+            <Collapsible key={pipeline?.id} defaultOpen>
+                <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <ShieldCheck className={cn('h-4 w-4 shrink-0', running ? 'text-primary' : 'text-muted-foreground')} />
+                        <h2 className="text-sm font-medium">
+                            Review{' '}
+                            <span className="ml-3 text-xs font-normal text-muted-foreground">Sentinel</span>
+                        </h2>
                     </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">Awaiting the code proposal.</p>
-                )
-            ) : (
-                <div data-result-for="Sentinel">
-                    <div
-                        className={cn(
-                            'mb-3 flex items-center gap-2 text-sm font-medium',
-                            passed
-                                ? 'text-success'
-                                : review.outcome === 'REJECT'
-                                  ? 'text-destructive'
-                                  : 'text-warning',
-                        )}
-                    >
-                        {passed ? (
-                            <ShieldCheck className="h-4 w-4" />
+                    <div className="flex shrink-0 items-center gap-3">
+                        <span className="hidden text-xs text-muted-foreground sm:inline">
+                            {mode === 'DEMO' ? 'Deterministic preview' : 'Model assessment'}
+                        </span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+                    </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="min-w-0 pb-6">
+                    {activity && <AgentActivity {...activity} />}
+                    {!review ? (
+                        activity?.entries.length ? null : (running || failed) && progress.steps.length ? (
+                            <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
+                        ) : running ? (
+                            <div className="space-y-3">
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Sentinel is starting...
+                                </p>
+                                <Skeleton className="h-4 w-4/5" />
+                                <Skeleton className="h-4 w-3/5" />
+                            </div>
                         ) : (
-                            <ShieldAlert className="h-4 w-4" />
-                        )}
-                        {passed
-                            ? 'Review passed'
-                            : review.outcome === 'REJECT'
-                              ? 'Review rejected'
-                              : 'Changes requested'}
-                    </div>
-                    <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {review.summary}
-                    </p>
-                    <div className="my-5 flex flex-wrap gap-4 text-xs">
-                        {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
-                            .filter((level) => counts[level])
-                            .map((level) => (
-                                <span
-                                    key={level}
-                                    className={
-                                        level === 'CRITICAL'
-                                            ? 'text-destructive'
-                                            : 'text-muted-foreground'
-                                    }
-                                >
-                                    <strong className="font-semibold">{counts[level]}</strong>{' '}
-                                    {readable(level)}
-                                </span>
-                            ))}
-                    </div>
-                    <div className="space-y-3">
-                        {(review.findings || []).map((finding, index) => (
-                            <article
-                                key={`${finding.file}-${index}`}
+                            <p className="text-sm text-muted-foreground">Awaiting the code proposal.</p>
+                        )
+                    ) : (
+                        <div data-result-for="Sentinel">
+                            <div
                                 className={cn(
-                                    'rounded-md border border-l-[3px] bg-card/40 p-4',
-                                    COLORS[finding.severity] || COLORS.LOW,
+                                    'mb-3 flex items-center gap-2 text-sm font-medium',
+                                    passed
+                                        ? 'text-success'
+                                        : review.outcome === 'REJECT'
+                                          ? 'text-destructive'
+                                          : 'text-warning',
                                 )}
                             >
-                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                    <Badge
-                                        variant="outline"
+                                {passed ? (
+                                    <ShieldCheck className="h-4 w-4" />
+                                ) : (
+                                    <ShieldAlert className="h-4 w-4" />
+                                )}
+                                {passed
+                                    ? 'Review passed'
+                                    : review.outcome === 'REJECT'
+                                      ? 'Review rejected'
+                                      : 'Changes requested'}
+                            </div>
+                            <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                                {review.summary}
+                            </p>
+                            <div className="my-5 flex flex-wrap gap-4 text-xs">
+                                {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+                                    .filter((level) => counts[level])
+                                    .map((level) => (
+                                        <span
+                                            key={level}
+                                            className={
+                                                level === 'CRITICAL'
+                                                    ? 'text-destructive'
+                                                    : 'text-muted-foreground'
+                                            }
+                                        >
+                                            <strong className="font-semibold">{counts[level]}</strong>{' '}
+                                            {readable(level)}
+                                        </span>
+                                    ))}
+                            </div>
+                            <div className="space-y-3">
+                                {(review.findings || []).map((finding, index) => (
+                                    <article
+                                        key={`${finding.file}-${index}`}
                                         className={cn(
-                                            'rounded-sm text-[10px] font-medium',
-                                            finding.severity === 'CRITICAL'
-                                                ? 'border-destructive/25 text-destructive'
-                                                : finding.severity === 'HIGH'
-                                                  ? 'text-warning'
-                                                  : 'text-muted-foreground',
+                                            'rounded-md border border-l-[3px] bg-card/40 p-4',
+                                            COLORS[finding.severity] || COLORS.LOW,
                                         )}
                                     >
-                                        {readable(finding.severity)}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                        {readable(finding.category)}
-                                    </span>
-                                </div>
-                                <h3 className="text-sm font-medium leading-6">
-                                    {finding.description}
-                                </h3>
-                                <p className="mt-2 break-anywhere font-mono text-[11px] leading-5 text-muted-foreground">
-                                    {finding.file}
-                                    <span className="mx-2 text-border">/</span>
-                                    {finding.location}
-                                </p>
-                                <div className="mt-3 border-t pt-3">
-                                    <span className="text-xs font-medium">Recommendation</span>
-                                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                        {finding.recommendation}
-                                    </p>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-                    {!review.findings?.length && (
-                        <p className="mt-4 text-sm text-muted-foreground">No review findings.</p>
+                                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                                            <Badge
+                                                variant="outline"
+                                                className={cn(
+                                                    'rounded-sm text-[10px] font-medium',
+                                                    finding.severity === 'CRITICAL'
+                                                        ? 'border-destructive/25 text-destructive'
+                                                        : finding.severity === 'HIGH'
+                                                          ? 'text-warning'
+                                                          : 'text-muted-foreground',
+                                                )}
+                                            >
+                                                {readable(finding.severity)}
+                                            </Badge>
+                                            <span className="text-xs text-muted-foreground">
+                                                {readable(finding.category)}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-sm font-medium leading-6">
+                                            {finding.description}
+                                        </h3>
+                                        <p className="mt-2 break-anywhere font-mono text-[11px] leading-5 text-muted-foreground">
+                                            {finding.file}
+                                            <span className="mx-2 text-border">/</span>
+                                            {finding.location}
+                                        </p>
+                                        <div className="mt-3 border-t pt-3">
+                                            <span className="text-xs font-medium">Recommendation</span>
+                                            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                                {finding.recommendation}
+                                            </p>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                            {!review.findings?.length && (
+                                <p className="mt-4 text-sm text-muted-foreground">No review findings.</p>
+                            )}
+                        </div>
                     )}
-                </div>
-            )}
-            {actionPipeline?.state === 'WAITING_FOR_REVIEW_FEEDBACK' && (
-                <ReviewFeedbackForm key={`${actionPipeline.id}-${actionPipeline.reviewFeedback || ''}`}
-                    pending={pending} onSubmit={onReviewFeedback}
-                    suggestions={reviewSuggestions(actionPipeline.reviewDecision?.findings || [])} />
-            )}
-            {submittedFeedback.length > 0 && (
-                <Collapsible className="mt-5 border-t pt-4">
-                    <CollapsibleTrigger className="group flex w-full items-center gap-2 text-left text-xs font-medium">
-                        <History className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        Feedback history
-                        <span className="text-muted-foreground">({submittedFeedback.length})</span>
-                        <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <ol className="mt-3 max-h-64 space-y-3 overflow-y-auto">
-                            {[...submittedFeedback].sort((first, second) =>
-                                new Date(second.createdAt) - new Date(first.createdAt)).map((record) => (
-                                <li key={record.id} className="border-l-2 border-border pl-3">
-                                    {record.createdAt && (
-                                        <time dateTime={record.createdAt} className="text-[10px] text-muted-foreground">
-                                            {new Date(record.createdAt).toLocaleString()}
-                                        </time>
-                                    )}
-                                    <p className="mt-1 whitespace-pre-wrap break-anywhere text-xs leading-5 text-muted-foreground">
-                                        {record.text}
-                                    </p>
-                                </li>
-                            ))}
-                        </ol>
-                    </CollapsibleContent>
-                </Collapsible>
-            )}
+                    {actionPipeline?.state === 'WAITING_FOR_REVIEW_FEEDBACK' && (
+                        <ReviewFeedbackForm key={`${actionPipeline.id}-${actionPipeline.reviewFeedback || ''}`}
+                            pending={pending} onSubmit={onReviewFeedback}
+                            suggestions={reviewSuggestions(actionPipeline.reviewDecision?.findings || [])} />
+                    )}
+                    {submittedFeedback.length > 0 && (
+                        <Collapsible className="mt-5 border-t pt-4">
+                            <CollapsibleTrigger className="group flex w-full items-center gap-2 text-left text-xs font-medium">
+                                <History className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                Feedback history
+                                <span className="text-muted-foreground">({submittedFeedback.length})</span>
+                                <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <ol className="mt-3 max-h-64 space-y-3 overflow-y-auto">
+                                    {[...submittedFeedback].sort((first, second) =>
+                                        new Date(second.createdAt) - new Date(first.createdAt)).map((record) => (
+                                        <li key={record.id} className="border-l-2 border-border pl-3">
+                                            {record.createdAt && (
+                                                <time dateTime={record.createdAt} className="text-[10px] text-muted-foreground">
+                                                    {new Date(record.createdAt).toLocaleString()}
+                                                </time>
+                                            )}
+                                            <p className="mt-1 whitespace-pre-wrap break-anywhere text-xs leading-5 text-muted-foreground">
+                                                {record.text}
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
         </section>
     );
 }
