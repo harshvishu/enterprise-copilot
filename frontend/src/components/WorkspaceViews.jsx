@@ -4,6 +4,7 @@ import {
     Code2,
     ShieldCheck,
     LockKeyhole,
+    BookOpen,
     ChevronDown,
     GitPullRequest,
     Play,
@@ -90,9 +91,17 @@ export default function WorkspaceViews({
             { name: 'Sentinel', role: 'Security and compliance review', icon: ShieldCheck },
             { name: 'Atlas', role: 'Release authorization', icon: LockKeyhole },
         ];
+        if (status?.confluenceActive) {
+            agents.unshift({
+                name: 'Confluence',
+                role: 'Approved business policy context',
+                icon: BookOpen,
+                deterministic: true,
+            });
+        }
         return (
             <section className="py-7">
-                <ViewHeading title="Agents" count={4} />
+                <ViewHeading title="Agents" count={agents.length} />
                 <div>
                     {agents.map((agent) => (
                         <div
@@ -111,6 +120,8 @@ export default function WorkspaceViews({
                             <span className="text-xs text-muted-foreground">
                                 {agent.name === 'Atlas'
                                     ? 'Deterministic Java gates'
+                                                                        : agent.deterministic
+                                                                            ? 'Local policy lookup'
                                     : status?.aiMode === 'LIVE'
                                       ? 'Spring AI model'
                                       : 'Deterministic preview'}
