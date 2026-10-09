@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Play, Loader2 } from 'lucide-react';
+import { Menu, Play, Loader2, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +12,8 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ACTIVE_STATES, usedFallback } from '@/lib/pipeline';
 import Sidebar from './Sidebar';
-import AgentActivity from './AgentActivity';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel,
+    DropdownMenuCheckboxItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 export default function PageHeader({
     pipeline,
@@ -25,6 +26,10 @@ export default function PageHeader({
     nav,
     onNavigate,
     onMode,
+    presentationPace,
+    onPresentationPace,
+    followLatest,
+    onFollowLatest,
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const running =
@@ -79,7 +84,39 @@ export default function PageHeader({
                         {pipeline?.ticket.key || issue?.key || 'UB-4821'}
                     </span>
                 </div>
-                <AgentActivity events={events} />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label="Presentation settings" title="Presentation settings">
+                            <Settings className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72">
+                        <DropdownMenuLabel>Presentation settings</DropdownMenuLabel>
+                        <div className="space-y-2 px-2 py-2">
+                            <label className="block space-y-2 text-sm">
+                                <span>Presentation pace</span>
+                                <select aria-label="Presentation pace" value={presentationPace}
+                                    onChange={(event) => onPresentationPace(Number(event.target.value))}
+                                    onKeyDown={(event) => {
+                                        if (['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) event.stopPropagation();
+                                    }}
+                                    className="w-full rounded-md border bg-background px-3 py-2 text-foreground">
+                                    <option value={0}>Normal speed (no delay)</option>
+                                    <option value={3}>3 seconds per step</option>
+                                    <option value={3.5}>3.5 seconds per step</option>
+                                    <option value={4}>4 seconds per step</option>
+                                    <option value={5}>5 seconds per step</option>
+                                    <option value={10}>10 seconds per step</option>
+                                </select>
+                            </label>
+                            <p className="text-xs leading-5 text-muted-foreground">Paces the steps and results in each agent section. Execution and human actions continue normally.</p>
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuCheckboxItem checked={followLatest} onCheckedChange={onFollowLatest}>
+                            Follow latest output
+                        </DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
             <h1 className="max-w-4xl break-anywhere text-xl font-semibold leading-tight sm:text-2xl">
                 {pipeline?.ticket.title || issue?.title || 'High Value Transaction Notification'}

@@ -9,11 +9,12 @@ import { agentProgress, modelLabel, splitClarification } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 import AgentProgress from './AgentProgress';
 import InputHints from './InputHints';
+import AgentActivity from './AgentActivity';
 
-export default function RequirementsResult({ pipeline, pending, onClarify, events, status }) {
+export default function RequirementsResult({ pipeline, actionPipeline = pipeline, activity, pending, onClarify, events, status }) {
     const analysis = pipeline?.requirementAnalysis;
     const awaiting =
-        pipeline?.state === 'REQUIREMENTS_READY' && analysis?.clarificationQuestions?.length > 0;
+        actionPipeline?.state === 'REQUIREMENTS_READY' && actionPipeline?.requirementAnalysis?.clarificationQuestions?.length > 0;
     const progress = agentProgress(events, 'Rhea');
     const running = pipeline?.state === 'ANALYZING_REQUIREMENTS';
     const failed = !analysis && progress.failed;
@@ -21,11 +22,9 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
     return (
         <section id="requirements" className="scroll-mt-6 border-b">
             <Collapsible
-                key={`${pipeline?.id}-${Boolean(awaiting)}-${Boolean(pipeline?.codeChangeSet)}-${running}-${failed}`}
+                key={pipeline?.id}
                 open={awaiting ? true : undefined}
-                defaultOpen={Boolean(
-                    awaiting || running || failed || (analysis && !pipeline?.codeChangeSet),
-                )}
+                defaultOpen
             >
                 <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
                     <div className="flex min-w-0 items-center gap-3">
@@ -65,8 +64,9 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                     </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pb-6">
+                    {activity && <AgentActivity {...activity} />}
                     {!analysis ? (
-                        running || failed ? (
+                        activity?.entries.length ? null : running || failed ? (
                             progress.steps.length ? (
                                 <AgentProgress
                                     progress={progress}
@@ -88,20 +88,10 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                             </p>
                         )
                     ) : (
-                        <>
+                        <div data-result-for="Rhea">
                             <p className="max-w-4xl whitespace-pre-line text-sm leading-6 text-muted-foreground">
                                 {text.summary}
                             </p>
-                            {awaiting && (
-                                <ClarificationForm
-                                    key={pipeline.id}
-                                    questions={analysis.clarificationQuestions}
-                                    pending={pending}
-                                    onSubmit={onClarify}
-                                    suggestions={analysis.clarificationQuestions.some((question) => /channel/i.test(question))
-                                        ? ['SMS', 'Use SMS', 'Send by SMS'] : []}
-                                />
-                            )}
                             <div className="mt-5 grid gap-6 md:grid-cols-2">
                                 <ResultList
                                     title="Acceptance criteria"
@@ -123,7 +113,17 @@ export default function RequirementsResult({ pipeline, pending, onClarify, event
                                     </p>
                                 </div>
                             )}
-                        </>
+                        </div>
+                    )}
+                    {awaiting && (
+                        <ClarificationForm
+                            key={actionPipeline.id}
+                            questions={actionPipeline.requirementAnalysis.clarificationQuestions}
+                            pending={pending}
+                            onSubmit={onClarify}
+                            suggestions={actionPipeline.requirementAnalysis.clarificationQuestions.some((question) => /channel/i.test(question))
+                                ? ['SMS', 'Use SMS', 'Send by SMS'] : []}
+                        />
                     )}
                 </CollapsibleContent>
             </Collapsible>

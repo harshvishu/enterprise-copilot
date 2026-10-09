@@ -6,8 +6,9 @@ import { agentProgress, modelLabel } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
 import AgentProgress from './AgentProgress';
 import DiffViewer from './DiffViewer';
+import AgentActivity from './AgentActivity';
 
-export default function CodeProposal({ pipeline, events, status }) {
+export default function CodeProposal({ pipeline, events, status, activity }) {
     const proposal = pipeline?.codeChangeSet;
     const running = pipeline?.state === 'GENERATING_CODE';
     const progress = agentProgress(events, 'Nova');
@@ -15,8 +16,8 @@ export default function CodeProposal({ pipeline, events, status }) {
     return (
         <section className="min-w-0 border-b">
             <Collapsible
-                key={`${pipeline?.id}-${running}-${failed}`}
-                defaultOpen={running || failed}
+                key={pipeline?.id}
+                defaultOpen
             >
                 <CollapsibleTrigger className="group flex w-full items-center justify-between gap-3 py-5 text-left">
                     <div className="flex min-w-0 items-center gap-3">
@@ -52,8 +53,9 @@ export default function CodeProposal({ pipeline, events, status }) {
                     </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="min-w-0 pb-6">
+                    {activity && <AgentActivity {...activity} />}
                     {!proposal ? (
-                        running || failed ? (
+                        activity?.entries.length ? null : running || failed ? (
                             progress.steps.length ? (
                                 <AgentProgress
                                     progress={progress}
@@ -75,7 +77,7 @@ export default function CodeProposal({ pipeline, events, status }) {
                             </p>
                         )
                     ) : (
-                        <>
+                        <div data-result-for="Nova">
                             <p className="text-sm leading-6 text-muted-foreground">
                                 {proposal.explanation}
                             </p>
@@ -114,7 +116,7 @@ export default function CodeProposal({ pipeline, events, status }) {
                                 </div>
                             </div>
                             <DiffViewer diff={proposal.unifiedDiff} />
-                        </>
+                        </div>
                     )}
                 </CollapsibleContent>
             </Collapsible>

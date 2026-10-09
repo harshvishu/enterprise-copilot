@@ -11,8 +11,9 @@ import {
     hasPassingTestSignal,
 } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
+import AgentActivity from './AgentActivity';
 
-export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, action, events }) {
+export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, activity, onApprove, onReject, pending, action, events }) {
     const waiting = pipeline?.state === 'WAITING_FOR_APPROVAL';
     const deployed = pipeline?.state === 'DEPLOYED';
     const blocked = ['BLOCKED', 'REVIEW_FAILED'].includes(pipeline?.state);
@@ -81,7 +82,7 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
     const approvalRequested =
         pipeline?.approvalState === 'PENDING' || Boolean(evaluated.HUMAN_APPROVAL?.waiting);
     return (
-        <section id="release" className="scroll-mt-6 py-6 lg:sticky lg:top-6">
+        <section id="release" className="scroll-mt-6 py-6">
             <div className="mb-5 flex items-center justify-between gap-2">
                 <h2 className="text-base font-semibold">Release decision</h2>
                 <span className="text-xs text-muted-foreground">Atlas</span>
@@ -90,7 +91,9 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                 <LockKeyhole className="h-3.5 w-3.5" />
                 Deterministic Java rules · no model call
             </div>
+            {activity && <AgentActivity {...activity} />}
             <h3
+                data-result-for="Atlas"
                 className={cn(
                     'flex items-center gap-2 text-sm font-medium',
                     deployed
@@ -136,8 +139,9 @@ export default function ApprovalPanel({ pipeline, onApprove, onReject, pending, 
                           ? 'Resolve the execution error before starting a new pipeline.'
                           : 'Atlas evaluates the proposal after Sentinel finishes.'}
             </p>
-            {waiting && (
-                <div className="mt-5 space-y-2">
+            {actionPipeline?.state === 'WAITING_FOR_APPROVAL' && (
+                <div data-human-controls className="mt-5 max-w-sm space-y-2">
+                    {!waiting && <p className="text-xs text-warning">Human approval is available while the recorded steps are presented.</p>}
                     <Button className="w-full" onClick={onApprove} disabled={pending}>
                         {pending && action === 'approve' ? (
                             <Loader2 className="animate-spin" />

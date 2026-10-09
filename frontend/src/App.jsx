@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import Sidebar from './components/Sidebar.jsx';
 import PipelineStages from './components/PipelineStages.jsx';
@@ -9,6 +9,9 @@ import PipelineAlert from './components/PipelineAlert.jsx';
 import RequirementsResult from './components/RequirementsResult.jsx';
 import CodeProposal from './components/CodeProposal.jsx';
 import WorkspaceViews from './components/WorkspaceViews.jsx';
+import { Button } from './components/ui/button';
+import { useWorkshopPlayback } from './lib/useWorkshopPlayback';
+import { presentationDelay, presentationPipeline, presentationSections, workshopEntries } from './lib/workshop';
 import { TooltipProvider } from './components/ui/tooltip';
 import { Skeleton } from './components/ui/skeleton';
 
@@ -24,6 +27,31 @@ export default function App() {
     const [pipeline, setPipeline] = useState(null);
     const [events, setEvents] = useState([]);
     const [nav, setNav] = useState('dashboard');
+    const [presentationPace, setPresentationPace] = useState(0);
+    const [followLatest, setFollowLatest] = useState(true);
+    const outputRef = useRef(null);
+    const entries = useMemo(() => presentationSections(workshopEntries(events, pipeline?.aiMode || status?.aiMode)), [events, pipeline?.aiMode, status?.aiMode]);
+    const paced = presentationPace > 0;
+    const { count, skip, skipped } = useWorkshopPlayback(entries, pipeline?.id, paced, presentationDelay(presentationPace));
+    const visibleEntries = entries.slice(0, count);
+    const visibleEvents = visibleEntries.map((entry) => entry.event);
+    const displayedPipeline = paced ? presentationPipeline(pipeline, events, count) : pipeline;
+    const resultVisibility = [displayedPipeline?.requirementAnalysis, displayedPipeline?.codeChangeSet, displayedPipeline?.reviewDecision]
+        .map(Boolean).join(':');
+    const lastEntry = visibleEntries.at(-1);
+    const activity = (agent) => ({
+        entries: visibleEntries.filter((entry) => entry.section === agent),
+        agent, follow: followLatest,
+    });
+    useEffect(() => {
+        if (!followLatest || nav !== 'dashboard' || !lastEntry || !outputRef.current) return;
+        // Let presenters fill human-input forms without later events moving the page.
+        if (document.activeElement?.closest('form, [data-human-controls]')) return;
+        const result = lastEntry.event.type === 'AGENT_COMPLETED'
+            ? outputRef.current.querySelector(`[data-result-for="${lastEntry.event.agent}"]`) : null;
+        const event = outputRef.current.querySelector(`[data-presentation-index="${count - 1}"]`);
+        (result || event?.closest('[role="log"]'))?.scrollIntoView({ block: 'nearest' });
+    }, [count, followLatest, nav, pipeline?.id, resultVisibility]);
 
     const [pipelines, setPipelines] = useState([]);
     const [audit, setAudit] = useState([]);
@@ -215,6 +243,10 @@ export default function App() {
                             nav={nav}
                             onNavigate={setNav}
                             onMode={changeMode}
+                            presentationPace={presentationPace}
+                            onPresentationPace={setPresentationPace}
+                            followLatest={followLatest}
+                            onFollowLatest={setFollowLatest}
                         />
                         {loading ? (
                             <div aria-label="Loading pipeline" className="space-y-6 py-8">
@@ -224,7 +256,7 @@ export default function App() {
                             </div>
                         ) : nav === 'dashboard' ? (
                             <>
-                                <PipelineStages pipeline={pipeline} events={events} />
+                                <PipelineStages pipeline={displayedPipeline} events={visibleEvents} />
                                 <div className="my-6">
                                     <PipelineAlert
                                         pipeline={pipeline}
@@ -233,9 +265,12 @@ export default function App() {
                                     />
                                 </div>
                                 <div className="mb-1 flex items-center justify-between gap-3">
-                                    <h2 className="text-xs font-medium text-muted-foreground">
-                                        Agent outputs
-                                    </h2>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <h2 className="text-xs font-medium text-muted-foreground">Agent outputs</h2>
+                                        {paced && <Button variant="outline" size="sm" onClick={skip} disabled={skipped || !entries.length}>
+                                            {skipped ? 'Delays skipped for this run' : 'Skip remaining delays'}
+                                        </Button>}
+                                    </div>
                                     {pipeline && (
                                         <span
                                             title={pipeline.id}
@@ -245,36 +280,44 @@ export default function App() {
                                         </span>
                                     )}
                                 </div>
+                                <div ref={outputRef}>
                                 <RequirementsResult
-                                    pipeline={pipeline}
+                                    pipeline={displayedPipeline}
+                                    actionPipeline={pipeline}
+                                    activity={activity('Rhea')}
                                     pending={busy}
                                     onClarify={clarify}
-                                    events={events}
+                                    events={visibleEvents}
                                     status={runStatus}
                                 />
-                                <CodeProposal pipeline={pipeline} events={events} status={runStatus} />
-                                <div className="grid min-w-0 gap-0 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-10">
+                                <CodeProposal pipeline={displayedPipeline} events={visibleEvents} status={runStatus} activity={activity('Nova')} />
+                                <div className="min-w-0 divide-y">
                                     <Findings
-                                        review={pipeline?.reviewDecision}
-                                        running={pipeline?.state === 'REVIEWING'}
+                                        review={displayedPipeline?.reviewDecision}
+                                        running={displayedPipeline?.state === 'REVIEWING'}
                                         mode={pipeline?.aiMode || status?.aiMode}
-                                        pipeline={pipeline}
+                                        pipeline={displayedPipeline}
+                                        actionPipeline={pipeline}
+                                        activity={activity('Sentinel')}
                                         pending={busy}
                                         onReviewFeedback={submitReviewFeedback}
                                         feedbackHistory={audit}
-                                        events={events}
+                                        events={visibleEvents}
                                         status={runStatus}
                                     />
-                                    <div className="border-t lg:border-l lg:border-t-0 lg:pl-7">
+                                    <div>
                                         <ApprovalPanel
-                                            pipeline={pipeline}
+                                            pipeline={displayedPipeline}
+                                            actionPipeline={pipeline}
+                                            activity={activity('Atlas')}
                                             onApprove={approve}
                                             onReject={reject}
                                             pending={busy}
                                             action={pendingAction}
-                                            events={events}
+                                            events={visibleEvents}
                                         />
                                     </div>
+                                </div>
                                 </div>
                             </>
                         ) : (

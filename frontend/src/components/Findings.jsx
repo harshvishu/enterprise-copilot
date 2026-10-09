@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import AgentActivity from './AgentActivity';
 
 const COLORS = {
     CRITICAL: 'border-l-destructive',
@@ -18,7 +19,7 @@ const COLORS = {
     LOW: 'border-l-border',
 };
 
-export default function Findings({ review, running = false, mode, events, status, pipeline, pending, onReviewFeedback, feedbackHistory = [] }) {
+export default function Findings({ review, running = false, mode, events, status, pipeline, actionPipeline = pipeline, activity, pending, onReviewFeedback, feedbackHistory = [] }) {
     const counts = severityCounts(review);
     const passed = review?.outcome === 'APPROVE';
     const progress = agentProgress(events, 'Sentinel');
@@ -47,8 +48,9 @@ export default function Findings({ review, running = false, mode, events, status
                     {mode === 'DEMO' ? 'Deterministic preview' : 'Model assessment'}
                 </span>
             </div>
+            {activity && <AgentActivity {...activity} />}
             {!review ? (
-                (running || failed) && progress.steps.length ? (
+                activity?.entries.length ? null : (running || failed) && progress.steps.length ? (
                     <AgentProgress progress={progress} modelLabel={modelLabel(status)} />
                 ) : running ? (
                     <div className="space-y-3">
@@ -63,7 +65,7 @@ export default function Findings({ review, running = false, mode, events, status
                     <p className="text-sm text-muted-foreground">Awaiting the code proposal.</p>
                 )
             ) : (
-                <>
+                <div data-result-for="Sentinel">
                     <div
                         className={cn(
                             'mb-3 flex items-center gap-2 text-sm font-medium',
@@ -152,12 +154,12 @@ export default function Findings({ review, running = false, mode, events, status
                     {!review.findings?.length && (
                         <p className="mt-4 text-sm text-muted-foreground">No review findings.</p>
                     )}
-                    {pipeline?.state === 'WAITING_FOR_REVIEW_FEEDBACK' && (
-                        <ReviewFeedbackForm key={`${pipeline.id}-${pipeline.reviewFeedback || ''}`}
-                            pending={pending} onSubmit={onReviewFeedback}
-                            suggestions={reviewSuggestions(review.findings || [])} />
-                    )}
-                </>
+                </div>
+            )}
+            {actionPipeline?.state === 'WAITING_FOR_REVIEW_FEEDBACK' && (
+                <ReviewFeedbackForm key={`${actionPipeline.id}-${actionPipeline.reviewFeedback || ''}`}
+                    pending={pending} onSubmit={onReviewFeedback}
+                    suggestions={reviewSuggestions(actionPipeline.reviewDecision?.findings || [])} />
             )}
             {submittedFeedback.length > 0 && (
                 <Collapsible className="mt-5 border-t pt-4">
