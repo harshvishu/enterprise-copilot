@@ -10,6 +10,8 @@ import AgentActivity from './AgentActivity';
 
 export default function CodeProposal({ pipeline, events, status, activity }) {
     const proposal = pipeline?.codeChangeSet;
+    const repository = pipeline?.repositoryExecution;
+    const tests = repository?.testRun;
     const running = pipeline?.state === 'GENERATING_CODE';
     const progress = agentProgress(events, 'Nova');
     const failed = !proposal && progress.failed;
@@ -28,7 +30,7 @@ export default function CodeProposal({ pipeline, events, status, activity }) {
                             )}
                         />
                         <h2 className="text-sm font-medium">
-                            Code proposal{' '}
+                            {repository ? 'Code changes' : 'Code proposal'}{' '}
                             <span className="ml-3 text-xs font-normal text-muted-foreground">
                                 Nova
                             </span>
@@ -46,7 +48,7 @@ export default function CodeProposal({ pipeline, events, status, activity }) {
                                 : failed
                                   ? 'Stopped'
                                   : proposal
-                                    ? `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
+                                    ? repository ? `${proposal.files?.length || 0} files · pytest exit ${tests?.exitCode ?? 'pending'}` : `${proposal.files?.length || 0} files / ${proposal.tests?.length || 0} tests proposed`
                                     : 'Not started'}
                         </span>
                         <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -115,7 +117,16 @@ export default function CodeProposal({ pipeline, events, status, activity }) {
                                     </ul>
                                 </div>
                             </div>
-                            <DiffViewer diff={proposal.unifiedDiff} />
+                            {repository?.candidateCommit && <p className="mb-3 break-anywhere font-mono text-xs text-muted-foreground">
+                                {repository.branch} · candidate {repository.candidateCommit} · base {repository.baseCommit}
+                            </p>}
+                            <DiffViewer diff={proposal.unifiedDiff} defaultOpen={Boolean(repository)} label={repository ? 'Actual Git diff' : 'Proposed diff'} />
+                            {tests && <div className="mt-5 space-y-2" aria-label="Actual pytest results">
+                                <h3 className="text-sm font-medium">Actual pytest results</h3>
+                                <p className="text-xs text-muted-foreground">{tests.collected} tests · {tests.failures} failures · {tests.errors} errors · {tests.skipped} skipped · exit {tests.exitCode} · {(tests.durationMs / 1000).toFixed(1)}s{tests.timedOut ? ' · TIMED OUT' : ''}</p>
+                                <p className="break-anywhere font-mono text-xs">{tests.command}</p>
+                                <pre className="max-h-80 overflow-auto rounded-md border p-3 text-xs leading-5 whitespace-pre-wrap">{tests.stdout}{tests.stderr && `\n${tests.stderr}`}</pre>
+                            </div>}
                         </div>
                     )}
                 </CollapsibleContent>

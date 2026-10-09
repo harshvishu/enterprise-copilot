@@ -41,7 +41,7 @@ public class PipelineController {
                         request.description(),
                         request.sourceOrDefault());
 
-        PipelineContext ctx = orchestrator.createAndRun(ticket);
+        PipelineContext ctx = orchestrator.createAndRun(ticket, request.executeRepository());
 
         return PipelineResponse.from(ctx);
     }
@@ -69,10 +69,21 @@ public class PipelineController {
 
     @PostMapping("/{id}/approve")
     public PipelineResponse approve(
-            @PathVariable UUID id, @RequestParam(defaultValue = "presenter") String approver) {
+            @PathVariable UUID id, @RequestParam(defaultValue = "presenter") String approver,
+            @RequestBody(required = false) CandidateRequest candidate) {
 
-        return PipelineResponse.from(orchestrator.approve(id, approver));
+        return PipelineResponse.from(orchestrator.approve(id, approver,
+                candidate == null ? null : candidate.candidateCommit()));
     }
+
+    @PostMapping("/{id}/merge")
+    public PipelineResponse merge(@PathVariable UUID id,
+            @RequestParam(defaultValue = "presenter") String approver,
+            @RequestBody CandidateRequest candidate) {
+        return PipelineResponse.from(orchestrator.merge(id, approver, candidate.candidateCommit()));
+    }
+
+    public record CandidateRequest(String candidateCommit) {}
 
     @PostMapping("/{id}/clarify")
     public PipelineResponse clarify(

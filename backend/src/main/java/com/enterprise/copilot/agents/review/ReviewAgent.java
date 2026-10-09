@@ -60,7 +60,9 @@ public class ReviewAgent {
                         "Preparing proposed diff and requirement analysis for review",
                         Map.of("step", "DIFF")));
 
-        String proposal = evidence(ctx.codeChangeSet());
+        String proposal = evidence(ctx.codeChangeSet())
+                + (ctx.executesRepository() ? "\nSERVER-RECORDED REPOSITORY AND TEST EVIDENCE:\n"
+                + evidence(ctx.repositoryExecution()) : "");
         String analysis = evidence(ctx.requirementAnalysis());
 
         pacer.afterActivity(ctx.aiMode());
@@ -70,10 +72,11 @@ public class ReviewAgent {
                         ctx.pipelineId(),
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
-                        "Reading published API contract",
-                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
+                        ctx.executesRepository() ? "Reading actual Python source and API endpoints" : "Reading published API contract",
+                        Map.of("tool", ctx.executesRepository() ? "repository-context" : apiSpec.name(), "repository", ctx.executesRepository(), "step", "API_SPEC")));
 
-        String contract = apiSpec.lookup(ctx.ticket().description());
+        String contract = ctx.executesRepository()
+                ? evidence(ctx.repositoryExecution().sourceFiles()) : apiSpec.lookup(ctx.ticket().description());
 
         pacer.afterActivity(ctx.aiMode());
 
@@ -93,8 +96,10 @@ public class ReviewAgent {
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
                         "Reading architecture guidance",
-                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
-        String architectureGuidance = architecture.lookup(ctx.ticket().description());
+                        Map.of("tool", ctx.executesRepository() ? "repository-context" : architecture.name(), "repository", ctx.executesRepository(), "step", "ARCHITECTURE")));
+        String architectureGuidance = ctx.executesRepository()
+                ? "Python/FastAPI with in-memory state and mock notification delivery. Do not require Java/Spring patterns or invented integrations."
+                : architecture.lookup(ctx.ticket().description());
         pacer.afterActivity(ctx.aiMode());
 
         events.publish(
@@ -103,13 +108,13 @@ public class ReviewAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Requesting security, compliance, quality and architecture review",
-                        Map.of("step", "MODEL_CALL")));
+                        Map.of("step", "MODEL_CALL", "repository", ctx.executesRepository())));
 
         pacer.afterActivity(ctx.aiMode());
 
         String prompt =
                 prompts.render(
-                        "review",
+                        ctx.executesRepository() ? "repository-review" : "review",
                         Map.of(
                                 "ticket", evidence(ctx.ticket()),
                                 "analysis", analysis,

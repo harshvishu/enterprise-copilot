@@ -29,6 +29,16 @@ public class PipelineContext {
     private DeploymentDecision deploymentDecision;
     private ApprovalState approvalState = ApprovalState.NOT_REQUIRED;
     private Instant updatedAt;
+    private RepositoryExecution repositoryExecution;
+
+    public RepositoryExecution repositoryExecution() { return repositoryExecution; }
+
+    public boolean executesRepository() { return repositoryExecution != null; }
+
+    public void setRepositoryExecution(RepositoryExecution execution) {
+        this.repositoryExecution = execution;
+        touch();
+    }
 
     public PipelineContext(UUID pipelineId, Ticket ticket, DemoScenario scenario, AiMode aiMode) {
 

@@ -30,6 +30,8 @@ export default function PageHeader({
     onPresentationPace,
     followLatest,
     onFollowLatest,
+    executeRepository,
+    onExecuteRepository,
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const running =
@@ -93,6 +95,16 @@ export default function PageHeader({
                     <DropdownMenuContent align="end" className="w-72">
                         <DropdownMenuLabel>Presentation settings</DropdownMenuLabel>
                         <div className="space-y-2 px-2 py-2">
+                            <label className="block space-y-2 text-sm">
+                                <span>Execution target for the next run</span>
+                                <select aria-label="Execution target" value={executeRepository && status?.aiMode === 'LIVE' ? 'repository' : 'proposal'}
+                                    onChange={(event) => onExecuteRepository(event.target.value === 'repository')}
+                                    className="w-full rounded-md border bg-background px-3 py-2 text-foreground">
+                                    <option value="proposal">Proposal only (existing scenarios)</option>
+                                    <option value="repository" disabled={status?.aiMode !== 'LIVE'}>Ubuntu Bank · real Git and pytest</option>
+                                </select>
+                            </label>
+                            <p className="text-xs text-muted-foreground">Repository execution requires OpenAI or Ollama and a configured Python environment. Each run uses an isolated clone.</p>
                             <label className="block space-y-2 text-sm">
                                 <span>Presentation pace</span>
                                 <select aria-label="Presentation pace" value={presentationPace}

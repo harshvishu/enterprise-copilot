@@ -25,6 +25,35 @@ const annotation = (title, component, what, why, springAi) => ({ title, componen
 export function explainEvent(event, mode, fallback = false) {
     const { type, agent, data = {} } = event;
     const config = AGENTS[agent];
+    if (data.repository && type === 'TOOL_INVOKED') {
+        const boundaries = {
+            REPOSITORY_PREPARE: ['Prepare an isolated repository', 'LocalRepositoryTool.prepare', 'Reads the actual tracked Ubuntu Bank source and creates a dedicated clone and branch for this run.'],
+            APPLY_FILES: ['Apply Nova’s file changes', 'LocalRepositoryTool.applyAndTest', 'Validates paths and writes full Python files inside the isolated run clone, then records a candidate Git commit.'],
+            GIT_DIFF: ['Read the actual changes', 'LocalRepositoryTool.applyAndTest · LocalRepositoryTool.diff', 'Reads the Git diff between the run’s base and candidate commits. The displayed diff comes from Git.'],
+            PYTEST: ['Execute pytest', 'LocalRepositoryTool.runTests', 'Runs a fixed pytest command against the candidate with networking and repository writes denied; records exit code, output, duration and JUnit counts.'],
+        };
+        const boundary = boundaries[data.step];
+        if (boundary) return annotation(...boundary, 'Evidence is tied to the candidate commit. The baseline remains untouched; failures prevent approval or merge.');
+        if (data.tool === 'repository-context') return annotation('Read repository context', 'PipelineContext.repositoryExecution · LocalRepositoryTool.prepare',
+            'Reads the actual isolated source snapshot and Python guidance prepared for this run.',
+            'The source and README constrain the proposal and review to APIs that actually exist.');
+    }
+    if (data.repository && type === 'AGENT_COMPLETED' && agent === 'Nova') return annotation('Candidate and real test results recorded',
+        'PipelineOrchestrator.runImplementationStages · LocalRepositoryTool.applyAndTest',
+        'Stores the actual Git diff, candidate commit and protected pytest results before Sentinel reviews the changes.',
+        'The model-provided testsPass flag is ignored for repository release gates.');
+    if (data.repository && data.step === 'LOCAL_MERGE') return annotation('Approved commit merged locally',
+        'PipelineOrchestrator.merge · LocalRepositoryTool.mergeApproved',
+        'Fast-forwards the separate integration clone to the exact approved commit.',
+        'The server rechecks tests, review, approval and Git state. The workshop baseline and remote repositories remain untouched.');
+    if (data.repository && type === 'GATE_EVALUATED') {
+        const gates = {
+            TESTS_PASS: ['Actual tests passed', 'Checks server-recorded pytest exit code, timeout, executed test counts and candidate commit.'],
+            REPOSITORY_APPLIED: ['Repository changes recorded', 'Requires an actual candidate commit different from the base commit.'],
+            REVIEW_CURRENT_CANDIDATE: ['Current candidate reviewed', 'Requires Sentinel’s recorded review to match the tested candidate commit.'],
+        };
+        if (gates[data.gate]) return annotation(gates[data.gate][0], 'DeployAgent.decide', gates[data.gate][1], 'Human approval cannot override a failed technical condition.');
+    }
     if (type === 'PIPELINE_STARTED') return annotation('Create and coordinate the run',
         'PipelineOrchestrator · PipelineContext · PipelineStore',
         'Creates a typed PipelineContext, saves the ticket, scenario and AI mode, then invokes run through the @Async proxy.',
@@ -33,7 +62,7 @@ export function explainEvent(event, mode, fallback = false) {
         'The LIVE provider failed; the configured fallback switches the rest of this run to deterministic DEMO output.',
         'The event and audit trail disclose the change. Subsequent scripted results are not live model responses.');
     if (type === 'AGENT_STARTED' && config) return annotation(`${agent} begins`, `${config[0]}.${config[1]} · PipelineContext`,
-        config[3], 'Each agent reads the preceding typed evidence from PipelineContext and returns its own result.');
+        data.repository && agent === 'Nova' ? 'Prepares complete Python file changes using the actual isolated source snapshot. LocalRepositoryTool applies and tests the returned files before Sentinel runs.' : config[3], 'Each agent reads the preceding typed evidence from PipelineContext and returns its own result.');
     if (agent === 'Confluence' && type === 'AGENT_STARTED') return annotation('Gather business context',
         'PipelineOrchestrator.withConfluenceActivity · ConfluenceAgent.gatherContext (workshop integration)',
         'The optional participant integration begins gathering business context before Rhea.',
@@ -62,7 +91,7 @@ export function explainEvent(event, mode, fallback = false) {
         'The optional context call returned. Rhea receives the additional context through the workshop integration.',
         'Rhea assesses policy applicability; retrieved text does not automatically resolve every ambiguity.');
     if (agent === 'Atlas' && type === 'AGENT_STARTED') return annotation('Evaluate release gates', 'DeployAgent.evaluate · DeployAgent.decide',
-        'Atlas checks requirements, proposal artifacts, review, critical findings, the proposed test signal and human approval.',
+        data.repository ? 'Atlas checks actual changes, candidate-bound Sentinel review, protected pytest results, critical findings and human approval.' : 'Atlas checks requirements, proposal artifacts, review, critical findings, the proposed test signal and human approval.',
         'These are deterministic Java conditions. There is no LLM or Spring AI call in Atlas.');
     if (agent === 'Atlas' && type === 'AGENT_COMPLETED') return annotation('Release authorization returned', 'DeployAgent.decide · DeploymentDecision',
         'All deterministic gates and human approval passed; Atlas returns an allowed DeploymentDecision.',
@@ -130,7 +159,8 @@ export function workshopEntries(events, mode) {
         const meaningful = Boolean(explanation) && (firstTool || firstGate ||
             ['PIPELINE_STARTED', 'AGENT_STARTED', 'APPROVAL_REQUIRED', 'GATE_BLOCKED',
                 'APPROVAL_GRANTED', 'APPROVAL_REJECTED', 'AI_FALLBACK', 'DEPLOYMENT_STARTED', 'PIPELINE_COMPLETED'].includes(event.type) ||
-            (event.type === 'AGENT_THINKING' && event.data?.step === 'MODEL_CALL') ||
+            (event.type === 'TOOL_INVOKED' && ['APPLY_FILES', 'GIT_DIFF', 'PYTEST'].includes(event.data?.step)) ||
+            (event.type === 'AGENT_THINKING' && ['MODEL_CALL', 'LOCAL_MERGE'].includes(event.data?.step)) ||
             (event.type === 'AGENT_COMPLETED' && event.agent !== 'Atlas'));
         if (meaningful) step++;
         return { event, explanation, meaningful, step };
@@ -197,5 +227,13 @@ export function presentationPipeline(pipeline, events, count) {
     const decision = events.findLastIndex((event) => event.agent === 'Atlas' &&
         ['APPROVAL_REQUIRED', 'GATE_BLOCKED', 'AGENT_COMPLETED'].includes(event.type));
     if (decision >= 0 && decision < count) result.deploymentDecision = pipeline.deploymentDecision;
+    if (pipeline.repositoryExecution) {
+        result.repositoryExecution = result.codeChangeSet ? {
+            ...pipeline.repositoryExecution,
+            reviewedCommit: result.reviewDecision ? pipeline.repositoryExecution.reviewedCommit : null,
+            approvedCommit: result.approvalState === 'APPROVED' ? pipeline.repositoryExecution.approvedCommit : null,
+            mergedCommit: shown.some(event => event.data?.step === 'LOCAL_MERGE') ? pipeline.repositoryExecution.mergedCommit : null,
+        } : { testRun: null, candidateCommit: null };
+    }
     return result;
 }

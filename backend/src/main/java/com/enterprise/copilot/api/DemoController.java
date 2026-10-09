@@ -81,10 +81,19 @@ public class DemoController {
      */
     @PostMapping("/run")
     public PipelineResponse run(@RequestParam(required = false) String issueKey) {
+        return run(issueKey, false);
+    }
+
+    @PostMapping("/run-repository")
+    public PipelineResponse runRepository(@RequestParam(required = false) String issueKey) {
+        return run(issueKey, true);
+    }
+
+    private PipelineResponse run(String issueKey, boolean executeRepository) {
 
         if (issueKey == null || issueKey.isBlank()) {
             return PipelineResponse.from(
-                    orchestrator.createAndRun(demoTickets.ubuntuBankTicket(demoState.scenario())));
+                    orchestrator.createAndRun(demoTickets.ubuntuBankTicket(demoState.scenario()), executeRepository));
         }
 
         DemoTickets.DemoIssue issue =
@@ -95,7 +104,7 @@ public class DemoController {
                                         new IllegalArgumentException(
                                                 "Unknown demo issue: " + issueKey));
 
-        PipelineContext ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario());
+        PipelineContext ctx = orchestrator.createAndRun(issue.ticket(), issue.scenario(), executeRepository);
 
         return PipelineResponse.from(ctx);
     }

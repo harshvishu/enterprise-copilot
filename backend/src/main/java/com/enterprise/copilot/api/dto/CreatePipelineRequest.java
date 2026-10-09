@@ -9,7 +9,11 @@ public record CreatePipelineRequest(
         @NotBlank String ticketKey,
         @NotBlank String title,
         @NotBlank String description,
-        String source) {
+        String source,
+        boolean executeRepository) {
+    public CreatePipelineRequest(String ticketKey, String title, String description, String source) {
+        this(ticketKey, title, description, source, false);
+    }
     public String sourceOrDefault() {
         return source == null || source.isBlank() ? "JIRA" : source;
     }

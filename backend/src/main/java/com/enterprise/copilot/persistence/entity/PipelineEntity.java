@@ -62,6 +62,12 @@ public class PipelineEntity {
     @Column(name = "deployment_json", columnDefinition = "text")
     private String deploymentJson;
 
+    @Column(name = "repository_json", columnDefinition = "text")
+    private String repositoryJson;
+
+    public String getRepositoryJson() { return repositoryJson; }
+    public void setRepositoryJson(String value) { repositoryJson = value; }
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

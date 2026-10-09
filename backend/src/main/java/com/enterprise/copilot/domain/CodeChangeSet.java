@@ -3,8 +3,8 @@ package com.enterprise.copilot.domain;
 import java.util.List;
 
 /**
- * Structured output of the Code Agent (Nova): a <strong>proposal</strong>,
- * never an applied change.
+ * Structured output of Nova. Initially a proposal; in repository runs the orchestrator
+ * replaces its preview with actual Git evidence after applying files in the isolated clone.
  *
  * @param files       proposed file changes
  * @param unifiedDiff GitHub-style unified diff rendered in the UI

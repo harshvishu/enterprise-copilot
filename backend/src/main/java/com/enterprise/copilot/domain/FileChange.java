@@ -1,9 +1,8 @@
 package com.enterprise.copilot.domain;
 
 /**
- * A single proposed file change. The Code Agent never writes
- * to the real filesystem – it only proposes changes rendered
- * as a GitHub-style diff.
+ * A single proposed file change. Nova returns data; LocalRepositoryTool may apply
+ * the validated contents in an isolated repository run.
  *
  * @param path       repository-relative path
  * @param changeType CREATE or MODIFY

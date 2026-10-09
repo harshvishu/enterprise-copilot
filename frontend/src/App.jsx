@@ -28,6 +28,7 @@ export default function App() {
     const [events, setEvents] = useState([]);
     const [nav, setNav] = useState('dashboard');
     const [presentationPace, setPresentationPace] = useState(0);
+    const [executeRepository, setExecuteRepository] = useState(false);
     const [followLatest, setFollowLatest] = useState(true);
     const outputRef = useRef(null);
     const entries = useMemo(() => presentationSections(workshopEntries(events, pipeline?.aiMode || status?.aiMode)), [events, pipeline?.aiMode, status?.aiMode]);
@@ -169,7 +170,7 @@ export default function App() {
             sourceRef.current?.close();
             clearInterval(pollRef.current);
             setEvents([]);
-            const p = await api.runDemo(key);
+            const p = await api.runDemo(key, executeRepository && status?.aiMode === 'LIVE');
             api.status().then(setStatus).catch(() => {});
 
             setSelectedIssue(key);
@@ -184,7 +185,7 @@ export default function App() {
 
     async function approve() {
         await perform(async () => {
-            await api.approve(pipeline.id);
+            await api.approve(pipeline.id, pipeline.repositoryExecution?.candidateCommit);
             await refresh(pipeline.id);
         }, 'approve');
     }
@@ -194,6 +195,13 @@ export default function App() {
             await api.reject(pipeline.id);
             await refresh(pipeline.id);
         }, 'reject');
+    }
+
+    async function merge() {
+        await perform(async () => {
+            await api.merge(pipeline.id, pipeline.repositoryExecution?.approvedCommit);
+            await refresh(pipeline.id);
+        }, 'merge');
     }
 
     async function clarify(answers) {
@@ -247,6 +255,8 @@ export default function App() {
                             onPresentationPace={setPresentationPace}
                             followLatest={followLatest}
                             onFollowLatest={setFollowLatest}
+                            executeRepository={executeRepository}
+                            onExecuteRepository={setExecuteRepository}
                         />
                         {loading ? (
                             <div aria-label="Loading pipeline" className="space-y-6 py-8">
@@ -312,6 +322,7 @@ export default function App() {
                                             activity={activity('Atlas')}
                                             onApprove={approve}
                                             onReject={reject}
+                                            onMerge={merge}
                                             pending={busy}
                                             action={pendingAction}
                                             events={visibleEvents}

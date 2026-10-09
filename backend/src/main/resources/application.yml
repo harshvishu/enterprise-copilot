@@ -54,6 +54,11 @@ springdoc:
     path: /swagger-ui.html
 
 copilot:
+  repository:
+    path: ${COPILOT_REPOSITORY_PATH:../ubuntu-bank-demo}
+    workspace-root: ${COPILOT_REPOSITORY_WORKSPACE_ROOT:../.copilot-repository}
+    python: ${COPILOT_REPOSITORY_PYTHON:../ubuntu-bank-demo/.venv/bin/python}
+    test-timeout-seconds: ${COPILOT_REPOSITORY_TEST_TIMEOUT_SECONDS:60}
   ai:
     mode: DEMO # Legacy property; effective mode/banner is derived from the selected profile.
     # LIVE failures are retried; fallback=demo then finishes the run with visible DEMO output.

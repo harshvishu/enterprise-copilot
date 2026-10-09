@@ -68,7 +68,11 @@ public class MockGitHubGateway implements GitHubGateway {
         }
 
         List<GitHubView.Check> checks =
-                List.of(
+                ctx.executesRepository() ? List.of(
+                        new GitHubView.Check("Actual local pytest", ctx.repositoryExecution().testRun() == null
+                                ? "not_evaluated" : ctx.repositoryExecution().testsPassed() ? "success" : "failure"),
+                        new GitHubView.Check("Sentinel candidate review", review == null ? "not_evaluated"
+                                : review.passed() ? "success" : "failure")) : List.of(
                         new GitHubView.Check("Generated build (not executed)", "not_evaluated"),
                         new GitHubView.Check(
                                 "Test signal (simulated/model-provided)",
@@ -88,6 +92,8 @@ public class MockGitHubGateway implements GitHubGateway {
 
     private String prState(PipelineContext ctx) {
 
+        if (ctx.executesRepository()) return ctx.repositoryExecution().mergedCommit() != null ? "merged_locally" : "not_merged";
+
         return switch (ctx.state()) {
             case DEPLOYED -> "merged";
 
@@ -100,7 +106,7 @@ public class MockGitHubGateway implements GitHubGateway {
     private String deploymentStatus(PipelineContext ctx) {
 
         return switch (ctx.state()) {
-            case DEPLOYED -> "Deployed";
+            case DEPLOYED -> "Simulated deployment completed";
 
             case WAITING_FOR_APPROVAL -> "Blocked – human approval required";
 

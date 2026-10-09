@@ -21,7 +21,8 @@ public record PipelineResponse(
         String reviewFeedback,
         DeploymentDecision deploymentDecision,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        RepositoryExecution repositoryExecution) {
 
     public static PipelineResponse from(PipelineContext ctx) {
         return new PipelineResponse(
@@ -37,6 +38,7 @@ public record PipelineResponse(
                 ctx.reviewFeedback(),
                 ctx.deploymentDecision(),
                 ctx.createdAt(),
-                ctx.updatedAt());
+                ctx.updatedAt(),
+                ctx.repositoryExecution());
     }
 }

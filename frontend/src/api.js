@@ -20,8 +20,8 @@ export const api = {
     setScenario: (scenario) =>
         fetch(`${BASE}/demo/scenario?scenario=${scenario}`, { method: 'POST' }).then(json),
 
-    runDemo: (issueKey) =>
-        fetch(`${BASE}/demo/run${issueKey ? `?issueKey=${encodeURIComponent(issueKey)}` : ''}`, {
+    runDemo: (issueKey, executeRepository = false) =>
+        fetch(`${BASE}/demo/${executeRepository ? 'run-repository' : 'run'}${issueKey ? `?issueKey=${encodeURIComponent(issueKey)}` : ''}`, {
             method: 'POST',
         }).then(json),
 
@@ -31,7 +31,14 @@ export const api = {
 
     getPipeline: (id) => fetch(`${BASE}/pipelines/${id}`).then(json),
 
-    approve: (id) => fetch(`${BASE}/pipelines/${id}/approve`, { method: 'POST' }).then(json),
+    approve: (id, candidateCommit) => fetch(`${BASE}/pipelines/${id}/approve`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateCommit }),
+    }).then(json),
+    merge: (id, candidateCommit) => fetch(`${BASE}/pipelines/${id}/merge`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateCommit }),
+    }).then(json),
 
     reject: (id) => fetch(`${BASE}/pipelines/${id}/reject`, { method: 'POST' }).then(json),
 

@@ -12,6 +12,7 @@ import com.enterprise.copilot.domain.*;
 import com.enterprise.copilot.domain.audit.AuditService;
 import com.enterprise.copilot.infrastructure.ai.DemoState;
 import com.enterprise.copilot.persistence.PipelineStore;
+import com.enterprise.copilot.tools.LocalRepositoryTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -47,6 +48,7 @@ public class PipelineOrchestrator {
     private final DemoState demoState;
     private final ObjectProvider<PipelineOrchestrator> self;
     private final PresentationPacer pacer;
+    private final LocalRepositoryTool repository;
 
     public PipelineOrchestrator(
             RequirementsAgent requirementsAgent,
@@ -62,7 +64,8 @@ public class PipelineOrchestrator {
             AuditService audit,
             DemoState demoState,
             ObjectProvider<PipelineOrchestrator> self,
-            PresentationPacer pacer) {
+            PresentationPacer pacer,
+            LocalRepositoryTool repository) {
 
         this.requirementsAgent = requirementsAgent;
         // WORKSHOP 3/4: Store the injected participant agent.
@@ -78,6 +81,7 @@ public class PipelineOrchestrator {
         this.demoState = demoState;
         this.self = self;
         this.pacer = pacer;
+        this.repository = repository;
     }
 
     /**
@@ -88,6 +92,15 @@ public class PipelineOrchestrator {
         return createAndRun(ticket, selection.scenario(), selection.mode());
     }
 
+    public PipelineContext createAndRun(Ticket ticket, boolean executeRepository) {
+        DemoState.Selection selection = demoState.snapshot();
+        return createAndRun(ticket, selection.scenario(), selection.mode(), executeRepository);
+    }
+
+    public PipelineContext createAndRun(Ticket ticket, DemoScenario scenario, boolean executeRepository) {
+        return createAndRun(ticket, scenario, demoState.snapshot().mode(), executeRepository);
+    }
+
     /**
      * Create and run a pipeline with an explicit scenario; only the DEMO provider reads it.
      */
@@ -96,9 +109,17 @@ public class PipelineOrchestrator {
     }
 
     private PipelineContext createAndRun(Ticket ticket, DemoScenario scenario, AiMode mode) {
+        return createAndRun(ticket, scenario, mode, false);
+    }
+
+    private PipelineContext createAndRun(Ticket ticket, DemoScenario scenario, AiMode mode, boolean executeRepository) {
+        if (executeRepository && mode != AiMode.LIVE)
+            throw new IllegalArgumentException("Repository execution requires LIVE OpenAI or Ollama; Java DEMO proposals are never applied.");
         PipelineContext ctx =
                 new PipelineContext(UUID.randomUUID(), ticket,
                         mode == AiMode.DEMO ? scenario : DemoScenario.NORMAL, mode);
+
+        if (executeRepository) ctx.setRepositoryExecution(RepositoryExecution.requested());
 
         store.save(ctx);
 
@@ -128,6 +149,14 @@ public class PipelineOrchestrator {
         PipelineContext ctx = store.load(pipelineId).orElseThrow();
 
         try {
+
+            if (ctx.executesRepository()) {
+                events.publish(PipelineEvent.of(pipelineId, PipelineEventType.TOOL_INVOKED, "Rhea",
+                        "Creating an isolated Ubuntu Bank clone and reading source files",
+                        Map.of("step", "REPOSITORY_PREPARE", "repository", true)));
+                ctx.setRepositoryExecution(repository.prepare(pipelineId));
+                store.save(ctx);
+            }
 
             // 1. Requirements
 
@@ -296,6 +325,10 @@ public class PipelineOrchestrator {
         ctx.setReviewDecision(null);
         ctx.setDeploymentDecision(null);
         ctx.setApprovalState(ApprovalState.NOT_REQUIRED);
+        if (ctx.executesRepository()) {
+            var previous = ctx.repositoryExecution();
+            ctx.setRepositoryExecution(previous.candidate(previous.candidateCommit(), previous.sourceFiles(), null));
+        }
         transition(ctx, PipelineState.GENERATING_CODE);
         events.publish(PipelineEvent.of(pipelineId, PipelineEventType.AGENT_COMPLETED,
                 "Human", "Review feedback received. Nova will revise the proposal and Sentinel will review it again."));
@@ -335,6 +368,30 @@ public class PipelineOrchestrator {
 
         CodeChangeSet changeSet = codeAgent.generate(ctx);
 
+        if (ctx.executesRepository()) {
+            RepositoryExecution execution = repository.applyAndTest(ctx.repositoryExecution(), changeSet, step -> {
+                String message = switch (step) {
+                    case "APPLY_FILES" -> "Writing proposed Python files to the isolated run clone";
+                    case "GIT_DIFF" -> "Reading the actual Git diff for the candidate commit";
+                    default -> "Running protected pytest against the candidate commit";
+                };
+                events.publish(PipelineEvent.of(pipelineId, PipelineEventType.TOOL_INVOKED,
+                        CodeGenerationAgent.NAME, message, Map.of("step", step, "repository", true)));
+            });
+            ctx.setRepositoryExecution(execution);
+            String diff = repository.diff(execution);
+            changeSet = new CodeChangeSet(changeSet.files().stream().map(file ->
+                    new FileChange(file.path(), file.changeType(), execution.sourceFiles().get(file.path()))).toList(),
+                    diff, changeSet.explanation(), changeSet.tests(), changeSet.assumptions(), changeSet.testsPass());
+            ctx.setCodeChangeSet(changeSet);
+            store.save(ctx);
+            events.publish(PipelineEvent.of(pipelineId, PipelineEventType.AGENT_COMPLETED, CodeGenerationAgent.NAME,
+                    "Actual Git changes recorded; pytest " + (execution.testsPassed() ? "passed" : "failed")
+                            + " (exit " + execution.testRun().exitCode() + ", " + execution.testRun().collected() + " tests)",
+                    Map.of("repository", true, "step", "PYTEST_RESULT", "candidateCommit", execution.candidateCommit(),
+                            "exitCode", execution.testRun().exitCode(), "tests", execution.testRun().collected())));
+        }
+
         ctx.setCodeChangeSet(changeSet);
 
         transition(ctx, PipelineState.CODE_READY);
@@ -346,6 +403,7 @@ public class PipelineOrchestrator {
         ReviewDecision review = reviewAgent.review(ctx);
 
         ctx.setReviewDecision(review);
+        if (ctx.executesRepository()) ctx.setRepositoryExecution(ctx.repositoryExecution().reviewed());
 
         if (review.outcome() == ReviewOutcome.REQUEST_CHANGES
                 && (ctx.aiMode() == AiMode.LIVE || ctx.scenario() == DemoScenario.SECURITY_FAILURE)) {
@@ -371,7 +429,7 @@ public class PipelineOrchestrator {
         } else if (decision.requiresApproval()
                 && review.passed()
                 && !review.hasCriticalFindings()
-                && changeSet.testsPass()) {
+                && (ctx.executesRepository() ? ctx.repositoryExecution().testsPassed() : changeSet.testsPass())) {
 
             ctx.setApprovalState(ApprovalState.PENDING);
 
@@ -408,6 +466,10 @@ public class PipelineOrchestrator {
      * Human approves the deployment. AI can never call this path.
      */
     public PipelineContext approve(UUID pipelineId, String approver) {
+        return approve(pipelineId, approver, null);
+    }
+
+    public synchronized PipelineContext approve(UUID pipelineId, String approver, String candidateCommit) {
 
         PipelineContext ctx = store.load(pipelineId).orElseThrow();
 
@@ -415,6 +477,18 @@ public class PipelineOrchestrator {
 
             throw new IllegalStateException(
                     "Pipeline is not awaiting approval (state=" + ctx.state() + ")");
+        }
+
+        if (ctx.executesRepository()) {
+            if (candidateCommit == null || !candidateCommit.equals(ctx.repositoryExecution().candidateCommit()))
+                throw new IllegalArgumentException("Explicit approval must identify the displayed candidate commit.");
+            repository.verifyCandidate(ctx.repositoryExecution());
+            DeploymentDecision check = deployAgent.revalidate(ctx);
+            if (!check.requiresApproval() || !ctx.repositoryExecution().testsPassed()
+                    || !candidateCommit.equals(ctx.repositoryExecution().reviewedCommit())
+                    || !ctx.reviewDecision().passed())
+                throw new IllegalStateException("The current repository candidate cannot be approved.");
+            ctx.setRepositoryExecution(ctx.repositoryExecution().approved());
         }
 
         ctx.setApprovalState(ApprovalState.APPROVED);
@@ -449,6 +523,25 @@ public class PipelineOrchestrator {
             transition(ctx, PipelineState.BLOCKED);
         }
 
+        return ctx;
+    }
+
+    public synchronized PipelineContext merge(UUID pipelineId, String approver, String candidateCommit) {
+        PipelineContext ctx = store.load(pipelineId).orElseThrow();
+        if (!ctx.executesRepository() || ctx.approvalState() != ApprovalState.APPROVED
+                || candidateCommit == null || !candidateCommit.equals(ctx.repositoryExecution().approvedCommit()))
+            throw new IllegalStateException("Explicit approval for this candidate is required before local merge.");
+        repository.verifyCandidate(ctx.repositoryExecution());
+        if (!deployAgent.revalidate(ctx).allowed())
+            throw new IllegalStateException("Release gates no longer pass.");
+        if (ctx.repositoryExecution().mergedCommit() != null) return ctx;
+        ctx.setRepositoryExecution(repository.mergeApproved(ctx.repositoryExecution()));
+        store.save(ctx);
+        events.publish(PipelineEvent.of(pipelineId, PipelineEventType.AGENT_THINKING, DeployAgent.NAME,
+                "Approved candidate merged into the separate local integration clone; baseline unchanged",
+                Map.of("step", "LOCAL_MERGE", "repository", true, "commit", ctx.repositoryExecution().mergedCommit())));
+        audit.record(pipelineId, "Human", "LOCAL_MERGE", "MERGED", "EXPLICIT_APPROVAL",
+                "Merged " + candidateCommit + " by " + approver + " into the integration clone only.");
         return ctx;
     }
 
@@ -495,7 +588,7 @@ public class PipelineOrchestrator {
                         ctx.pipelineId(),
                         PipelineEventType.DEPLOYMENT_STARTED,
                         DeployAgent.NAME,
-                        "Deploying to production..."));
+                        "Simulated deployment started; no production artifacts are deployed."));
 
         pacer.afterTransition(ctx.aiMode());
 
@@ -506,7 +599,7 @@ public class PipelineOrchestrator {
                         ctx.pipelineId(),
                         PipelineEventType.DEPLOYMENT_COMPLETED,
                         DeployAgent.NAME,
-                        "Deployment completed."));
+                        "Simulated deployment completed."));
 
         events.publish(
                 PipelineEvent.of(
@@ -521,7 +614,7 @@ public class PipelineOrchestrator {
                 "DEPLOY",
                 "DEPLOYED",
                 "OK",
-                "Deployment completed.");
+                "Simulated deployment completed; no production deployment was performed.");
     }
 
     private void transition(PipelineContext ctx, PipelineState state) {

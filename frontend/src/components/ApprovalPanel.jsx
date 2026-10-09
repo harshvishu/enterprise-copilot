@@ -14,7 +14,9 @@ import {
 import { cn } from '@/lib/utils';
 import AgentActivity from './AgentActivity';
 
-export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, activity, onApprove, onReject, pending, action, events }) {
+export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, activity, onApprove, onReject, onMerge, pending, action, events }) {
+    const repository = pipeline?.repositoryExecution;
+    const tests = repository?.testRun;
     const waiting = pipeline?.state === 'WAITING_FOR_APPROVAL';
     const deployed = pipeline?.state === 'DEPLOYED';
     const blocked = ['BLOCKED', 'REVIEW_FAILED'].includes(pipeline?.state);
@@ -65,11 +67,12 @@ export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, act
         {
             id: 'TESTS_PASS',
             label:
-                pipeline?.codeChangeSet && !hasProposedTests(pipeline.codeChangeSet)
+                repository ? 'Actual pytest passed for this candidate'
+                : pipeline?.codeChangeSet && !hasProposedTests(pipeline.codeChangeSet)
                     ? 'Test signal not evaluated: no valid proposed tests'
                     : GATE_LABELS.TESTS_PASS,
-            passed: hasPassingTestSignal(pipeline?.codeChangeSet),
-            known: Boolean(pipeline?.codeChangeSet),
+            passed: repository ? Boolean(tests && !tests.timedOut && tests.exitCode === 0 && tests.collected > tests.skipped && tests.failures === 0 && tests.errors === 0 && tests.commit === repository.candidateCommit) : hasPassingTestSignal(pipeline?.codeChangeSet),
+            known: repository ? Boolean(tests) : Boolean(pipeline?.codeChangeSet),
         },
     ];
     // While Atlas runs, reveal each gate only once its deterministic result has been published.
@@ -124,7 +127,7 @@ export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, act
                             <Rocket className="h-4 w-4 text-muted-foreground" />
                         )}
                         {deployed
-                            ? 'Deployment completed'
+                            ? repository ? repository.mergedCommit ? 'Changes merged locally' : 'Changes approved · local merge available' : 'Simulated deployment completed'
                             : blocked
                               ? 'Deployment blocked'
                               : failed
@@ -139,7 +142,7 @@ export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, act
                     </h3>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">
                         {deployed
-                            ? 'Simulated deployment authorized by human approval.'
+                            ? repository ? 'Deployment is simulated. Local merging requires the separate action below; the workshop baseline stays untouched.' : 'Simulated deployment authorized by human approval.'
                             : waiting
                               ? 'Technical gates passed. Your approval is required.'
                               : blocked
@@ -157,7 +160,7 @@ export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, act
                                 ) : (
                                     <Check />
                                 )}
-                                {pending && action === 'approve' ? 'Approving...' : 'Approve deployment'}
+                                {pending && action === 'approve' ? 'Approving...' : repository ? 'Approve candidate changes' : 'Approve deployment'}
                             </Button>
                             <Button
                                 variant="outline"
@@ -174,10 +177,15 @@ export default function ApprovalPanel({ pipeline, actionPipeline = pipeline, act
                             </Button>
                         </div>
                     )}
+                    {actionPipeline?.repositoryExecution?.approvedCommit && actionPipeline.approvalState === 'APPROVED' && !actionPipeline.repositoryExecution.mergedCommit && <div data-human-controls className="mt-5 max-w-sm space-y-2">
+                        <p className="break-anywhere font-mono text-xs">Approved commit: {actionPipeline.repositoryExecution.approvedCommit}</p>
+                        <Button variant="outline" className="w-full" disabled={pending} onClick={onMerge}>{action === 'merge' ? 'Merging...' : 'Merge approved commit locally'}</Button>
+                        <p className="text-xs text-muted-foreground">Fast-forward the separate integration clone only. No remote push or production deployment.</p>
+                    </div>}
                     <Separator className="my-5" />
                     <h4 className="mb-3 text-xs font-medium">Release gates</h4>
                     <p className="mb-3 text-xs leading-5 text-muted-foreground">
-                        The test signal is simulated/model-provided. Generated tests are not executed.
+                        {repository ? 'Atlas uses the server-recorded pytest result and requires Sentinel review of the same candidate commit.' : 'The test signal is simulated/model-provided. Generated tests are not executed.'}
                     </p>
                     <ul className="space-y-3">
                         {gates.map((gate) => (

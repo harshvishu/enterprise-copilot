@@ -42,7 +42,7 @@ public class CodeGenerationAgent {
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_STARTED,
                         NAME,
-                        "Generating an implementation proposal..."));
+                        "Generating an implementation proposal...", Map.of("repository", ctx.executesRepository())));
 
         events.publish(
                 PipelineEvent.of(
@@ -63,9 +63,11 @@ public class CodeGenerationAgent {
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
                         "Reading architecture guidance",
-                        Map.of("tool", architecture.name(), "step", "ARCHITECTURE")));
+                        Map.of("tool", ctx.executesRepository() ? "repository-context" : architecture.name(), "repository", ctx.executesRepository(), "step", "ARCHITECTURE")));
 
-        String architectureGuidance = architecture.lookup("notification service");
+        String architectureGuidance = ctx.executesRepository()
+                ? "Python + FastAPI, simple functions, in-memory stores, mock delivery only. Follow the actual repository and README; Spring Boot guidance does not apply."
+                : architecture.lookup("notification service");
 
         pacer.afterActivity(ctx.aiMode());
 
@@ -74,9 +76,10 @@ public class CodeGenerationAgent {
                         ctx.pipelineId(),
                         PipelineEventType.TOOL_INVOKED,
                         NAME,
-                        "Reading published API contract",
-                        Map.of("tool", apiSpec.name(), "step", "API_SPEC")));
-        String contract = apiSpec.lookup(ctx.ticket().description());
+                        ctx.executesRepository() ? "Reading actual Python source and API endpoints" : "Reading published API contract",
+                        Map.of("tool", ctx.executesRepository() ? "repository-context" : apiSpec.name(), "repository", ctx.executesRepository(), "step", "API_SPEC")));
+        String contract = ctx.executesRepository()
+                ? ctx.repositoryExecution().sourceFiles().toString() : apiSpec.lookup(ctx.ticket().description());
         pacer.afterActivity(ctx.aiMode());
 
         events.publish(
@@ -85,13 +88,13 @@ public class CodeGenerationAgent {
                         PipelineEventType.AGENT_THINKING,
                         NAME,
                         "Requesting implementation proposal",
-                        Map.of("step", "MODEL_CALL")));
+                        Map.of("step", "MODEL_CALL", "repository", ctx.executesRepository())));
 
         pacer.afterActivity(ctx.aiMode());
 
         String prompt =
                 prompts.render(
-                        "codegen",
+                        ctx.executesRepository() ? "repository-codegen" : "codegen",
                         Map.of(
                                 "analysis", analysisSummary,
                                 "acceptanceCriteria",
@@ -110,7 +113,7 @@ public class CodeGenerationAgent {
 
         int testsProposed = changeSet.tests() == null ? 0 : changeSet.tests().size();
 
-        events.publish(
+        if (!ctx.executesRepository()) events.publish(
                 PipelineEvent.of(
                         ctx.pipelineId(),
                         PipelineEventType.AGENT_COMPLETED,

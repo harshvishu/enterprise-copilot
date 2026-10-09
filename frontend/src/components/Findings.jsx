@@ -67,6 +67,7 @@ export default function Findings({ review, running = false, mode, events, status
                         )
                     ) : (
                         <div data-result-for="Sentinel">
+                            {pipeline?.repositoryExecution?.reviewedCommit && <p className="mb-3 break-anywhere font-mono text-xs text-muted-foreground">Reviewed candidate: {pipeline.repositoryExecution.reviewedCommit}</p>}
                             <div
                                 className={cn(
                                     'mb-3 flex items-center gap-2 text-sm font-medium',

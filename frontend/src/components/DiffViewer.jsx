@@ -11,7 +11,7 @@ import {
     DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 
-export default function DiffViewer({ diff, defaultOpen = false }) {
+export default function DiffViewer({ diff, defaultOpen = false, label = 'Proposed diff' }) {
     const [selected, setSelected] = useState('all');
     if (!diff) return <p className="text-sm text-muted-foreground">No code proposal yet.</p>;
     const files = diff.split(/(?=^diff --git )/m).filter(Boolean);
@@ -22,7 +22,7 @@ export default function DiffViewer({ diff, defaultOpen = false }) {
                 <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="group -ml-1">
                         <FileCode2 />
-                        Proposed diff
+                        {label}
                         <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
                     </Button>
                 </CollapsibleTrigger>

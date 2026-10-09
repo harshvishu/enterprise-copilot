@@ -68,6 +68,8 @@ public class RoutingAgentAiClient implements AgentAiClient {
     public <T> T generateForRun(
             AgentKind agent, PipelineContext context, String prompt, Class<T> responseType) {
         if (context.aiMode() == AiMode.DEMO || degradedRuns.contains(context.pipelineId())) {
+            if (context.executesRepository())
+                throw new IllegalStateException("Repository execution cannot use scripted DEMO output.");
             return demo.generateForRun(agent, context, prompt, responseType);
         }
 
@@ -92,7 +94,7 @@ public class RoutingAgentAiClient implements AgentAiClient {
             failure = ex;
         }
 
-        if (!fallbackToDemo) {
+        if (!fallbackToDemo || context.executesRepository()) {
             throw failure;
         }
         degradedRuns.add(context.pipelineId());

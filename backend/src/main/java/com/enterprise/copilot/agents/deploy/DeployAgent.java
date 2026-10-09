@@ -5,6 +5,7 @@ import com.enterprise.copilot.domain.DeploymentDecision;
 import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
+import com.enterprise.copilot.domain.RepositoryExecution;
 import com.enterprise.copilot.domain.audit.AuditService;
 import com.enterprise.copilot.orchestration.PipelineEvent;
 import com.enterprise.copilot.orchestration.PipelineEventPublisher;
@@ -51,7 +52,7 @@ public class DeployAgent {
                                 ctx.pipelineId(),
                                 PipelineEventType.AGENT_STARTED,
                                 NAME,
-                                "Evaluating release gates with deterministic Java rules...")
+                                "Evaluating release gates with deterministic Java rules...", Map.of("repository", ctx.executesRepository()))
                         : PipelineEvent.of(
                                 ctx.pipelineId(),
                                 PipelineEventType.AGENT_THINKING,
@@ -102,9 +103,20 @@ public class DeployAgent {
         }
         gate(ctx, showGates, "NO_CRITICAL_FINDINGS", !criticalFindings, false);
 
-        boolean testSignalPassed =
-                ctx.codeChangeSet() != null && ctx.codeChangeSet().hasPassingTestSignal();
-        if (ctx.codeChangeSet() == null || !ctx.codeChangeSet().hasProposedTests()) {
+        RepositoryExecution execution = ctx.repositoryExecution();
+        boolean testSignalPassed = ctx.executesRepository() ? execution.testsPassed()
+                : ctx.codeChangeSet() != null && ctx.codeChangeSet().hasPassingTestSignal();
+        if (ctx.executesRepository()) {
+            boolean applied = execution.candidateCommit() != null
+                    && !execution.candidateCommit().equals(execution.baseCommit());
+            boolean reviewed = execution.candidateCommit() != null
+                    && execution.candidateCommit().equals(execution.reviewedCommit());
+            if (!applied) blocking.add("Actual repository changes are missing.");
+            if (!reviewed) blocking.add("Sentinel has not reviewed this candidate commit.");
+            if (!testSignalPassed) blocking.add("Actual pytest failed, timed out, or collected no passing tests for this candidate.");
+            gate(ctx, showGates, "REPOSITORY_APPLIED", applied, false);
+            gate(ctx, showGates, "REVIEW_CURRENT_CANDIDATE", reviewed, false);
+        } else if (ctx.codeChangeSet() == null || !ctx.codeChangeSet().hasProposedTests()) {
             blocking.add("Proposed tests are missing or blank; the test signal is not evaluated.");
         } else if (!testSignalPassed) {
             blocking.add(
@@ -130,7 +142,8 @@ public class DeployAgent {
                             ctx.pipelineId(),
                             PipelineEventType.APPROVAL_REQUIRED,
                             NAME,
-                            "All gates passed. Human approval is required before production deployment."));
+                            ctx.executesRepository() ? "Actual candidate gates passed. Explicit human approval is required; local merge is a separate action."
+                                    : "All gates passed. Human approval is required before simulated deployment."));
 
             DeploymentDecision decision =
                     new DeploymentDecision(
@@ -216,7 +229,7 @@ public class DeployAgent {
                         PipelineEventType.GATE_EVALUATED,
                         NAME,
                         gate + (waiting ? ": waiting" : passed ? ": passed" : ": failed"),
-                        Map.of("gate", gate, "passed", passed, "waiting", waiting)));
+                        Map.of("gate", gate, "passed", passed, "waiting", waiting, "repository", ctx.executesRepository())));
 
         pacer.afterActivity(ctx.aiMode());
     }

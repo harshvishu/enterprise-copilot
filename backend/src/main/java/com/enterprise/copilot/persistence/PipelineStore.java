@@ -6,6 +6,7 @@ import com.enterprise.copilot.domain.PipelineContext;
 import com.enterprise.copilot.domain.RequirementAnalysis;
 import com.enterprise.copilot.domain.ReviewDecision;
 import com.enterprise.copilot.domain.Ticket;
+import com.enterprise.copilot.domain.RepositoryExecution;
 import com.enterprise.copilot.persistence.entity.PipelineEntity;
 import com.enterprise.copilot.persistence.repository.PipelineRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,6 +68,7 @@ public class PipelineStore {
         e.setReviewFeedback(ctx.reviewFeedback());
 
         e.setDeploymentJson(toJson(ctx.deploymentDecision()));
+        e.setRepositoryJson(toJson(ctx.repositoryExecution()));
 
         e.setUpdatedAt(Instant.now());
 
@@ -104,6 +106,7 @@ public class PipelineStore {
         ctx.setReviewFeedback(e.getReviewFeedback());
 
         ctx.setDeploymentDecision(fromJson(e.getDeploymentJson(), DeploymentDecision.class));
+        ctx.setRepositoryExecution(fromJson(e.getRepositoryJson(), RepositoryExecution.class));
 
         ctx.restoreUpdatedAt(e.getUpdatedAt());
 
