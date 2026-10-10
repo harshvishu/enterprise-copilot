@@ -31,7 +31,7 @@ export default function Presentation() {
     const [fullscreenError, setFullscreenError] = useState('');
     const activate = useCallback(next => {
         if (next !== activeRef.current) {
-            entries.current[next] = (entries.current[next] ?? 0) + 1;
+            if (next > activeRef.current) entries.current[next] = (entries.current[next] ?? 0) + 1;
             stateRef.current = null;
             setStateInfo(null);
         }

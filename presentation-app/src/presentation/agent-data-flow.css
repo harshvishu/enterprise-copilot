@@ -4,8 +4,8 @@
 .agentic-concept { min-height: 120px; padding-top: 24px; border-top: 1px solid hsl(var(--border)); transition: opacity 450ms, transform 450ms cubic-bezier(.22, 1, .36, 1), visibility 450ms; }
 .agentic-concept[aria-hidden="true"] { opacity: 0; visibility: hidden; transform: translateY(14px); }
 .concept-heading { display: flex; align-items: center; gap: 12px; }
-.concept-heading svg { flex-shrink: 0; color: hsl(var(--primary)); }
-.concept-heading h3 { margin: 0; font: 14px 'Geist Mono Variable', monospace; letter-spacing: .08em; }
+.concept-heading svg { width: 26px; height: 26px; flex-shrink: 0; color: hsl(var(--primary)); }
+.concept-heading h3 { margin: 0; font: 700 clamp(20px, 1.6vw, 28px) 'Geist Mono Variable', monospace; letter-spacing: .04em; color: hsl(var(--foreground)); }
 .agentic-concept p { margin: 16px 0 0 32px; max-width: 440px; font-size: 17px; line-height: 1.65; color: hsl(var(--muted-foreground)); }
 .agentic-concepts-page .reveal-controls { margin-top: 16px; }
 .concepts-takeaway { margin: 24px 0 0; font-size: 18px; color: hsl(var(--foreground)); transition: opacity 450ms, visibility 450ms; }
@@ -16,7 +16,8 @@
     .agentic-concept { min-height: 150px; }
     .agentic-concept p { margin-left: 0; font-size: 15px; }
     .concept-heading { gap: 8px; }
-    .concept-heading h3 { font-size: 11px; }
+    .concept-heading svg { width: 20px; height: 20px; }
+    .concept-heading h3 { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .agentic-concept, .concepts-takeaway { transition: none; }

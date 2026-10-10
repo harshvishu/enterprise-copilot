@@ -135,7 +135,7 @@ describe('shared reversible state navigation', () => {
         ['spring-ai-flow', 4], ['requirements-code', 3], ['enterprise-tools', 3],
         ['pipeline-orchestration', 4], ['code', 3], ['review-gates', 3],
         ['human-approval', 2], ['solution', 4],
-    ])('%s reverses states and starts fresh after crossing slide boundaries', (id, states) => {
+    ])('%s reverses states and preserves them when returning from the next slide', (id, states) => {
         go(id);
         const index = pages.findIndex(page => page.id === id);
         const initialNode = host.querySelector(`#${id}`).cloneNode(true);
@@ -152,18 +152,24 @@ describe('shared reversible state navigation', () => {
             key('ArrowRight');
             expect(indicator()).toBe(`${state} / ${states}`);
         }
+        const revealedNode = host.querySelector(`#${id}`).cloneNode(true);
         click(arrow('Next'));
         expect(window.location.hash).toBe(`#${pages[index + 1].id}`);
         settleAt(index + 1);
         click(arrow('Prev'));
         expect(window.location.hash).toBe(`#${id}`);
         settleAt(index);
-        expect(indicator()).toBe(`1 / ${states}`);
+        expect(indicator()).toBe(`${states} / ${states}`);
+        expect(host.querySelector(`#${id}`).isEqualNode(revealedNode)).toBe(true);
+        for (let state = states - 1; state >= 1; state--) {
+            key('ArrowLeft');
+            expect(indicator()).toBe(`${state} / ${states}`);
+        }
         expect(host.querySelector(`#${id}`).isEqualNode(initialNode)).toBe(true);
         key('ArrowLeft');
         expect(window.location.hash).toBe(`#${pages[index - 1].id}`);
     });
-    it('resets re-entry through scrolling, overview and hash navigation', () => {
+    it('preserves state on backward re-entry through scrolling, overview and hash navigation', () => {
         go('problem');
         key('ArrowRight'); key('ArrowRight');
         expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('3');
@@ -171,16 +177,16 @@ describe('shared reversible state navigation', () => {
         act(() => container.dispatchEvent(new Event('scroll')));
         container.scrollTop = 900;
         act(() => container.dispatchEvent(new Event('scroll')));
-        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('1');
+        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('3');
         key('ArrowRight');
         go('spring-ai'); go('problem');
-        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('1');
+        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('3');
         key('ArrowRight');
         go('spring-ai');
         click(arrow('Page overview'));
         click([...document.querySelectorAll('[aria-label="Presentation pages"] button')].find(button => button.textContent.includes('Traditional → Agentic SDLC')));
         settleAt(1);
-        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('1');
+        expect(host.querySelector('[data-delivery-stage]').dataset.deliveryStage).toBe('3');
     });
     it('shows one Prev/Next pair on all slides and removes old navigation controls', () => {
         expect(host.querySelectorAll('button[aria-label="Prev"]')).toHaveLength(1);
