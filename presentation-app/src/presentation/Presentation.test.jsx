@@ -87,7 +87,7 @@ describe('standalone presentation navigation', () => {
         window.history.replaceState(null, '', '/#hands-on');
         act(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
         expect(Element.prototype.scrollIntoView).toHaveBeenLastCalledWith({ behavior: 'instant', block: 'start' });
-        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('16');
+        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('17');
     });
     it('unlocks via the scroll-idle fallback when scrollend is unavailable', () => {
         vi.useFakeTimers();
@@ -112,14 +112,14 @@ describe('standalone presentation navigation', () => {
         container.scrollTop = 1800;
         act(() => container.dispatchEvent(new Event('scroll')));
         expect(window.location.hash).toBe('#agentic-sdlc');
-        expect(host.querySelector('.page-number').textContent).toBe('03 / 19');
+        expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
         key('PageDown');
         expect(window.location.hash).toBe('#agent-data-flow');
         settleAt(3);
         click(arrow('Prev'));
         expect(window.location.hash).toBe('#agentic-sdlc');
         settleAt(2);
-        expect(host.querySelector('.page-number').textContent).toBe('03 / 19');
+        expect(host.querySelector('.page-number').textContent).toBe('03 / 20');
     });
     it('launches the participant app using the configured URL in a separate tab', () => {
         click(arrow('Speaker notes'));
@@ -132,7 +132,7 @@ describe('standalone presentation navigation', () => {
 describe('shared reversible state navigation', () => {
     it.each([
         ['problem', 3], ['agentic-sdlc', 4], ['agent-data-flow', 5],
-        ['spring-ai-flow', 4], ['requirements-code', 3], ['enterprise-tools', 3],
+        ['spring-ai-flow', 4], ['system-architecture', 4], ['requirements-code', 3], ['enterprise-tools', 3],
         ['pipeline-orchestration', 4], ['code', 3], ['review-gates', 3],
         ['human-approval', 2], ['solution', 4],
     ])('%s reverses states and preserves them when returning from the next slide', (id, states) => {
@@ -214,9 +214,9 @@ describe('shared reversible state navigation', () => {
 
 describe('preserved workshop content', () => {
     it('renders the complete existing manifest with unique semantic IDs and source excerpts', () => {
-        expect(pages).toHaveLength(19);
-        expect(new Set(pages.map(page => page.id)).size).toBe(19);
-        expect(host.querySelectorAll('section')).toHaveLength(19);
+        expect(pages).toHaveLength(20);
+        expect(new Set(pages.map(page => page.id)).size).toBe(20);
+        expect(host.querySelectorAll('section')).toHaveLength(20);
         expect(host.querySelector('#intro')).toBeNull();
         expect(host.querySelector('#welcome h1').textContent).toBe('Your SDLC, Now Agentic - with Spring AI');
         expect(host.querySelector('#welcome').textContent).not.toContain('Join us at');
@@ -224,7 +224,7 @@ describe('preserved workshop content', () => {
         expect(host.querySelector('#solution').textContent).not.toContain('return confluenceTool.lookup');
     });
     it('places the conceptual agentic principles slide before Spring AI', () => {
-        expect(pages.slice(0, 6).map(page => page.id)).toEqual(['welcome', 'problem', 'agentic-sdlc', 'agent-data-flow', 'spring-ai', 'spring-ai-flow']);
+        expect(pages.slice(0, 7).map(page => page.id)).toEqual(['welcome', 'problem', 'agentic-sdlc', 'agent-data-flow', 'spring-ai', 'spring-ai-flow', 'system-architecture']);
         expect(host.querySelector('#architecture')).toBeNull();
         expect(pages.filter(page => page.title === 'What makes this agentic?')).toHaveLength(1);
         expect([...host.querySelectorAll('h2')].filter(heading => heading.textContent === 'What makes this agentic?')).toHaveLength(1);
@@ -254,14 +254,14 @@ describe('preserved workshop content', () => {
         key('PageDown');
         expect(window.location.hash).toBe('#spring-ai');
     });
-    it('updates the overview and footer to the 19-page consolidated manifest', () => {
+    it('updates the overview and footer to the 20-page consolidated manifest', () => {
         window.history.replaceState(null, '', '/#agent-data-flow');
         act(() => window.dispatchEvent(new HashChangeEvent('hashchange')));
-        expect(host.querySelector('.page-number').textContent).toBe('04 / 19');
-        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuemax')).toBe('19');
+        expect(host.querySelector('.page-number').textContent).toBe('04 / 20');
+        expect(host.querySelector('[role="progressbar"]').getAttribute('aria-valuemax')).toBe('20');
         click(arrow('Page overview'));
         const overview = document.querySelector('[aria-label="Presentation pages"]');
-        expect(overview.querySelectorAll('button')).toHaveLength(19);
+        expect(overview.querySelectorAll('button')).toHaveLength(20);
         expect([...overview.querySelectorAll('button')].filter(button => button.textContent.includes('What makes this agentic?'))).toHaveLength(1);
         expect(overview.textContent).not.toContain('Animated agent data flow');
     });

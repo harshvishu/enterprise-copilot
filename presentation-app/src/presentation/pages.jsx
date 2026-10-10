@@ -6,6 +6,7 @@ import { ProblemPage, AgenticPage, SpringPage, SpringFlowPage, OrchestrationPage
 import aiSource from '../content/SpringAiAgentAiClient.java.txt?raw';
 import WelcomePage from './Welcome';
 import AgentDataFlowPage from './AgentDataFlow';
+import SystemArchitecturePage from './SystemArchitecture';
 import { sourceRows } from './source-excerpts';
 
 export const pages = [
@@ -15,6 +16,7 @@ export const pages = [
     { id: 'agent-data-flow', title: 'What makes this agentic?', act: '02 / THE SYSTEM', component: AgentDataFlowPage, notes: 'Reveal four principles: Context — enterprise policy, architecture and API contracts; Specialization — requirements, coding and review; Control — deterministic gates outside model authority; Accountability — humans authorize critical actions. The previous slide already explains the pipeline; focus here on the principles rather than repeating agents or execution stages. Agents advise. Systems enforce. Humans authorize. Keep PipelineOrchestrator and PipelineContext details for the later code walkthrough. Prev reverses reveals; re-entering returns to the title-only opening. Target: 3 minutes.' },
     { id: 'spring-ai', title: 'Spring AI', act: '02 / THE SYSTEM', component: SpringPage, notes: 'Explain only the Spring AI concepts used by this application. Do not make this a general AI lecture. Target: 1 minute.' },
     { id: 'spring-ai-flow', title: 'From prompt to Java', act: '02 / THE SYSTEM', component: SpringFlowPage, notes: 'ChatModel abstracts the provider; ChatClient is the interaction API. Prompts carry instructions/context, and entity maps the response to Java. Model output still needs validation. Target: 2 minutes.' },
+    { id: 'system-architecture', title: 'System architecture', act: '02 / THE SYSTEM', component: SystemArchitecturePage, notes: 'Reveal four cumulative phases: client and API boundary; orchestrator and specialized agents; enterprise tools plus Spring AI/model access; then deterministic gates, persistence, audit and human approval. Emphasize that this is one Spring Boot modular monolith, not a set of microservices. Target: 3 minutes.' },
     { id: 'requirements-code', title: 'Requirements analysis', act: '03 / THE CODE', component: RequirementsPage, notes: 'Introduce Rhea, the Requirements Agent. Show retrieval, additional context and typed analysis. Ambiguity should become clarification rather than invention. Target: 2 minutes.' },
     { id: 'enterprise-tools', title: 'Enterprise tools', act: '03 / THE CODE', component: EnterpriseToolsPage, notes: 'Policy, architecture and API contracts are provided tools. In this workshop document retrieval uses local fixtures. The model reasons over retrieved evidence. Target: 1 minute.' },
     { id: 'pipeline-orchestration', title: 'Pipeline orchestration', act: '03 / THE CODE', component: OrchestrationPage, notes: 'Walk through the four exact source windows. Explain the state transitions and the pause for feedback. The orchestrator owns sequencing. Target: 2 minutes.' },
