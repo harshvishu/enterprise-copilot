@@ -454,7 +454,7 @@ html.presenter-theme.dark  {
     font-family:'Geist Mono Variable',monospace;
     font-size:13px
 }
-:is(#requirements-code,#enterprise-tools,#pipeline-orchestration,#code,#review-gates,#human-approval) .code-file>span:first-of-type {
+:is(#requirements-code,#enterprise-tools,#pipeline-orchestration,#code,#review-gates,#human-approval,#solution) .code-file>span:first-of-type {
     font-size:clamp(20px,1.45vw,26px);
     font-weight:700;
     color:hsl(var(--foreground))
