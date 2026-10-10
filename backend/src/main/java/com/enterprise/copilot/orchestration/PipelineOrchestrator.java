@@ -4,7 +4,7 @@ import com.enterprise.copilot.agents.code.CodeGenerationAgent;
 import com.enterprise.copilot.agents.deploy.DeployAgent;
 // WORKSHOP: Import the participant-created ConfluenceAgent.
 // CONFLUENCE_EXERCISE:IMPORT_BEGIN
-import com.enterprise.copilot.agents.confluence.ConfluenceAgent;
+// TODO: Import the participant-created ConfluenceAgent here.
 // CONFLUENCE_EXERCISE:IMPORT_END
 import com.enterprise.copilot.agents.requirements.RequirementsAgent;
 import com.enterprise.copilot.agents.review.ReviewAgent;
@@ -37,7 +37,7 @@ public class PipelineOrchestrator {
     private final RequirementsAgent requirementsAgent;
     // WORKSHOP 1/4: Add the participant agent as a constructor-injected dependency.
     // CONFLUENCE_EXERCISE:FIELD_BEGIN
-    private final ConfluenceAgent confluenceAgent;
+    // TODO: Add the participant-created ConfluenceAgent dependency here.
     // CONFLUENCE_EXERCISE:FIELD_END
     private final CodeGenerationAgent codeAgent;
     private final ReviewAgent reviewAgent;
@@ -54,7 +54,7 @@ public class PipelineOrchestrator {
             RequirementsAgent requirementsAgent,
             // WORKSHOP 2/4: Add this parameter to the existing constructor.
             // CONFLUENCE_EXERCISE:PARAMETER_BEGIN
-            ConfluenceAgent confluenceAgent,
+            // TODO: Add ConfluenceAgent to this constructor.
             // CONFLUENCE_EXERCISE:PARAMETER_END
             CodeGenerationAgent codeAgent,
             ReviewAgent reviewAgent,
@@ -70,7 +70,7 @@ public class PipelineOrchestrator {
         this.requirementsAgent = requirementsAgent;
         // WORKSHOP 3/4: Store the injected participant agent.
         // CONFLUENCE_EXERCISE:ASSIGNMENT_BEGIN
-        this.confluenceAgent = confluenceAgent;
+        // TODO: Store the injected ConfluenceAgent here.
         // CONFLUENCE_EXERCISE:ASSIGNMENT_END
         this.codeAgent = codeAgent;
         this.reviewAgent = reviewAgent;
@@ -165,9 +165,8 @@ public class PipelineOrchestrator {
             // WORKSHOP 4/4: The supplied wrapper records activity; participants only add their
             // context call.
             // CONFLUENCE_EXERCISE:CALL_BEGIN
-            String businessContext =
-                    withConfluenceActivity(ctx, () -> confluenceAgent.gatherContext(ctx.ticket()));
-            RequirementAnalysis analysis = requirementsAgent.analyze(ctx, businessContext);
+            // TODO: Gather business context here and pass it to Rhea before analysis.
+            RequirementAnalysis analysis = requirementsAgent.analyze(ctx);
             // CONFLUENCE_EXERCISE:CALL_END
 
             ctx.setRequirementAnalysis(analysis);
