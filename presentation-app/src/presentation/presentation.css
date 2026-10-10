@@ -454,6 +454,11 @@ html.presenter-theme.dark  {
     font-family:'Geist Mono Variable',monospace;
     font-size:13px
 }
+:is(#requirements-code,#enterprise-tools,#pipeline-orchestration) .code-file>span:first-of-type {
+    font-size:clamp(20px,1.45vw,26px);
+    font-weight:700;
+    color:hsl(var(--foreground))
+}
 .code-file svg {
     color:hsl(var(--muted-foreground))
 }
